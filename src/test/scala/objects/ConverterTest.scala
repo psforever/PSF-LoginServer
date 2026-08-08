@@ -28,17 +28,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedAmmoBoxData(
-            CommonFieldData(
-              PlanetSideEmpire.NEUTRAL,
-              bops = false,
-              alternate = false,
-              v1 = true,
-              None,
-              jammered = false,
-              None,
-              None,
-              PlanetSideGUID(0)
-            ),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0)),
             obj.Capacity
           )
         case _ =>
@@ -46,17 +36,7 @@ class ConverterTest extends Specification {
       }
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual CommonFieldData(
-            PlanetSideEmpire.NEUTRAL,
-            bops = false,
-            alternate = false,
-            v1 = false,
-            None,
-            jammered = false,
-            Some(false),
-            None,
-            PlanetSideGUID(0)
-          )
+          pkt mustEqual CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, PlanetSideGUID(0))
         case _ =>
           ko
       }
@@ -71,7 +51,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedWeaponData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0)),
             0,
             List(InternalSlot(Ammo.shotgun_shell.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 12)))
           )
@@ -81,24 +61,14 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual WeaponData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0)),
             0,
             List(
               InternalSlot(
                 Ammo.shotgun_shell.id,
                 PlanetSideGUID(90),
                 0,
-                CommonFieldData(
-                  PlanetSideEmpire.NEUTRAL,
-                  bops = false,
-                  alternate = false,
-                  v1 = false,
-                  None,
-                  jammered = false,
-                  Some(false),
-                  None,
-                  PlanetSideGUID(0)
-                )
+                CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, PlanetSideGUID(0))
               )
             )
           )
@@ -115,7 +85,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedWeaponData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0)),
             0,
             List(
               InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, DetailedAmmoBoxData(8, 30)),
@@ -128,17 +98,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual WeaponData(
-            CommonFieldData(
-              PlanetSideEmpire.NEUTRAL, //TODO need faction affinity
-              bops = false,
-              alternate = false,
-              v1 = true,
-              None,
-              jammered = false,
-              None,
-              None,
-              PlanetSideGUID(0)
-            ),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0)),
             0,
             List(
               InternalSlot(Ammo.bullet_9mm.id, PlanetSideGUID(90), 0, CommonFieldData()(flag = false)),
@@ -177,7 +137,7 @@ class ConverterTest extends Specification {
         obj.Definition.Packet.DetailedConstructorData(obj) match {
           case Success(pkt) =>
             pkt mustEqual DetailedConstructionToolData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
             )
           case _ =>
             ko
@@ -186,17 +146,7 @@ class ConverterTest extends Specification {
         obj.Definition.Packet.ConstructorData(obj) match {
           case Success(pkt) =>
             pkt mustEqual HandheldData(
-              CommonFieldData(
-                PlanetSideEmpire.NEUTRAL,
-                bops = false,
-                alternate = false,
-                v1 = true,
-                None,
-                jammered = false,
-                None,
-                None,
-                PlanetSideGUID(0)
-              )
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
             )
           case _ =>
             ko
@@ -214,17 +164,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedREKData(
-            CommonFieldData(
-              PlanetSideEmpire.NEUTRAL, //TODO faction affinity
-              bops = false,
-              alternate = false,
-              v1 = true,
-              None,
-              jammered = false,
-              Some(false),
-              None,
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
           )
         case _ =>
           ko
@@ -232,17 +172,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual REKData(
-            CommonFieldData(
-              PlanetSideEmpire.NEUTRAL,
-              bops = false,
-              alternate = false,
-              v1 = true,
-              None,
-              jammered = false,
-              Some(false),
-              None,
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
           )
         case _ =>
           ko
@@ -257,7 +187,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedConstructionToolData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, None, PlanetSideGUID(0))
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
           )
         case _ =>
           ko
@@ -265,7 +195,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual HandheldData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(0))
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, PlanetSideGUID(0))
           )
         case _ =>
           ko
@@ -280,17 +210,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual HandheldData(
-            CommonFieldData(
-              PlanetSideEmpire.NEUTRAL,
-              bops = false,
-              alternate = false,
-              v1 = false,
-              None,
-              jammered = false,
-              None,
-              Some(1001),
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, Some(1001), PlanetSideGUID(0))
           )
         case _ =>
           ko
@@ -299,17 +219,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedConstructionToolData(
-            CommonFieldData(
-              PlanetSideEmpire.NEUTRAL,
-              bops = false,
-              alternate = false,
-              v1 = true,
-              None,
-              jammered = false,
-              None,
-              Some(1001),
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, Some(1001), PlanetSideGUID(0))
           )
         case _ =>
           ko
@@ -335,17 +245,7 @@ class ConverterTest extends Specification {
         case Success(pkt) =>
           pkt mustEqual SmallDeployableData(CommonFieldDataWithPlacement(
             PlacementData(Vector3.Zero, Vector3.Zero),
-            CommonFieldData(
-              PlanetSideEmpire.TR,
-              bops = false,
-              alternate = false,
-              v1 = false,
-              None,
-              jammered = false,
-              Some(false),
-              None,
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, None, jammered = false, None, PlanetSideGUID(0))
           ))
         case _ =>
           ko
@@ -367,17 +267,7 @@ class ConverterTest extends Specification {
           pkt mustEqual SmallTurretData(
             CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
-              CommonFieldData(
-                PlanetSideEmpire.TR,
-                bops = false,
-                alternate = false,
-                v1 = true,
-                None,
-                jammered = false,
-                None,
-                None,
-                PlanetSideGUID(0)
-              )
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
             ),
             255,
             InventoryData(
@@ -387,34 +277,14 @@ class ConverterTest extends Specification {
                   PlanetSideGUID(91),
                   1,
                   WeaponData(
-                    CommonFieldData(
-                      PlanetSideEmpire.NEUTRAL,
-                      bops = false,
-                      alternate = false,
-                      v1 = true,
-                      None,
-                      jammered = false,
-                      None,
-                      None,
-                      PlanetSideGUID(0)
-                    ),
+                    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0)),
                     0,
                     List(
                       InternalSlot(
                         Ammo.spitfire_ammo.id,
                         PlanetSideGUID(92),
                         0,
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          bops = false,
-                          alternate = false,
-                          v1 = false,
-                          None,
-                          jammered = false,
-                          Some(false),
-                          None,
-                          PlanetSideGUID(0)
-                        )
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, PlanetSideGUID(0))
                       )
                     )
                   )
@@ -442,17 +312,7 @@ class ConverterTest extends Specification {
           pkt mustEqual OneMannedFieldTurretData(
             CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
-              CommonFieldData(
-                PlanetSideEmpire.TR,
-                bops = false,
-                alternate = false,
-                v1 = true,
-                None,
-                jammered = false,
-                Some(false),
-                None,
-                PlanetSideGUID(0)
-              )
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
             ),
             255,
             InventoryData(
@@ -462,34 +322,14 @@ class ConverterTest extends Specification {
                   PlanetSideGUID(91),
                   1,
                   WeaponData(
-                    CommonFieldData(
-                      PlanetSideEmpire.NEUTRAL,
-                      bops = false,
-                      alternate = false,
-                      v1 = true,
-                      None,
-                      jammered = false,
-                      None,
-                      None,
-                      PlanetSideGUID(0)
-                    ),
+                    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0)),
                     0,
                     List(
                       InternalSlot(
                         Ammo.energy_gun_ammo.id,
                         PlanetSideGUID(92),
                         0,
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          bops = false,
-                          alternate = false,
-                          v1 = false,
-                          None,
-                          jammered = false,
-                          Some(false),
-                          None,
-                          PlanetSideGUID(0)
-                        )
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, PlanetSideGUID(0))
                       )
                     )
                   )
@@ -515,17 +355,7 @@ class ConverterTest extends Specification {
           pkt mustEqual TRAPData(
             CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
-              CommonFieldData(
-                PlanetSideEmpire.TR,
-                bops = false,
-                alternate = false,
-                v1 = true,
-                None,
-                jammered = false,
-                None,
-                None,
-                PlanetSideGUID(0)
-              )
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
             ),
             255
           )
@@ -547,17 +377,7 @@ class ConverterTest extends Specification {
           pkt mustEqual AegisShieldGeneratorData(
             CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
-              CommonFieldData(
-                PlanetSideEmpire.TR,
-                bops = false,
-                alternate = false,
-                v1 = true,
-                v2 = None,
-                jammered = false,
-                v4 = None,
-                v5 = None,
-                PlanetSideGUID(0)
-              )
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, PlanetSideGUID(0))
             ),
             255
           )
@@ -580,17 +400,7 @@ class ConverterTest extends Specification {
           pkt mustEqual DroppedItemData(
             PlacementData(Vector3.Zero, Vector3.Zero),
             TelepadDeployableData(
-              CommonFieldData(
-                PlanetSideEmpire.TR,
-                bops = false,
-                alternate = false,
-                v1 = true,
-                None,
-                jammered = false,
-                None,
-                Some(1001),
-                PlanetSideGUID(5001)
-              ),
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = true, None, jammered = false, Some(1001), PlanetSideGUID(5001)),
               unk1 = 87,
               unk2 = 12
             )
@@ -612,17 +422,7 @@ class ConverterTest extends Specification {
           pkt mustEqual DroppedItemData(
             PlacementData(Vector3.Zero, Vector3.Zero),
             TelepadDeployableData(
-              CommonFieldData(
-                PlanetSideEmpire.TR,
-                bops = false,
-                alternate = true,
-                v1 = true,
-                None,
-                jammered = false,
-                None,
-                Some(1001),
-                PlanetSideGUID(0)
-              ),
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = true, v1 = true, None, jammered = false, Some(1001), PlanetSideGUID(0)),
               unk1 = 0,
               unk2 = 6
             )
@@ -751,7 +551,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedLockerContainerData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, PlanetSideGUID(0)),
             None
           )
         case _ =>
@@ -781,17 +581,7 @@ class ConverterTest extends Specification {
               PlanetSideGUID(1),
               0,
               DetailedREKData(
-                CommonFieldData(
-                  PlanetSideEmpire.NEUTRAL,
-                  bops = false,
-                  alternate = false,
-                  v1 = true,
-                  None,
-                  jammered = false,
-                  Some(false),
-                  None,
-                  PlanetSideGUID(0)
-                )
+                CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
               )
             ) :: Nil
           )
@@ -807,17 +597,7 @@ class ConverterTest extends Specification {
                 PlanetSideGUID(1),
                 0,
                 REKData(
-                  CommonFieldData(
-                    PlanetSideEmpire.NEUTRAL,
-                    bops = false,
-                    alternate = false,
-                    v1 = true,
-                    None,
-                    jammered = false,
-                    Some(false),
-                    None,
-                    PlanetSideGUID(0)
-                  )
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
                 )
               ) :: Nil
             )

@@ -17,17 +17,7 @@ class FieldTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
         OneMannedFieldTurretData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(
-              faction = obj.Faction,
-              bops = false,
-              alternate = false,
-              v1 = true,
-              v2 = Some(CommonFieldDataExtra.Default),
-              jammered = obj.Jammed,
-              v4 = None,
-              v5 = None,
-              guid = obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
-            )
+            CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = obj.OwnerGuid.getOrElse(PlanetSideGUID(0)))
           ),
           health,
           Some(InventoryData(FieldTurretConverter.MakeMountings(obj)))
@@ -38,17 +28,7 @@ class FieldTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
         OneMannedFieldTurretData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(
-              faction = obj.Faction,
-              bops = false,
-              alternate = true,
-              v1 = true,
-              v2 = Some(CommonFieldDataExtra.Default),
-              jammered = obj.Jammed,
-              v4 = None,
-              v5 = None,
-              guid = PlanetSideGUID(0)
-            )
+            CommonFieldData(faction = obj.Faction, bops = false, alternate = true, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = PlanetSideGUID(0))
           ),
           0
         )

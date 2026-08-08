@@ -52,17 +52,7 @@ object WeaponData extends Marshallable[WeaponData] {
       ammo: CommonFieldData
   ): WeaponData = {
     WeaponData(
-      CommonFieldData(
-        PlanetSideEmpire(unk1 & 3),
-        bops = false,
-        alternate = false,
-        (unk2 & 8) == 8,
-        None,
-        (unk2 & 4) == 4,
-        None,
-        None,
-        PlanetSideGUID(0)
-      ),
+      CommonFieldData(PlanetSideEmpire(unk1 & 3), bops = false, alternate = false, (unk2 & 8) == 8, None, (unk2 & 4) == 4, None, PlanetSideGUID(0)),
       0,
       List(InternalSlot(cls, guid, parentSlot, ammo))
     )
@@ -89,17 +79,7 @@ object WeaponData extends Marshallable[WeaponData] {
       ammo: CommonFieldData
   ): WeaponData = {
     WeaponData(
-      CommonFieldData(
-        PlanetSideEmpire(unk1 & 3),
-        bops = false,
-        alternate = false,
-        (unk2 & 8) == 8,
-        None,
-        (unk2 & 4) == 4,
-        None,
-        None,
-        PlanetSideGUID(0)
-      ),
+      CommonFieldData(PlanetSideEmpire(unk1 & 3), bops = false, alternate = false, (unk2 & 8) == 8, None, (unk2 & 4) == 4, None, PlanetSideGUID(0)),
       fire_mode,
       List(InternalSlot(cls, guid, parentSlot, ammo))
     )
@@ -135,17 +115,7 @@ object WeaponData extends Marshallable[WeaponData] {
       ammo2: CommonFieldData
   ): WeaponData = {
     WeaponData(
-      CommonFieldData(
-        PlanetSideEmpire(unk1 & 3),
-        bops = false,
-        alternate = false,
-        (unk2 & 8) == 8,
-        None,
-        (unk2 & 4) == 4,
-        None,
-        None,
-        PlanetSideGUID(0)
-      ),
+      CommonFieldData(PlanetSideEmpire(unk1 & 3), bops = false, alternate = false, (unk2 & 8) == 8, None, (unk2 & 4) == 4, None, PlanetSideGUID(0)),
       fire_mode,
       List(InternalSlot(cls1, guid1, slot1, ammo1), InternalSlot(cls2, guid2, slot2, ammo2))
     )

@@ -19,17 +19,7 @@ class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable
             DroppedItemData(
               PlacementData(obj.Position, obj.Orientation),
               TelepadDeployableData(
-                CommonFieldData(
-                  obj.Faction,
-                  bops = false,
-                  alternate = false,
-                  true,
-                  None,
-                  false,
-                  None,
-                  Some(router.guid),
-                  obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
-                ),
+                CommonFieldData(obj.Faction, bops = false, alternate = false, true, None, false, Some(router.guid), obj.OwnerGuid.getOrElse(PlanetSideGUID(0))),
                 unk1 = 87,
                 unk2 = 12
               )
@@ -40,17 +30,7 @@ class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable
             DroppedItemData(
               PlacementData(obj.Position, obj.Orientation),
               TelepadDeployableData(
-                CommonFieldData(
-                  obj.Faction,
-                  bops = false,
-                  alternate = true,
-                  true,
-                  None,
-                  false,
-                  None,
-                  Some(router.guid),
-                  PlanetSideGUID(0)
-                ),
+                CommonFieldData(obj.Faction, bops = false, alternate = true, true, None, false, Some(router.guid), PlanetSideGUID(0)),
                 unk1 = 0,
                 unk2 = 6
               )

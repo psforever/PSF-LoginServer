@@ -15,20 +15,10 @@ class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDepl
         AegisShieldGeneratorData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(
-              obj.Faction,
-              bops = false,
-              alternate = false,
-              v1 = true,
-              v2 = None,
-              jammered = obj.Jammed,
-              None,
-              None,
-              obj.OwnerGuid match {
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = obj.Jammed, None, obj.OwnerGuid match {
                 case Some(owner) => owner
                 case None        => PlanetSideGUID(0)
-              }
-            )
+              })
           ),
           health
         )
@@ -38,17 +28,7 @@ class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDepl
         AegisShieldGeneratorData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(
-              obj.Faction,
-              bops = false,
-              alternate = true,
-              v1 = false,
-              v2 = None,
-              jammered = obj.Jammed,
-              None,
-              None,
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(obj.Faction, bops = false, alternate = true, v1 = false, v2 = None, jammered = obj.Jammed, None, PlanetSideGUID(0))
           ),
           0
         )

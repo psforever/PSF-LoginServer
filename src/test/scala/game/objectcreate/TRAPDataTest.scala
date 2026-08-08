@@ -29,7 +29,6 @@ class TRAPDataTest extends Specification {
               deploy.v1 mustEqual true
               deploy.v2.isEmpty mustEqual true
               deploy.jammered mustEqual false
-              deploy.v4.isEmpty mustEqual true
               deploy.v5.isEmpty mustEqual true
               deploy.guid mustEqual PlanetSideGUID(2502)
               health mustEqual 255
@@ -45,7 +44,7 @@ class TRAPDataTest extends Specification {
       val obj = TRAPData(
         CommonFieldDataWithPlacement(
           PlacementData(Vector3(3572.4453f, 3277.9766f, 114.0f), Vector3.z(90)),
-          CommonFieldData(PlanetSideEmpire.VS, bops = false, alternate = false, v1 = true, None, jammered = false, None, None, PlanetSideGUID(2502))
+          CommonFieldData(PlanetSideEmpire.VS, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(2502))
         ),
         255
       )

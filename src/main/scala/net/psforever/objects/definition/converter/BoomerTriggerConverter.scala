@@ -15,7 +15,7 @@ class BoomerTriggerConverter extends ObjectCreateConverter[SimpleItem]() {
   override def DetailedConstructorData(obj: SimpleItem): Try[DetailedConstructionToolData] = {
     Success(
       DetailedConstructionToolData(
-        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0))
       )
     )
   }

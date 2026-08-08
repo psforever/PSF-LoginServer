@@ -46,17 +46,7 @@ class AegisShieldGeneratorDataTest extends Specification {
       val obj = AegisShieldGeneratorData(
         CommonFieldDataWithPlacement(
           PlacementData(Vector3(3571.2266f, 3278.0938f, 114.0f), Vector3(0, 0, 90)),
-          CommonFieldData(
-            PlanetSideEmpire.VS,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            PlanetSideGUID(2366)
-          )
+          CommonFieldData(PlanetSideEmpire.VS, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, PlanetSideGUID(2366))
         ),
         255
       )

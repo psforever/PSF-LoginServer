@@ -11,17 +11,7 @@ class CommandDetonaterConverter extends ObjectCreateConverter[SimpleItem]() {
   override def ConstructorData(obj: SimpleItem): Try[HandheldData] = {
     Success(
       HandheldData(
-        CommonFieldData(
-          obj.Faction,
-          false,
-          false,
-          false,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        )
+        CommonFieldData(obj.Faction, false, false, false, None, false, None, PlanetSideGUID(0))
       )
     )
   }
@@ -29,17 +19,7 @@ class CommandDetonaterConverter extends ObjectCreateConverter[SimpleItem]() {
   override def DetailedConstructorData(obj: SimpleItem): Try[DetailedCommandDetonaterData] = {
     Success(
       DetailedCommandDetonaterData(
-        CommonFieldData(
-          obj.Faction,
-          false,
-          false,
-          false,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        )
+        CommonFieldData(obj.Faction, false, false, false, None, false, None, PlanetSideGUID(0))
       )
     )
   }

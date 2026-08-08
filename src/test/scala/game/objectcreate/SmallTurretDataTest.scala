@@ -32,7 +32,6 @@ class SmallTurretDataTest extends Specification {
               deploy.v1 mustEqual true
               deploy.v2.isEmpty mustEqual true
               deploy.jammered mustEqual false
-              deploy.v4.isEmpty mustEqual true
               deploy.v5.isEmpty mustEqual true
               deploy.guid mustEqual PlanetSideGUID(3871)
 
@@ -63,7 +62,6 @@ class SmallTurretDataTest extends Specification {
               deploy.v1 mustEqual true
               deploy.v2.isEmpty mustEqual true
               deploy.jammered mustEqual false
-              deploy.v4.isEmpty mustEqual true
               deploy.v5.isEmpty mustEqual true
               deploy.guid mustEqual PlanetSideGUID(4232)
 
@@ -75,7 +73,7 @@ class SmallTurretDataTest extends Specification {
               inv.head.obj.isInstanceOf[WeaponData] mustEqual true
               inv.head.obj match {
                 case WeaponData(
-                      CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                      CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                       fmode,
                       List(ammo),
                       _
@@ -86,7 +84,6 @@ class SmallTurretDataTest extends Specification {
                   wv1 mustEqual true
                   wv2.isEmpty mustEqual true
                   wv3 mustEqual false
-                  wv4.isEmpty mustEqual true
                   wv5.isEmpty mustEqual true
                   wfguid mustEqual PlanetSideGUID(0)
 
@@ -96,14 +93,13 @@ class SmallTurretDataTest extends Specification {
                   ammo.guid mustEqual PlanetSideGUID(3694)
                   ammo.parentSlot mustEqual 0
                   ammo.obj match {
-                    case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                    case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                       faction mustEqual PlanetSideEmpire.NEUTRAL
                       bops mustEqual false
                       alternate mustEqual false
                       v1 mustEqual true
                       v2 must beSome(CommonFieldDataExtra.Default)
                       v3 mustEqual false
-                      v4.isEmpty mustEqual true
                       v5.isEmpty mustEqual true
                       fguid mustEqual PlanetSideGUID(0)
                     case _ =>
@@ -124,7 +120,7 @@ class SmallTurretDataTest extends Specification {
       val obj = SmallTurretData(
         CommonFieldDataWithPlacement(
           PlacementData(Vector3(4577.7812f, 5624.828f, 72.046875f), Vector3(0, 2.8125f, 264.375f)),
-          CommonFieldData(PlanetSideEmpire.NC, bops = false, alternate = true, v1 = true, None, jammered = false, None, None, PlanetSideGUID(3871))
+          CommonFieldData(PlanetSideEmpire.NC, bops = false, alternate = true, v1 = true, None, jammered = false, None, PlanetSideGUID(3871))
         ),
         0
       )
@@ -137,7 +133,7 @@ class SmallTurretDataTest extends Specification {
       val obj = SmallTurretData(
         CommonFieldDataWithPlacement(
           PlacementData(Vector3(4527.633f, 6271.3594f, 70.265625f), Vector3(0, 0, 154.6875f)),
-          CommonFieldData(PlanetSideEmpire.VS, bops = false, alternate = false, v1 = true, None, jammered = false, None, None, PlanetSideGUID(4232))
+          CommonFieldData(PlanetSideEmpire.VS, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(4232))
         ),
         255,
         InventoryData(
@@ -147,34 +143,14 @@ class SmallTurretDataTest extends Specification {
               PlanetSideGUID(3064),
               0,
               WeaponData(
-                CommonFieldData(
-                  PlanetSideEmpire.NEUTRAL,
-                  bops = false,
-                  alternate = false,
-                  v1 = true,
-                  None,
-                  jammered = false,
-                  None,
-                  None,
-                  PlanetSideGUID(0)
-                ),
+                CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0)),
                 0,
                 List(
                   InternalSlot(
                     ObjectClass.spitfire_ammo,
                     PlanetSideGUID(3694),
                     0,
-                    CommonFieldData(
-                      PlanetSideEmpire.NEUTRAL,
-                      bops = false,
-                      alternate = false,
-                      v1 = true,
-                      Some(CommonFieldDataExtra.Default),
-                      jammered = false,
-                      None,
-                      None,
-                      PlanetSideGUID(0)
-                    )
+                    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, Some(CommonFieldDataExtra.Default), jammered = false, None, PlanetSideGUID(0))
                   )
                 )
               )

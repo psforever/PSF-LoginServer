@@ -27,14 +27,13 @@ class BattleframeRoboticsTest extends Specification {
               pos.vel.isEmpty mustEqual true
 
               vdata match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, vguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, vguid) =>
                   faction mustEqual PlanetSideEmpire.VS
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
                   v2.isEmpty mustEqual true
                   v3 mustEqual false
-                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   vguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -60,14 +59,13 @@ class BattleframeRoboticsTest extends Specification {
                   list.head.obj match {
                     case WeaponData(wdata, fire_mode, ammo, unk) =>
                       wdata match {
-                        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, wguid) =>
+                        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, wguid) =>
                           faction mustEqual PlanetSideEmpire.NEUTRAL
                           bops mustEqual false
                           alternate mustEqual false
                           v1 mustEqual true
                           v2 must beSome(CommonFieldDataExtra.Default)
                           v3 mustEqual false
-                          v4.isEmpty mustEqual true
                           v5.isEmpty mustEqual true
                           wguid mustEqual PlanetSideGUID(0)
                         case _ =>
@@ -88,14 +86,13 @@ class BattleframeRoboticsTest extends Specification {
                   list(1).obj match {
                     case WeaponData(wdata, fire_mode, ammo, unk) =>
                       wdata match {
-                        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, wguid) =>
+                        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, wguid) =>
                           faction mustEqual PlanetSideEmpire.NEUTRAL
                           bops mustEqual false
                           alternate mustEqual false
                           v1 mustEqual true
                           v2 must beSome(CommonFieldDataExtra.Default)
                           v3 mustEqual false
-                          v4.isEmpty mustEqual true
                           v5.isEmpty mustEqual true
                           wguid mustEqual PlanetSideGUID(0)
                         case _ =>
@@ -116,14 +113,13 @@ class BattleframeRoboticsTest extends Specification {
                   list(2).obj match {
                     case WeaponData(wdata, fire_mode, ammo, unk) =>
                       wdata match {
-                        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, wguid) =>
+                        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, wguid) =>
                           faction mustEqual PlanetSideEmpire.NEUTRAL
                           bops mustEqual false
                           alternate mustEqual false
                           v1 mustEqual true
                           v2 must beSome(CommonFieldDataExtra.Default)
                           v3 mustEqual false
-                          v4.isEmpty mustEqual true
                           v5.isEmpty mustEqual true
                           wguid mustEqual PlanetSideGUID(0)
                         case _ =>
@@ -162,14 +158,13 @@ class BattleframeRoboticsTest extends Specification {
               pos.vel.isEmpty mustEqual true
 
               vdata match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, vguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, vguid) =>
                   faction mustEqual PlanetSideEmpire.VS
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
                   v2.isEmpty mustEqual true
                   v3 mustEqual false
-                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   vguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -195,14 +190,13 @@ class BattleframeRoboticsTest extends Specification {
                   list.head.obj match {
                     case WeaponData(wdata, fire_mode, ammo, unk) =>
                       wdata match {
-                        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, wguid) =>
+                        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, wguid) =>
                           faction mustEqual PlanetSideEmpire.NEUTRAL
                           bops mustEqual false
                           alternate mustEqual false
                           v1 mustEqual true
                           v2 must beSome(CommonFieldDataExtra.Default)
                           v3 mustEqual false
-                          v4.isEmpty mustEqual true
                           v5.isEmpty mustEqual true
                           wguid mustEqual PlanetSideGUID(0)
                         case _ =>
@@ -223,14 +217,13 @@ class BattleframeRoboticsTest extends Specification {
                   list(1).obj match {
                     case WeaponData(wdata, fire_mode, ammo, unk) =>
                       wdata match {
-                        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, wguid) =>
+                        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, wguid) =>
                           faction mustEqual PlanetSideEmpire.NEUTRAL
                           bops mustEqual false
                           alternate mustEqual false
                           v1 mustEqual true
                           v2 must beSome(CommonFieldDataExtra.Default)
                           v3 mustEqual false
-                          v4.isEmpty mustEqual true
                           v5.isEmpty mustEqual true
                           wguid mustEqual PlanetSideGUID(0)
                         case _ =>
@@ -258,7 +251,7 @@ class BattleframeRoboticsTest extends Specification {
     "encode (aphelion)" in {
       val obj = BattleFrameRoboticsData(
         PlacementData(6498.7344f, 1927.9844f, 16.140625f, 0, 0, 50.625f),
-        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
         255,
         255,
         0,
@@ -272,28 +265,28 @@ class BattleframeRoboticsTest extends Specification {
         Some(InventoryData(List(
           InventoryItemData(ObjectClass.aphelion_ppa_left, PlanetSideGUID(335), 2,
             WeaponData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(340), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
+                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(340), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)))
               )
             )
           ),
           InventoryItemData(ObjectClass.aphelion_ppa_right, PlanetSideGUID(411), 3,
             WeaponData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(342), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
+                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(342), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)))
               )
             )
           ),
           InventoryItemData(ObjectClass.aphelion_plasma_rocket_pod, PlanetSideGUID(409), 4,
             WeaponData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.aphelion_plasma_rocket_ammo, PlanetSideGUID(359), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
+                InternalSlot(ObjectClass.aphelion_plasma_rocket_ammo, PlanetSideGUID(359), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)))
               )
             )
           )
@@ -308,7 +301,7 @@ class BattleframeRoboticsTest extends Specification {
     "encode (eclipse)" in {
       val obj = BattleFrameRoboticsData(
         PlacementData(6498.7344f, 1927.9844f, 16.140625f, 0, 0, 50.625f),
-        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
         255,
         255,
         0,
@@ -322,19 +315,19 @@ class BattleframeRoboticsTest extends Specification {
         Some(InventoryData(List(
           InventoryItemData(ObjectClass.aphelion_ppa_left, PlanetSideGUID(385), 1,
             WeaponData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(371), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
+                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(371), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)))
               )
             )
           ),
           InventoryItemData(ObjectClass.aphelion_ppa_right, PlanetSideGUID(336), 2,
             WeaponData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(376), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
+                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(376), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)))
               )
             )
           )

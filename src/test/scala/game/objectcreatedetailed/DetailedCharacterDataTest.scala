@@ -77,7 +77,6 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.v1 mustEqual true
                   a.data.v2.isEmpty mustEqual true
                   a.data.jammered mustEqual false
-                  a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Standard
                   a.unk5 mustEqual 0
@@ -265,7 +264,6 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
                   a.data.jammered mustEqual false
-                  a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Standard
                   a.unk5 mustEqual 0
@@ -450,7 +448,6 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.v1 mustEqual true
                   a.data.v2.isEmpty mustEqual true
                   a.data.jammered mustEqual false
-                  a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.MAX
                   a.unk5 mustEqual 1
@@ -592,7 +589,7 @@ class DetailedCharacterDataTest extends Specification {
                 PlanetSideGUID(2),
                 0,
                 DetailedWeaponData(
-                  CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+                  CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0)),
                   0,
                   List(
                     InternalSlot(265, PlanetSideGUID(3), 0, DetailedAmmoBoxData(8, 200)),
@@ -606,7 +603,7 @@ class DetailedCharacterDataTest extends Specification {
                 PlanetSideGUID(6),
                 4,
                 DetailedWeaponData(
-                  CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+                  CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0)),
                   0,
                   List(
                     InternalSlot(540, PlanetSideGUID(7), 0, DetailedAmmoBoxData(8, 1))
@@ -618,17 +615,7 @@ class DetailedCharacterDataTest extends Specification {
                 PlanetSideGUID(8),
                 5,
                 DetailedLockerContainerData(
-                  CommonFieldData(
-                    PlanetSideEmpire.NEUTRAL,
-                    false,
-                    false,
-                    true,
-                    None,
-                    false,
-                    None,
-                    None,
-                    PlanetSideGUID(0)
-                  ),
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                   None
                 )
               )
@@ -677,7 +664,6 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.v1 mustEqual true
                   a.data.v2.isEmpty mustEqual true
                   a.data.jammered mustEqual false
-                  a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Agile
                   a.unk5 mustEqual 0
@@ -1089,7 +1075,7 @@ class DetailedCharacterDataTest extends Specification {
               inv.get.contents.head.parentSlot mustEqual 0
               inv.get.contents.head.obj match {
                 case DetailedWeaponData(
-                      CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid),
+                      CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid),
                       fmode,
                       ammo,
                       _
@@ -1100,7 +1086,6 @@ class DetailedCharacterDataTest extends Specification {
                   v1 mustEqual true
                   v2.isEmpty mustEqual true
                   v3 mustEqual false
-                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
 
@@ -1131,7 +1116,6 @@ class DetailedCharacterDataTest extends Specification {
                   cdata.data.v1 mustEqual true
                   cdata.data.v2.isEmpty mustEqual true
                   cdata.data.jammered mustEqual false
-                  cdata.data.v4.isEmpty mustEqual true
                   cdata.data.v5.isEmpty mustEqual true
                   cdata.data.guid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -1143,7 +1127,7 @@ class DetailedCharacterDataTest extends Specification {
               inv.get.contents(11).parentSlot mustEqual 60
               inv.get.contents(11).obj match {
                 case DetailedWeaponData(
-                      CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid),
+                      CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid),
                       fmode,
                       ammo,
                       _
@@ -1154,7 +1138,6 @@ class DetailedCharacterDataTest extends Specification {
                   v1 mustEqual true
                   v2.isEmpty mustEqual true
                   v3 mustEqual false
-                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
 
@@ -1198,7 +1181,6 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
                   a.data.jammered mustEqual false
-                  a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Standard
                   a.unk5 mustEqual 0
@@ -1345,7 +1327,6 @@ class DetailedCharacterDataTest extends Specification {
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
                   a.data.jammered mustEqual false
-                  a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Standard
                   a.unk5 mustEqual 0
@@ -1451,7 +1432,7 @@ class DetailedCharacterDataTest extends Specification {
                 PlanetSideGUID(3465),
                 0,
                 DetailedWeaponData(
-                  CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+                  CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0)),
                   0,
                   List(
                     InternalSlot(
@@ -1459,17 +1440,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3722),
                       0,
                       DetailedAmmoBoxData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         20
                       )
                     )
@@ -1483,17 +1454,7 @@ class DetailedCharacterDataTest extends Specification {
                 PlanetSideGUID(4731),
                 39,
                 DetailedREKData(
-                  CommonFieldData(
-                    PlanetSideEmpire.TR,
-                    false,
-                    false,
-                    true,
-                    Some(CommonFieldDataExtra.Default),
-                    false,
-                    None,
-                    None,
-                    PlanetSideGUID(0)
-                  ),
+                  CommonFieldData(PlanetSideEmpire.TR, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
                   16
                 )
               )
@@ -1519,17 +1480,7 @@ class DetailedCharacterDataTest extends Specification {
           41,
           CharacterVoice.Voice1
         ),
-        CommonFieldData(
-          PlanetSideEmpire.VS,
-          false,
-          false,
-          true,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
         ExoSuitType.Standard,
         0,
         41605313L,
@@ -1630,7 +1581,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(76),
             0,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(ObjectClass.energy_cell, PlanetSideGUID(77), 0, DetailedAmmoBoxData(8, 16)))
             )
@@ -1640,7 +1591,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(78),
             2,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, DetailedAmmoBoxData(8, 25)))
             )
@@ -1650,13 +1601,13 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(80),
             4,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1)))
             )
           ),
           InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedLockerContainerData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
             None
           )),
           InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, DetailedAmmoBoxData(8, 50)),
@@ -1669,17 +1620,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(88),
             39,
             DetailedREKData(
-              CommonFieldData(
-                PlanetSideEmpire.VS,
-                false,
-                false,
-                true,
-                Some(CommonFieldDataExtra.Default),
-                false,
-                None,
-                None,
-                PlanetSideGUID(0)
-              )
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
             )
           )
         )
@@ -1704,17 +1645,7 @@ class DetailedCharacterDataTest extends Specification {
           41,
           CharacterVoice.Voice1
         ),
-        CommonFieldData(
-          PlanetSideEmpire.VS,
-          false,
-          false,
-          false,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, None, PlanetSideGUID(0)),
         ExoSuitType.Standard,
         0,
         192L,
@@ -1815,7 +1746,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(76),
             0,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(ObjectClass.energy_cell, PlanetSideGUID(77), 0, DetailedAmmoBoxData(8, 16)))
             )
@@ -1825,7 +1756,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(78),
             2,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(79), 0, DetailedAmmoBoxData(8, 25)))
             )
@@ -1835,13 +1766,13 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(80),
             4,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1)))
             )
           ),
           InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedLockerContainerData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
             None
           )),
           InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, DetailedAmmoBoxData(8, 50)),
@@ -1854,17 +1785,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(88),
             39,
             DetailedREKData(
-              CommonFieldData(
-                PlanetSideEmpire.VS,
-                false,
-                false,
-                true,
-                Some(CommonFieldDataExtra.Default),
-                false,
-                None,
-                None,
-                PlanetSideGUID(0)
-              )
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
             )
           )
         )
@@ -1896,17 +1817,7 @@ class DetailedCharacterDataTest extends Specification {
           57,
           CharacterVoice.Voice1
         ),
-        CommonFieldData(
-          PlanetSideEmpire.TR,
-          false,
-          false,
-          true,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0)),
         ExoSuitType.MAX,
         1,
         41605870L,
@@ -2044,7 +1955,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(2),
             0,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(
                 InternalSlot(265, PlanetSideGUID(3), 0, DetailedAmmoBoxData(8, 200)),
@@ -2058,7 +1969,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(6),
             4,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(
                 InternalSlot(540, PlanetSideGUID(7), 0, DetailedAmmoBoxData(8, 1))
@@ -2070,7 +1981,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(8),
             5,
             DetailedLockerContainerData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
               None
             )
           ),
@@ -2113,17 +2024,7 @@ class DetailedCharacterDataTest extends Specification {
           24,
           CharacterVoice.Voice4
         ),
-        CommonFieldData(
-          PlanetSideEmpire.NC,
-          false,
-          false,
-          true,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
         ExoSuitType.Agile,
         0,
         733931L,
@@ -2534,7 +2435,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(4202),
             0,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(389, PlanetSideGUID(3942), 0, DetailedAmmoBoxData(8, 100)))
             )
@@ -2544,7 +2445,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(6924),
             1,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(111, PlanetSideGUID(9157), 0, DetailedAmmoBoxData(8, 100)))
             )
@@ -2554,7 +2455,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(8498),
             2,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(755, PlanetSideGUID(5356), 0, DetailedAmmoBoxData(8, 16)))
             )
@@ -2564,7 +2465,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(7198),
             4,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(540, PlanetSideGUID(5009), 0, DetailedAmmoBoxData(8, 1)))
             )
@@ -2574,7 +2475,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(5374),
             5,
             DetailedLockerContainerData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
               Some(
                 InventoryData(
                   List(
@@ -2583,17 +2484,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3021),
                       0,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(272, PlanetSideGUID(8729), 0, DetailedAmmoBoxData(8, 0)))
                       )
@@ -2603,17 +2494,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(8467),
                       9,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(839, PlanetSideGUID(8603), 0, DetailedAmmoBoxData(8, 5)))
                       )
@@ -2624,17 +2505,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(2934),
                       22,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(111, PlanetSideGUID(4682), 0, DetailedAmmoBoxData(8, 100)))
                       )
@@ -2646,17 +2517,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6084),
                       98,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(272, PlanetSideGUID(5928), 0, DetailedAmmoBoxData(8, 35)))
                       )
@@ -2666,17 +2527,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5000),
                       108,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(463, PlanetSideGUID(6277), 0, DetailedAmmoBoxData(8, 150)))
                       )
@@ -2686,17 +2537,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4341),
                       189,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(272, PlanetSideGUID(7043), 0, DetailedAmmoBoxData(8, 35)))
                       )
@@ -2706,17 +2547,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4168),
                       198,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(28, PlanetSideGUID(8937), 0, DetailedAmmoBoxData(8, 100)))
                       )
@@ -2727,17 +2558,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3221),
                       210,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(463, PlanetSideGUID(4031), 0, DetailedAmmoBoxData(8, 150)))
                       )
@@ -2747,17 +2568,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6853),
                       280,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(29, PlanetSideGUID(8524), 0, DetailedAmmoBoxData(8, 67)))
                       )
@@ -2767,17 +2578,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4569),
                       290,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(28, PlanetSideGUID(5584), 0, DetailedAmmoBoxData(8, 100)))
                       )
@@ -2787,17 +2588,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(9294),
                       300,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(463, PlanetSideGUID(3118), 0, DetailedAmmoBoxData(8, 150)))
                       )
@@ -2808,17 +2599,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(7377),
                       390,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(463, PlanetSideGUID(8155), 0, DetailedAmmoBoxData(8, 150)))
                       )
@@ -2835,17 +2616,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5741),
                       540,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(5183), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -2855,17 +2626,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6208),
                       541,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(5029), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -2875,17 +2636,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(8589),
                       542,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(9217), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -2895,17 +2646,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(8901),
                       543,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(7633), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -2915,17 +2656,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(8419),
                       544,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(6546), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -2935,17 +2666,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4715),
                       545,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(8453), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -2955,17 +2676,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3577),
                       546,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(9202), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -2975,17 +2686,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6003),
                       547,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(3260), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -2995,17 +2696,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(9140),
                       548,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(3815), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3015,17 +2706,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4913),
                       549,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(7222), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3035,17 +2716,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6954),
                       550,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(2953), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3055,17 +2726,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6405),
                       551,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(4676), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3075,17 +2736,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(8915),
                       552,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(4018), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3095,17 +2746,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4993),
                       553,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(6775), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3115,17 +2756,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5053),
                       554,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(6418), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3135,17 +2766,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(9244),
                       555,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(3327), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3155,17 +2776,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6292),
                       556,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(6918), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3178,17 +2789,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(7330),
                       570,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(4786), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3198,17 +2799,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(7415),
                       571,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(6536), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3218,17 +2809,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3949),
                       572,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(7526), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3238,17 +2819,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3805),
                       573,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(7358), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3258,17 +2829,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4493),
                       574,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(6852), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3278,17 +2839,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5762),
                       575,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(3463), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3298,17 +2849,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3315),
                       576,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(7619), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3318,17 +2859,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6263),
                       577,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(5912), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3338,17 +2869,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4028),
                       578,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(8021), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3358,17 +2879,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(2843),
                       579,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(7250), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3378,17 +2889,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(9143),
                       580,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(5195), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3398,17 +2899,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5024),
                       581,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(4287), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3418,17 +2909,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6582),
                       582,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(4915), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3438,17 +2919,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6425),
                       583,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(8872), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3458,17 +2929,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4431),
                       584,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(4191), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3478,17 +2939,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(8339),
                       585,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(7317), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3498,17 +2949,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3277),
                       586,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          true,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(540, PlanetSideGUID(6469), 0, DetailedAmmoBoxData(8, 1)))
                       )
@@ -3523,7 +2964,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(6877),
             6,
             DetailedCommandDetonaterData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0))
             )
           ),
           InternalSlot(755, PlanetSideGUID(6227), 9, DetailedAmmoBoxData(8, 16)),
@@ -3532,17 +2973,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(7181),
             12,
             DetailedREKData(
-              CommonFieldData(
-                PlanetSideEmpire.VS,
-                false,
-                false,
-                true,
-                Some(CommonFieldDataExtra.Default),
-                false,
-                None,
-                None,
-                PlanetSideGUID(0)
-              ),
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               16
             )
           ),
@@ -3552,7 +2983,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(4377),
             37,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(681, PlanetSideGUID(8905), 0, DetailedAmmoBoxData(8, 3)))
             )
@@ -3562,7 +2993,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(5523),
             39,
             DetailedConstructionToolData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0))
             )
           ),
           InternalSlot(
@@ -3570,7 +3001,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(3661),
             60,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(674, PlanetSideGUID(8542), 0, DetailedAmmoBoxData(8, 3)))
             )
@@ -3598,17 +3029,7 @@ class DetailedCharacterDataTest extends Specification {
           20,
           CharacterVoice.Voice3
         ),
-        CommonFieldData(
-          PlanetSideEmpire.NC,
-          false,
-          false,
-          false,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(PlanetSideEmpire.NC, false, false, false, None, false, None, PlanetSideGUID(0)),
         ExoSuitType.Standard,
         0,
         1176612L,
@@ -4000,7 +3421,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(10022),
             0,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(755, PlanetSideGUID(10023), 0, DetailedAmmoBoxData(8, 8)))
             )
@@ -4010,7 +3431,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(5671),
             2,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(28, PlanetSideGUID(10019), 0, DetailedAmmoBoxData(8, 25)))
             )
@@ -4020,7 +3441,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(3754),
             4,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(InternalSlot(540, PlanetSideGUID(6693), 0, DetailedAmmoBoxData(8, 1)))
             )
@@ -4030,17 +3451,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(8199),
             5,
             DetailedLockerContainerData(
-              CommonFieldData(
-                PlanetSideEmpire.NEUTRAL,
-                false,
-                false,
-                false,
-                None,
-                false,
-                None,
-                None,
-                PlanetSideGUID(0)
-              ),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
               Some(
                 InventoryData(
                   List(
@@ -4049,17 +3460,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6315),
                       0,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(28, PlanetSideGUID(6795), 0, DetailedAmmoBoxData(0, 50)))
                       )
@@ -4069,17 +3470,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4302),
                       6,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(28, PlanetSideGUID(5511), 0, DetailedAmmoBoxData(0, 50)))
                       )
@@ -4089,17 +3480,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6342),
                       12,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(28, PlanetSideGUID(7788), 0, DetailedAmmoBoxData(0, 50)))
                       )
@@ -4109,17 +3490,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(7392),
                       18,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(28, PlanetSideGUID(8335), 0, DetailedAmmoBoxData(0, 50)))
                       )
@@ -4129,17 +3500,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4432),
                       24,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(28, PlanetSideGUID(7020), 0, DetailedAmmoBoxData(0, 50)))
                       )
@@ -4149,17 +3510,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4219),
                       90,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(50, PlanetSideGUID(9275), 0, DetailedAmmoBoxData(0, 25)))
                       )
@@ -4169,17 +3520,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3869),
                       96,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(50, PlanetSideGUID(6099), 0, DetailedAmmoBoxData(0, 25)))
                       )
@@ -4189,17 +3530,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(8954),
                       102,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(50, PlanetSideGUID(5972), 0, DetailedAmmoBoxData(0, 25)))
                       )
@@ -4209,17 +3540,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(7476),
                       108,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(28, PlanetSideGUID(5704), 0, DetailedAmmoBoxData(0, 50)))
                       )
@@ -4231,17 +3552,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(7580),
                       180,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(50, PlanetSideGUID(6734), 0, DetailedAmmoBoxData(0, 25)))
                       )
@@ -4251,17 +3562,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6464),
                       186,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(50, PlanetSideGUID(4738), 0, DetailedAmmoBoxData(0, 25)))
                       )
@@ -4271,17 +3572,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5408),
                       192,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(50, PlanetSideGUID(3579), 0, DetailedAmmoBoxData(0, 25)))
                       )
@@ -4291,17 +3582,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(8957),
                       198,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(28, PlanetSideGUID(8223), 0, DetailedAmmoBoxData(0, 100)))
                       )
@@ -4312,17 +3593,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3403),
                       279,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(111, PlanetSideGUID(4352), 0, DetailedAmmoBoxData(0, 100)))
                       )
@@ -4332,17 +3603,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(8454),
                       285,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(111, PlanetSideGUID(8724), 0, DetailedAmmoBoxData(0, 100)))
                       )
@@ -4353,17 +3614,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6695),
                       378,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(272, PlanetSideGUID(6842), 0, DetailedAmmoBoxData(0, 35)))
                       )
@@ -4373,17 +3624,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(8304),
                       420,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(463, PlanetSideGUID(7089), 0, DetailedAmmoBoxData(0, 150)))
                       )
@@ -4393,17 +3634,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3346),
                       429,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(463, PlanetSideGUID(7557), 0, DetailedAmmoBoxData(0, 150)))
                       )
@@ -4414,17 +3645,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4622),
                       510,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(463, PlanetSideGUID(6996), 0, DetailedAmmoBoxData(0, 150)))
                       )
@@ -4434,17 +3655,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(6586),
                       519,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(463, PlanetSideGUID(6870), 0, DetailedAmmoBoxData(0, 150)))
                       )
@@ -4454,17 +3665,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4806),
                       528,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(InternalSlot(28, PlanetSideGUID(8798), 0, DetailedAmmoBoxData(0, 100)))
                       )
@@ -4485,17 +3686,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(10075),
             39,
             DetailedREKData(
-              CommonFieldData(
-                PlanetSideEmpire.VS,
-                false,
-                false,
-                true,
-                Some(CommonFieldDataExtra.Default),
-                false,
-                None,
-                None,
-                PlanetSideGUID(0)
-              ),
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               24
             )
           )
@@ -4522,17 +3713,7 @@ class DetailedCharacterDataTest extends Specification {
           4,
           CharacterVoice.Voice1
         ),
-        CommonFieldData(
-          PlanetSideEmpire.TR,
-          false,
-          false,
-          false,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, PlanetSideGUID(0)),
         ExoSuitType.Standard,
         0,
         1267466L,
@@ -4851,7 +4032,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(3465),
             0,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(
                 InternalSlot(
@@ -4859,17 +4040,7 @@ class DetailedCharacterDataTest extends Specification {
                   PlanetSideGUID(3722),
                   0,
                   DetailedAmmoBoxData(
-                    CommonFieldData(
-                      PlanetSideEmpire.NEUTRAL,
-                      false,
-                      false,
-                      true,
-                      None,
-                      false,
-                      None,
-                      None,
-                      PlanetSideGUID(0)
-                    ),
+                    CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                     20
                   )
                 )
@@ -4882,7 +4053,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(4929),
             2,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(
                 InternalSlot(
@@ -4890,17 +4061,7 @@ class DetailedCharacterDataTest extends Specification {
                   PlanetSideGUID(4736),
                   0,
                   DetailedAmmoBoxData(
-                    CommonFieldData(
-                      PlanetSideEmpire.NEUTRAL,
-                      false,
-                      false,
-                      true,
-                      None,
-                      false,
-                      None,
-                      None,
-                      PlanetSideGUID(0)
-                    ),
+                    CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                     25
                   )
                 )
@@ -4913,7 +4074,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(3332),
             4,
             DetailedWeaponData(
-              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0)),
               0,
               List(
                 InternalSlot(
@@ -4921,17 +4082,7 @@ class DetailedCharacterDataTest extends Specification {
                   PlanetSideGUID(3778),
                   0,
                   DetailedAmmoBoxData(
-                    CommonFieldData(
-                      PlanetSideEmpire.NEUTRAL,
-                      false,
-                      false,
-                      true,
-                      None,
-                      false,
-                      None,
-                      None,
-                      PlanetSideGUID(0)
-                    ),
+                    CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                     1
                   )
                 )
@@ -4944,17 +4095,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(5302),
             5,
             DetailedLockerContainerData(
-              CommonFieldData(
-                PlanetSideEmpire.NEUTRAL,
-                false,
-                false,
-                false,
-                None,
-                false,
-                None,
-                None,
-                PlanetSideGUID(0)
-              ),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
               Some(
                 InventoryData(
                   List(
@@ -4963,17 +4104,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(2628),
                       0,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -4981,17 +4112,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(5819),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               16
                             )
                           )
@@ -5004,17 +4125,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(2433),
                       9,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5022,17 +4133,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(3627),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               16
                             )
                           )
@@ -5045,17 +4146,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3916),
                       18,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5063,17 +4154,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(3069),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               16
                             )
                           )
@@ -5086,17 +4167,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5514),
                       29,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5104,17 +4175,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(4940),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               1
                             )
                           )
@@ -5127,17 +4188,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(2669),
                       90,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5145,17 +4196,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(2277),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               150
                             )
                           )
@@ -5168,17 +4209,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5365),
                       99,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5186,17 +4217,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(5604),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               150
                             )
                           )
@@ -5209,17 +4230,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5884),
                       108,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5227,17 +4238,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(5765),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               16
                             )
                           )
@@ -5250,17 +4251,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5137),
                       180,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5268,17 +4259,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(3016),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               150
                             )
                           )
@@ -5291,17 +4272,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4475),
                       189,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5309,17 +4280,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(4237),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               150
                             )
                           )
@@ -5332,17 +4293,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3841),
                       198,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5350,17 +4301,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(5485),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               150
                             )
                           )
@@ -5373,17 +4314,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4075),
                       270,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5391,17 +4322,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(4451),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               150
                             )
                           )
@@ -5414,17 +4335,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4620),
                       279,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5432,17 +4343,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(2357),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               150
                             )
                           )
@@ -5455,17 +4356,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(3175),
                       288,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5473,17 +4364,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(5363),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               16
                             )
                           )
@@ -5496,17 +4377,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5391),
                       369,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5514,17 +4385,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(2801),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               16
                             )
                           )
@@ -5537,17 +4398,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(4384),
                       378,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5555,17 +4406,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(3584),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               16
                             )
                           )
@@ -5578,17 +4419,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(2294),
                       459,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5596,17 +4427,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(5454),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               78
                             )
                           )
@@ -5619,17 +4440,7 @@ class DetailedCharacterDataTest extends Specification {
                       PlanetSideGUID(5111),
                       465,
                       DetailedWeaponData(
-                        CommonFieldData(
-                          PlanetSideEmpire.NEUTRAL,
-                          false,
-                          false,
-                          false,
-                          None,
-                          false,
-                          None,
-                          None,
-                          PlanetSideGUID(0)
-                        ),
+                        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                         0,
                         List(
                           InternalSlot(
@@ -5637,17 +4448,7 @@ class DetailedCharacterDataTest extends Specification {
                             PlanetSideGUID(5068),
                             0,
                             DetailedAmmoBoxData(
-                              CommonFieldData(
-                                PlanetSideEmpire.NEUTRAL,
-                                false,
-                                false,
-                                false,
-                                None,
-                                false,
-                                None,
-                                None,
-                                PlanetSideGUID(0)
-                              ),
+                              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                               15
                             )
                           )
@@ -5665,7 +4466,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(4386),
             6,
             DetailedAmmoBoxData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
               50
             )
           ),
@@ -5674,7 +4475,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(3548),
             9,
             DetailedAmmoBoxData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
               50
             )
           ),
@@ -5683,7 +4484,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(4103),
             12,
             DetailedAmmoBoxData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
               50
             )
           ),
@@ -5692,7 +4493,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(5179),
             33,
             DetailedAmmoBoxData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
               50
             )
           ),
@@ -5701,7 +4502,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(3733),
             36,
             DetailedAmmoBoxData(
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
               50
             )
           ),
@@ -5710,17 +4511,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(4731),
             39,
             DetailedREKData(
-              CommonFieldData(
-                PlanetSideEmpire.VS,
-                false,
-                false,
-                true,
-                Some(CommonFieldDataExtra.Default),
-                false,
-                None,
-                None,
-                PlanetSideGUID(0)
-              ),
+              CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               16
             )
           )

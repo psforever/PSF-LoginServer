@@ -32,7 +32,6 @@ class DetailedConstructionToolDataTest extends Specification {
               cdata.v1 mustEqual true
               cdata.v2.isEmpty mustEqual true
               cdata.jammered mustEqual false
-              cdata.v4.isEmpty mustEqual true
               cdata.v5.isEmpty mustEqual true
               cdata.guid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -45,7 +44,7 @@ class DetailedConstructionToolDataTest extends Specification {
 
     "encode" in {
       val obj = DetailedConstructionToolData(
-        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0))
       )
       val msg = ObjectCreateDetailedMessage(
         ObjectClass.ace,
@@ -77,7 +76,6 @@ class DetailedConstructionToolDataTest extends Specification {
               cdata.v1 mustEqual true
               cdata.v2.isEmpty mustEqual true
               cdata.jammered mustEqual false
-              cdata.v4.isEmpty mustEqual true
               cdata.v5.isEmpty mustEqual true
               cdata.guid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -90,7 +88,7 @@ class DetailedConstructionToolDataTest extends Specification {
 
     "encode" in {
       val obj = DetailedConstructionToolData(
-        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0))
       )
       val msg = ObjectCreateDetailedMessage(
         ObjectClass.boomer_trigger,
@@ -122,7 +120,6 @@ class DetailedConstructionToolDataTest extends Specification {
               cdata.v1 mustEqual true
               cdata.v2.isEmpty mustEqual true
               cdata.jammered mustEqual false
-              cdata.v4.isEmpty mustEqual true
               cdata.v5.contains(564) mustEqual true
               cdata.guid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -150,7 +147,6 @@ class DetailedConstructionToolDataTest extends Specification {
               cdata.v1 mustEqual false
               cdata.v2.isEmpty mustEqual true
               cdata.jammered mustEqual false
-              cdata.v4.isEmpty mustEqual true
               cdata.v5.isEmpty mustEqual true
               cdata.guid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -163,7 +159,7 @@ class DetailedConstructionToolDataTest extends Specification {
 
     "encode" in {
       val obj = DetailedConstructionToolData(
-        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, Some(564), PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, Some(564), PlanetSideGUID(0))
       )
       val msg = ObjectCreateDetailedMessage(
         ObjectClass.router_telepad,

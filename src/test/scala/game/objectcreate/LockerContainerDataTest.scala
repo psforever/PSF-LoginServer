@@ -30,14 +30,13 @@ class LockerContainerDataTest extends Specification {
               contents.head.guid mustEqual PlanetSideGUID(2935)
               contents.head.parentSlot mustEqual 0
               contents.head.obj match {
-                case WeaponData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), _, _, _) =>
+                case WeaponData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid), _, _, _) =>
                   faction mustEqual PlanetSideEmpire.NEUTRAL
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual false
                   v2.isEmpty mustEqual true
                   v3 mustEqual false
-                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -71,23 +70,13 @@ class LockerContainerDataTest extends Specification {
               PlanetSideGUID(2935),
               0,
               WeaponData(
-                CommonFieldData(
-                  PlanetSideEmpire.NEUTRAL,
-                  false,
-                  false,
-                  false,
-                  None,
-                  false,
-                  None,
-                  None,
-                  PlanetSideGUID(0)
-                ),
+                CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0)),
                 0,
-                List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3426), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))))
+                List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3426), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
               )
             ),
-            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))),
-            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
+            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))),
+            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)))
           )
         )
       )

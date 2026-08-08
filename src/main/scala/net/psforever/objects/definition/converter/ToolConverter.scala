@@ -17,17 +17,7 @@ class ToolConverter extends ObjectCreateConverter[Tool]() {
       .toList
     Success(
       WeaponData(
-        CommonFieldData(
-          obj.Faction,
-          bops = false,
-          alternate = false,
-          v1 = true,
-          None,
-          obj.Jammed,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, obj.Jammed, None, PlanetSideGUID(0)),
         obj.FireModeIndex,
         slots
       )
@@ -43,17 +33,7 @@ class ToolConverter extends ObjectCreateConverter[Tool]() {
       .toList
     Success(
       DetailedWeaponData(
-        CommonFieldData(
-          obj.Faction,
-          bops = false,
-          alternate = false,
-          v1 = true,
-          None,
-          obj.Jammed,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, obj.Jammed, None, PlanetSideGUID(0)),
         obj.FireModeIndex,
         slots
       )

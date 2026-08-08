@@ -11,17 +11,7 @@ class ACEConverter extends ObjectCreateConverter[ConstructionItem]() {
   override def ConstructorData(obj: ConstructionItem): Try[HandheldData] = {
     Success(
       HandheldData(
-        CommonFieldData(
-          obj.Faction,
-          false,
-          false,
-          true,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(obj.Faction, false, false, true, None, false, None, PlanetSideGUID(0)),
         obj.FireModeIndex
       )
     )
@@ -30,17 +20,7 @@ class ACEConverter extends ObjectCreateConverter[ConstructionItem]() {
   override def DetailedConstructorData(obj: ConstructionItem): Try[DetailedConstructionToolData] = {
     Success(
       DetailedConstructionToolData(
-        CommonFieldData(
-          obj.Faction,
-          false,
-          false,
-          true,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(obj.Faction, false, false, true, None, false, None, PlanetSideGUID(0)),
         obj.FireModeIndex
       )
     )

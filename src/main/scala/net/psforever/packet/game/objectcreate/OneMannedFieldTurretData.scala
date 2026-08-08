@@ -71,17 +71,7 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
           OneMannedFieldTurretData(
             CommonFieldDataWithPlacement(
               deploy.pos,
-              CommonFieldData(
-                data.faction,
-                data.bops,
-                data.alternate,
-                data.v1,
-                data.v2,
-                data.jammered,
-                data.v4,
-                data.v5,
-                player
-              )
+              CommonFieldData(data.faction, data.bops, data.alternate, data.v1, data.v2, data.jammered, data.v5, player)
             ),
             newHealth,
             newInternals
@@ -101,17 +91,7 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
         Attempt.successful(
           CommonFieldDataWithPlacement(
             pos,
-            CommonFieldData(
-              data.faction,
-              data.bops,
-              data.alternate,
-              data.v1,
-              data.v2,
-              data.jammered,
-              data.v4,
-              data.v5,
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(data.faction, data.bops, data.alternate, data.v1, data.v2, data.jammered, data.v5, PlanetSideGUID(0))
           ) :: data.guid :: false :: newHealth :: 0 :: 0xf :: 0 :: newInternals :: HNil
         )
     }

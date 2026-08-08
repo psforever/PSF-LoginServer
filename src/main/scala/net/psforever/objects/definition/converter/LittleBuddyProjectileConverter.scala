@@ -21,17 +21,7 @@ class LittleBuddyProjectileConverter extends ObjectCreateConverter[Projectile]()
             obj.Orientation,
             obj.Velocity
           ),
-          CommonFieldData(
-            obj.owner.Faction,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            guid = PlanetSideGUID(0)
-          )
+          CommonFieldData(obj.owner.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0))
         ),
         u2 = 0,
         u4 = true

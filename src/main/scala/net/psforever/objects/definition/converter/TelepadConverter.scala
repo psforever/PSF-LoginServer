@@ -13,17 +13,7 @@ class TelepadConverter extends ObjectCreateConverter[Telepad]() {
       case Some(router) =>
         Success(
           HandheldData(
-            CommonFieldData(
-              obj.Faction,
-              false,
-              false,
-              false,
-              None,
-              false,
-              None,
-              Some(router.guid),
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(obj.Faction, false, false, false, None, false, Some(router.guid), PlanetSideGUID(0))
           )
         )
       case None =>
@@ -36,17 +26,7 @@ class TelepadConverter extends ObjectCreateConverter[Telepad]() {
       case Some(router) =>
         Success(
           DetailedConstructionToolData(
-            CommonFieldData(
-              obj.Faction,
-              false,
-              false,
-              true,
-              None,
-              false,
-              None,
-              Some(router.guid),
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(obj.Faction, false, false, true, None, false, Some(router.guid), PlanetSideGUID(0))
           )
         )
       case None =>

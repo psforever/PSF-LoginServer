@@ -167,21 +167,11 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     val altModel: Boolean = backpack || on_zipline.isDefined
     val a = CharacterAppearanceA(
       app,
-      CommonFieldData(
-        app.faction,
-        black_ops,
-        altModel,
-        v1 = false,
-        None,
-        jammered=false,
-        None,
-        if (jammered) {
+      CommonFieldData(app.faction, black_ops, altModel, v1 = false, None, jammered=false, if (jammered) {
           Some(0)
         } else {
           None
-        },
-        PlanetSideGUID(0)
-      ),
+        }, PlanetSideGUID(0)),
       exosuit,
       0,
       0,
@@ -357,17 +347,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
             Attempt.failure(Err(s"character $name's faction fields are mismatched, $faction != ${data.faction}"))
           } else if (data.faction == PlanetSideEmpire.NEUTRAL) {
             Attempt.successful(
-              CommonFieldData(
-                faction,
-                data.bops,
-                data.alternate,
-                data.v1,
-                data.v2,
-                data.jammered,
-                None,
-                data.v5,
-                PlanetSideGUID(0)
-              ) ::
+              CommonFieldData(faction, data.bops, data.alternate, data.v1, data.v2, data.jammered, data.v5, PlanetSideGUID(0)) ::
                 name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil
             )
           } else {

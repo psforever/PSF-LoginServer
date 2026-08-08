@@ -23,17 +23,7 @@ class ProjectileConverter extends ObjectCreateConverter[Projectile]() {
             obj.Orientation,
             obj.Velocity
           ),
-          CommonFieldData(
-            obj.owner.Faction,
-            false,
-            false,
-            true,
-            None,
-            false,
-            None,
-            None,
-            PlanetSideGUID(0)
-          )
+          CommonFieldData(obj.owner.Faction, false, false, true, None, false, None, PlanetSideGUID(0))
         ),
         obj.profile.RemoteClientData._1,
         obj.profile.RemoteClientData._2,

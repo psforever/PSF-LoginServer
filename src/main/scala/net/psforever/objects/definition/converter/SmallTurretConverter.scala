@@ -17,20 +17,10 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
         SmallTurretData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(
-              obj.Faction,
-              bops = false,
-              alternate = false,
-              v1 = true,
-              None,
-              obj.Jammed,
-              None,
-              None,
-              obj.OwnerGuid match {
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, obj.Jammed, None, obj.OwnerGuid match {
                 case Some(owner) => owner
                 case None        => PlanetSideGUID(0)
-              }
-            )
+              })
           ),
           health,
           Some(InventoryData(SmallTurretConverter.MakeMountings(obj)))
@@ -41,17 +31,7 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
         SmallTurretData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(
-              obj.Faction,
-              bops = false,
-              alternate = true,
-              v1 = false,
-              None,
-              jammered = false,
-              Some(false),
-              None,
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(obj.Faction, bops = false, alternate = true, v1 = false, None, jammered = false, None, PlanetSideGUID(0))
           ),
           0
         )

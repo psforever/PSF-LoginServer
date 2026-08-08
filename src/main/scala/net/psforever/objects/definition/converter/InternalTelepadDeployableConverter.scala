@@ -17,17 +17,7 @@ class InternalTelepadDeployableConverter extends ObjectCreateConverter[PlanetSid
       case Some(router) =>
         Success(
           TelepadDeployableData(
-            CommonFieldData(
-              PlanetSideEmpire.NEUTRAL,
-              bops = false,
-              alternate = false,
-              true,
-              None,
-              false,
-              None,
-              Some(router.guid),
-              PlanetSideGUID(0)
-            ),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, true, None, false, Some(router.guid), PlanetSideGUID(0)),
             unk1 = 128,
             unk2 = 0
           )

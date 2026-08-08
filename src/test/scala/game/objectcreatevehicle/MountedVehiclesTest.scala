@@ -34,7 +34,6 @@ class MountedVehiclesTest extends Specification {
             vdata.data.v1 mustEqual false
             vdata.data.v2 must beSome(CommonFieldDataExtra.Default)
             vdata.data.jammered mustEqual false
-            vdata.data.v4.isEmpty mustEqual true
             vdata.data.v5.isEmpty mustEqual true
             vdata.data.guid mustEqual PlanetSideGUID(3776)
             vdata.health mustEqual 255
@@ -66,7 +65,6 @@ class MountedVehiclesTest extends Specification {
                         a.data.v1 mustEqual false
                         a.data.v2.isEmpty mustEqual true
                         a.data.jammered mustEqual false
-                        a.data.v4.isEmpty mustEqual true
                         a.data.v5.isEmpty mustEqual true
                         a.exosuit mustEqual ExoSuitType.Agile
                         a.unk5 mustEqual 0
@@ -151,7 +149,7 @@ class MountedVehiclesTest extends Specification {
         5,
         CharacterVoice.Voice5
       ),
-      CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, None, PlanetSideGUID(0)),
+      CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, PlanetSideGUID(0)),
       ExoSuitType.Agile,
       0,
       30777081L,
@@ -209,7 +207,7 @@ class MountedVehiclesTest extends Specification {
           WeaponData(
             CommonFieldData(PlanetSideEmpire.TR),
             0,
-            List(InternalSlot(ObjectClass.health_canister, PlanetSideGUID(3472), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))))
+            List(InternalSlot(ObjectClass.health_canister, PlanetSideGUID(3472), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
           )
         ),
         InternalSlot(
@@ -219,7 +217,7 @@ class MountedVehiclesTest extends Specification {
           WeaponData(
             CommonFieldData(PlanetSideEmpire.TR),
             0,
-            List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3758), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))))
+            List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3758), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
           )
         ),
         InternalSlot(
@@ -229,7 +227,7 @@ class MountedVehiclesTest extends Specification {
           WeaponData(
             CommonFieldData(PlanetSideEmpire.TR),
             0,
-            List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(3292), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))))
+            List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(3292), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
           )
         ),
         InternalSlot(
@@ -239,7 +237,7 @@ class MountedVehiclesTest extends Specification {
           WeaponData(
             CommonFieldData(PlanetSideEmpire.TR),
             0,
-            List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(3100), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))))
+            List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(3100), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
           )
         )
       )
@@ -257,7 +255,7 @@ class MountedVehiclesTest extends Specification {
         Vector3(11.25f, 2.8125f, 92.8125f),
         Some(Vector3(114.1875f, 31.949999f, -0.1125f))
       ),
-      CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(3776)),
+      CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(3776)),
       false,
       255,
       false,
@@ -278,7 +276,7 @@ class MountedVehiclesTest extends Specification {
               WeaponData(
                 CommonFieldData(),
                 0,
-                List(InternalSlot(ObjectClass.bullet_12mm, PlanetSideGUID(3538), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))))
+                List(InternalSlot(ObjectClass.bullet_12mm, PlanetSideGUID(3538), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
               )
             )
           )

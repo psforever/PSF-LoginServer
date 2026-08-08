@@ -23,17 +23,7 @@ class CaptureFlagConverter extends ObjectCreateConverter[CaptureFlag]() {
       CaptureFlagData(
         CommonFieldDataWithPlacement(
           PlacementData(obj.Position, obj.Orientation, None),
-          CommonFieldData(
-            faction = obj.Faction,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            guid = Default.GUID0
-          )
+          CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid = Default.GUID0)
         ),
         obj.Owner.asInstanceOf[Building].GUID.guid,
         obj.Target.GUID.guid,

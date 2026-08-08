@@ -15,20 +15,10 @@ class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
         TRAPData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(
-              obj.Faction,
-              bops = false,
-              alternate = false,
-              v1 = true,
-              None,
-              jammered = false,
-              None,
-              None,
-              obj.OwnerGuid match {
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, jammered = false, None, obj.OwnerGuid match {
                 case Some(owner) => owner
                 case None        => PlanetSideGUID(0)
-              }
-            )
+              })
           ),
           health
         )
@@ -38,17 +28,7 @@ class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
         TRAPData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(
-              obj.Faction,
-              bops = false,
-              alternate = true,
-              v1 = true,
-              None,
-              jammered = false,
-              Some(true),
-              None,
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(obj.Faction, bops = false, alternate = true, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
           ),
           0
         )

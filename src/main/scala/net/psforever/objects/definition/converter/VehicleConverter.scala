@@ -21,17 +21,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-          CommonFieldData(
-            faction = obj.Faction,
-            bops = false,
-            alternate = false,
-            v1 = false,
-            v2 = Some(CommonFieldDataExtra.Default),
-            jammered = obj.Jammed,
-            v4 = None,
-            v5 = None,
-            guid = obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
-          ),
+          CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = obj.OwnerGuid.getOrElse(PlanetSideGUID(0))),
           boostMaxHealth = boosted,
           health,
           unk4 = false,
@@ -48,17 +38,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation),
-          CommonFieldData(
-            obj.Faction,
-            bops = false,
-            alternate = true,
-            v1 = false,
-            v2 = Some(CommonFieldDataExtra.Default),
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            guid = Default.GUID0
-          ),
+          CommonFieldData(obj.Faction, bops = false, alternate = true, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = false, v5 = None, guid = Default.GUID0),
           boostMaxHealth = boosted,
           health = 0,
           unk4 = false,

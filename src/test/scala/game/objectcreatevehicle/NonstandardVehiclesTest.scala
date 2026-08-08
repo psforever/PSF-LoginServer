@@ -88,17 +88,7 @@ class NonstandardVehiclesTest extends Specification {
       val obj = DroppodData(
         CommonFieldDataWithPlacement(
           PlacementData(5108.0f, 6164.0f, 1023.9844f, 0f, 0f, 90.0f),
-          CommonFieldData(
-            PlanetSideEmpire.VS,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            PlanetSideGUID(0)
-          )
+          CommonFieldData(PlanetSideEmpire.VS, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, PlanetSideGUID(0))
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.droppod, PlanetSideGUID(3595), obj)

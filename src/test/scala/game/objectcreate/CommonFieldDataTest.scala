@@ -30,14 +30,13 @@ object CommonFieldDataTest extends Specification {
           drop.pos.orient.y mustEqual 0f
           drop.pos.orient.z mustEqual 199.6875f
           drop.obj match {
-            case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+            case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
               faction mustEqual PlanetSideEmpire.NEUTRAL
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual false
               v2 must beSome(CommonFieldDataExtra.Default)
               v3 mustEqual false
-              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
             case _ =>

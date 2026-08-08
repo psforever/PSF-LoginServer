@@ -19,20 +19,10 @@ class BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle]() {
       Success(
         BattleFrameRoboticsData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-          CommonFieldData(
-            obj.Faction,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            obj.OwnerGuid match {
+          CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, obj.OwnerGuid match {
               case Some(owner) => owner
               case None => PlanetSideGUID(0)
-            }
-          ),
+            }),
           health,
           StatConverter.Health(obj.Shields, obj.MaxShields),
           unk1 = 0,
@@ -51,17 +41,7 @@ class BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle]() {
       Success(
         BattleFrameRoboticsData(
           PlacementData(obj.Position, obj.Orientation),
-          CommonFieldData(
-            obj.Faction,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            guid =  PlanetSideGUID(0)
-          ),
+          CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid =  PlanetSideGUID(0)),
           0,
           0,
           unk1 = 0,

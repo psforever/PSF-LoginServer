@@ -37,77 +37,59 @@ object CommonFieldDataExtra {
   * @param v2        na;
   *                  optional data whose reading is triggered in unknown conditions
   * @param jammered  flag as "jammered;"
-  *                  set on most game objects, that object will produce the characteristic jammered buzz
-  * @param v4        na;
-  *                  a field used by a second encoding format for this data
   * @param v5        na;
   *                  previously considered to flag as "jammered"
   * @param guid      usually indicates another active game object that placed/leverages/[action]s this object
   */
-final case class CommonFieldData(
-    faction: PlanetSideEmpire.Value,
-    bops: Boolean,
-    alternate: Boolean,
-    v1: Boolean,
-    v2: Option[CommonFieldDataExtra],
-    jammered: Boolean,
-    v4: Option[Boolean],
-    v5: Option[Int],
-    guid: PlanetSideGUID
-) extends ConstructorData {
+final case class CommonFieldData(faction: PlanetSideEmpire.Value, bops: Boolean, alternate: Boolean, v1: Boolean, v2: Option[CommonFieldDataExtra], jammered: Boolean, v5: Option[Int], guid: PlanetSideGUID) extends ConstructorData {
   override def bitsize: Long = {
     val extraSize: Long = v2 match {
       case Some(v) => v.bitsize
-      case None    => 0L
-    }
-    val v4Size = v4 match {
-      case Some(_) => 1L
       case None    => 0L
     }
     val v5Size = v5 match {
       case Some(_) => 16L
       case None    => 0L
     }
-    23L + extraSize + v4Size + v5Size
+    23L + extraSize + v5Size
   }
 
   def apply(flag: Boolean): CommonFieldData =
-    CommonFieldData(faction, bops, alternate, v1, v2, jammered, Some(flag), v5, guid)
+    CommonFieldData(faction, bops, alternate, v1, Some(CommonFieldDataExtra(v2.flatMap(_.unk1), flag)), jammered, v5, guid)
 }
 
 object CommonFieldData extends Marshallable[CommonFieldData] {
-
   /**
     * Overloaded constructors.
     * @return a `CommonFieldData` object
     */
   def apply(): CommonFieldData = {
-    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(0))
+    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, PlanetSideGUID(0))
   }
 
   def apply(faction: PlanetSideEmpire.Value): CommonFieldData = {
-    CommonFieldData(faction, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(0))
+    CommonFieldData(faction, bops = false, alternate = false, v1 = false, None, jammered = false, None, PlanetSideGUID(0))
   }
 
   def extra(): CommonFieldData = {
-    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, None, PlanetSideGUID(0))
+    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, PlanetSideGUID(0))
   }
 
   def extra(faction: PlanetSideEmpire.Value): CommonFieldData = {
-    CommonFieldData(faction, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, None, PlanetSideGUID(0))
+    CommonFieldData(faction, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, PlanetSideGUID(0))
   }
 
   def apply(faction: PlanetSideEmpire.Value, extra: Boolean): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, None, PlanetSideGUID(0))
+    CommonFieldData(faction, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, PlanetSideGUID(0))
 
   def apply(faction: PlanetSideEmpire.Value, unk: Int): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = false, v1 = unk > 1, None, jammered = unk > 0, None, None, PlanetSideGUID(0))
+    CommonFieldData(faction, bops = false, alternate = false, v1 = unk > 1, None, jammered = unk > 0, None, PlanetSideGUID(0))
 
   def apply(faction: PlanetSideEmpire.Value, unk: Int, player_guid: PlanetSideGUID): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = false, v1 = unk > 1, None, jammered = unk > 0, None, None, player_guid)
+    CommonFieldData(faction, bops = false, alternate = false, v1 = unk > 1, None, jammered = unk > 0, None, player_guid)
 
   def apply(faction: PlanetSideEmpire.Value, destroyed: Boolean, unk: Int): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = destroyed, v1 = unk > 1, None, jammered = unk > 0, None, None, PlanetSideGUID(0))
+    CommonFieldData(faction, bops = false, alternate = destroyed, v1 = unk > 1, None, jammered = unk > 0, None, PlanetSideGUID(0))
 
   def apply(
       faction: PlanetSideEmpire.Value,
@@ -115,7 +97,7 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
       unk: Int,
       player_guid: PlanetSideGUID
   ): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = destroyed, v1 = unk > 1, None, jammered = unk > 0, None, None, player_guid)
+    CommonFieldData(faction, bops = false, alternate = destroyed, v1 = unk > 1, None, jammered = unk > 0, None, player_guid)
 
   def apply(
       faction: PlanetSideEmpire.Value,
@@ -127,7 +109,7 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
   ): CommonFieldData = {
     val jammeredField = if (jammered) { Some(0) }
     else { None }
-    CommonFieldData(faction, bops, destroyed, unk > 1, None, jammered = unk > 0, None, jammeredField, player_guid)
+    CommonFieldData(faction, bops, destroyed, unk > 1, None, jammered = unk > 0, jammeredField, player_guid)
   }
 
   def codec(extra: Boolean, extra16bit: Boolean = false): Codec[CommonFieldData] =
@@ -143,10 +125,10 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
     ).xmap[CommonFieldData](
       {
         case faction :: bops :: alternate :: v1 :: v2 :: v3 :: v5 :: player_guid :: HNil =>
-          CommonFieldData(faction, bops, alternate, v1, v2, v3, None, v5, player_guid)
+          CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, player_guid)
       },
       {
-        case CommonFieldData(faction, bops, alternate, v1, v2, v3, _, v5, guid) =>
+        case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, guid) =>
           faction :: bops :: alternate :: v1 :: v2 :: v3 :: v5 :: guid :: HNil
       }
     )

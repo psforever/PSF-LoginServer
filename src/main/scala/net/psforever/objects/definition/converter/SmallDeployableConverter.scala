@@ -13,23 +13,13 @@ class SmallDeployableConverter extends ObjectCreateConverter[Deployable]() {
     Success(
       SmallDeployableData(CommonFieldDataWithPlacement(
         PlacementData(obj.Position, obj.Orientation),
-        CommonFieldData(
-          obj.Faction,
-          bops = false,
-          alternate = obj.Destroyed,
-          v1 = false,
-          None,
-          jammered = obj match {
+        CommonFieldData(obj.Faction, bops = false, alternate = obj.Destroyed, v1 = false, None, jammered = obj match {
             case o: JammableUnit => o.Jammed
             case _               => false
-          },
-          Some(false),
-          None,
-          obj.OwnerGuid match {
+          }, None, obj.OwnerGuid match {
             case Some(owner) => owner
             case None        => PlanetSideGUID(0)
-          }
-        )
+          })
       ))
     )
   }

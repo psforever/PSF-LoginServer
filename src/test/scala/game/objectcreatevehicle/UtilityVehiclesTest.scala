@@ -112,9 +112,8 @@ class UtilityVehiclesTest extends Specification {
                   data.bops mustEqual false
                   data.alternate mustEqual false
                   data.v1 mustEqual false
-                  data.v2.isEmpty mustEqual true
+                  data.v2 must beSome(CommonFieldDataExtra.Default)
                   data.jammered mustEqual false
-                  data.v4.contains(false) mustEqual true
                   data.v5.isEmpty mustEqual true
                   data.guid mustEqual ValidPlanetSideGUID(3087)
                 case _ =>
@@ -153,7 +152,6 @@ class UtilityVehiclesTest extends Specification {
                       data.v1 mustEqual false
                       data.v2.isEmpty mustEqual true
                       data.jammered mustEqual false
-                      data.v4.isEmpty mustEqual true
                       data.v5.isEmpty mustEqual true
                       data.guid mustEqual ValidPlanetSideGUID(0)
                     case _ =>
@@ -196,16 +194,20 @@ class UtilityVehiclesTest extends Specification {
                   char.implant_effects mustEqual Nil
                   char.unk mustEqual 2
                   char.cosmetics.contains(Set(Cosmetic.Earpiece, Cosmetic.Sunglasses, Cosmetic.NoHelmet)) mustEqual true
-                  pinv mustEqual List(
-                    InternalSlot(728, ValidPlanetSideGUID(3312), 0, REKData(CommonFieldData(PlanetSideEmpire.TR,false,false,false,None,false,Some(false),None,ValidPlanetSideGUID(0)),3,0)),
-                    InternalSlot(132, ValidPlanetSideGUID(3665), 1, WeaponData(CommonFieldData(PlanetSideEmpire.TR,false,false,false,None,false,None,None,ValidPlanetSideGUID(0)),0,List(
-                      InternalSlot(111,ValidPlanetSideGUID(4538),0,CommonFieldData(PlanetSideEmpire.NEUTRAL,false,false,false,None,false,Some(false),None,ValidPlanetSideGUID(0)))),false)
-                    ),
-                    InternalSlot(556, ValidPlanetSideGUID(3179), 2, WeaponData(CommonFieldData(PlanetSideEmpire.TR,false,false,false,None,false,None,None,ValidPlanetSideGUID(0)),0,List(
-                      InternalSlot(28,ValidPlanetSideGUID(3221),0,CommonFieldData(PlanetSideEmpire.NEUTRAL,false,false,false,None,false,Some(false),None,ValidPlanetSideGUID(0)))),false)
-                    ),
-                    InternalSlot(175,ValidPlanetSideGUID(4334),4,WeaponData(CommonFieldData(PlanetSideEmpire.TR,false,false,false,None,false,None,None,ValidPlanetSideGUID(0)),0,List(InternalSlot(540,ValidPlanetSideGUID(3833),0,CommonFieldData(PlanetSideEmpire.NEUTRAL,false,false,false,None,false,Some(false),None,ValidPlanetSideGUID(0)))),false))
-                  )
+                  pinv.head mustEqual
+                    InternalSlot(728, ValidPlanetSideGUID(3312), 0, REKData(CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, ValidPlanetSideGUID(0)),3,0))
+                  pinv(1) mustEqual
+                    InternalSlot(132, ValidPlanetSideGUID(3665), 1, WeaponData(CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, ValidPlanetSideGUID(0)),0,List(
+                      InternalSlot(111,ValidPlanetSideGUID(4538),0,CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, ValidPlanetSideGUID(0)))),false)
+                    )
+                  pinv(2) mustEqual
+                    InternalSlot(556, ValidPlanetSideGUID(3179), 2, WeaponData(CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, ValidPlanetSideGUID(0)),0,List(
+                      InternalSlot(28,ValidPlanetSideGUID(3221),0,CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, ValidPlanetSideGUID(0)))),false)
+                    )
+                  pinv(3) mustEqual
+                    InternalSlot(175,ValidPlanetSideGUID(4334),4,WeaponData(CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, ValidPlanetSideGUID(0)),0,List(
+                      InternalSlot(540,ValidPlanetSideGUID(3833),0,CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, ValidPlanetSideGUID(0)))),false)
+                    )
                 case _ =>
                   ko
               }
@@ -244,7 +246,7 @@ class UtilityVehiclesTest extends Specification {
     "encode (ant)" in {
       val obj = VehicleData(
         PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
         false,
         255,
         false,
@@ -265,7 +267,7 @@ class UtilityVehiclesTest extends Specification {
     "encode (ams)" in {
       val obj = VehicleData(
         PlacementData(3674.0f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-        CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, Some(false), None, PlanetSideGUID(2885)),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(2885)),
         false,
         236,
         false,
@@ -282,25 +284,25 @@ class UtilityVehiclesTest extends Specification {
                 ObjectClass.matrix_terminalc,
                 PlanetSideGUID(3663),
                 1,
-                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
               ),
               InternalSlot(
                 ObjectClass.ams_respawn_tube,
                 PlanetSideGUID(3638),
                 2,
-                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
               ),
               InternalSlot(
                 ObjectClass.order_terminala,
                 PlanetSideGUID(3827),
                 3,
-                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
               ),
               InternalSlot(
                 ObjectClass.order_terminalb,
                 PlanetSideGUID(3556),
                 4,
-                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
               )
             )
           )
@@ -319,7 +321,7 @@ class UtilityVehiclesTest extends Specification {
           Vector3(0f, 0f, 36.5625f),
           Some(Vector3(27.3375f, -0.78749996f, 0.1125f))
         ),
-        CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, Some(false), None, PlanetSideGUID(3087)),
+        CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(3087)),
         boostMaxHealth = false,
         health = 255,
         unk4 = false,
@@ -341,7 +343,7 @@ class UtilityVehiclesTest extends Specification {
                     head = 16,
                     CharacterVoice.Voice5
                   ),
-                  CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, None, PlanetSideGUID(0)),
+                  CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, PlanetSideGUID(0)),
                   ExoSuitType.Agile,
                   unk5 = 0,
                   char_id = 41555698L,
@@ -391,14 +393,16 @@ class UtilityVehiclesTest extends Specification {
                 )
                 val inv = InventoryData(
                   List(
-                    InternalSlot(728, ValidPlanetSideGUID(3312), 0, REKData(CommonFieldData(PlanetSideEmpire.TR,false,false,false,None,false,Some(false),None,ValidPlanetSideGUID(0)),3,0)),
-                    InternalSlot(132, ValidPlanetSideGUID(3665), 1, WeaponData(CommonFieldData(PlanetSideEmpire.TR,false,false,false,None,false,None,None,ValidPlanetSideGUID(0)),0,List(
-                      InternalSlot(111, ValidPlanetSideGUID(4538), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL,false,false,false,None,false,Some(false),None,ValidPlanetSideGUID(0)))),false)
+                    InternalSlot(728, ValidPlanetSideGUID(3312), 0, REKData(CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, ValidPlanetSideGUID(0)),3,0)),
+                    InternalSlot(132, ValidPlanetSideGUID(3665), 1, WeaponData(CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, ValidPlanetSideGUID(0)),0,List(
+                      InternalSlot(111, ValidPlanetSideGUID(4538), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, ValidPlanetSideGUID(0)))),false)
                     ),
-                    InternalSlot(556, ValidPlanetSideGUID(3179), 2, WeaponData(CommonFieldData(PlanetSideEmpire.TR,false,false,false,None,false,None,None,ValidPlanetSideGUID(0)),0,List(
-                      InternalSlot(28, ValidPlanetSideGUID(3221), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL,false,false,false,None,false,Some(false),None,ValidPlanetSideGUID(0)))),false)
+                    InternalSlot(556, ValidPlanetSideGUID(3179), 2, WeaponData(CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, ValidPlanetSideGUID(0)),0,List(
+                      InternalSlot(28, ValidPlanetSideGUID(3221), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, ValidPlanetSideGUID(0)))),false)
                     ),
-                    InternalSlot(175, ValidPlanetSideGUID(4334), 4, WeaponData(CommonFieldData(PlanetSideEmpire.TR,false,false,false,None,false,None,None,ValidPlanetSideGUID(0)),0,List(InternalSlot(540,ValidPlanetSideGUID(3833),0,CommonFieldData(PlanetSideEmpire.NEUTRAL,false,false,false,None,false,Some(false),None,ValidPlanetSideGUID(0)))),false))
+                    InternalSlot(175, ValidPlanetSideGUID(4334), 4, WeaponData(CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, ValidPlanetSideGUID(0)),0,List(
+                      InternalSlot(540,ValidPlanetSideGUID(3833),0,CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, ValidPlanetSideGUID(0)))),false)
+                    )
                   )
                 )
                 MountableInventory.PlayerData(
@@ -412,19 +416,19 @@ class UtilityVehiclesTest extends Specification {
             ),
             InternalSlot(
               ObjectClass.matrix_terminalc, PlanetSideGUID(3265), 1,
-              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
             ),
             InternalSlot(
               ObjectClass.ams_respawn_tube, PlanetSideGUID(4346), 2,
-              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
             ),
             InternalSlot(
               ObjectClass.order_terminala, PlanetSideGUID(4363), 3,
-              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
             ),
             InternalSlot(
               ObjectClass.order_terminalb, PlanetSideGUID(4074), 4,
-              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
             )
           )
         ))

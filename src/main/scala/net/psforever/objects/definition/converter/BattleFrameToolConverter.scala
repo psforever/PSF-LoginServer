@@ -15,17 +15,7 @@ class BattleFrameToolConverter extends ObjectCreateConverter[Tool]() {
     }).toList
     Success(
       WeaponData(
-        CommonFieldData(
-          faction = obj.Faction,
-          bops = false,
-          alternate = false,
-          v1 = true,
-          v2 = Some(CommonFieldDataExtra.Default),
-          jammered = obj.Jammed,
-          v4 = None,
-          v5 = None,
-          guid = PlanetSideGUID(0)
-        ),
+        CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = PlanetSideGUID(0)),
         obj.FireModeIndex,
         slots
       )

@@ -48,17 +48,7 @@ object AvatarBotConverter {
   def MakeAppearanceData(obj: AvatarBot): Int => CharacterAppearanceData = {
     val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
       obj.basic,
-      CommonFieldData(
-        obj.Faction,
-        bops = false,
-        false,
-        v1 = false,
-        None,
-        obj.Jammed,
-        None,
-        v5 = None,
-        PlanetSideGUID(0)
-      ),
+      CommonFieldData(obj.Faction, bops = false, false, v1 = false, None, obj.Jammed, v5 = None, PlanetSideGUID(0)),
       obj.ExoSuit,
       0,
       0,
@@ -226,7 +216,7 @@ object AvatarBotConverter {
           equip.GUID,
           5,
           DetailedLockerContainerData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops=false, alternate=false, v1=true, None, jammered=false, None, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops=false, alternate=false, v1=true, None, jammered=false, None, PlanetSideGUID(0)),
             None
           )
         ))

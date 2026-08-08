@@ -24,14 +24,13 @@ class CommonFieldDataWithPlacementTest extends Specification {
               pos.coord mustEqual Vector3(4704.172f, 5546.4375f, 82.234375f)
               pos.orient mustEqual Vector3.z(272.8125f)
               com match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.TR
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual false
                   v2.isEmpty mustEqual true
                   v3 mustEqual false
-                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(4145)
                 case _ =>
@@ -48,7 +47,7 @@ class CommonFieldDataWithPlacementTest extends Specification {
     "encode" in {
       val obj = SmallDeployableData(CommonFieldDataWithPlacement(
         PlacementData(Vector3(4704.172f, 5546.4375f, 82.234375f), Vector3.z(272.8125f)),
-        CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(4145))
+        CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, None, jammered = false, None, PlanetSideGUID(4145))
       ))
       val msg = ObjectCreateMessage(ObjectClass.boomer, PlanetSideGUID(3840), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector

@@ -73,17 +73,7 @@ object AvatarConverter {
     }
     val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
       tempAvatarInfo,
-      CommonFieldData(
-        obj.Faction,
-        bops = obj.bops,
-        alt_model_flag,
-        v1 = false,
-        None,
-        obj.Jammed,
-        None,
-        v5 = None,
-        PlanetSideGUID(0)
-      ),
+      CommonFieldData(obj.Faction, bops = obj.bops, alt_model_flag, v1 = false, None, obj.Jammed, v5 = None, PlanetSideGUID(0)),
       obj.ExoSuit,
       0,
       obj.CharId,
@@ -252,7 +242,7 @@ object AvatarConverter {
           equip.GUID,
           5,
           DetailedLockerContainerData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops=false, alternate=false, v1=true, None, jammered=false, None, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops=false, alternate=false, v1=true, None, jammered=false, None, PlanetSideGUID(0)),
             None
           )
         ))

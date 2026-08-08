@@ -32,7 +32,6 @@ class CaptureFlagDataTest extends Specification {
               vdata.v1 mustEqual true
               vdata.v2.isEmpty mustEqual true
               vdata.jammered mustEqual false
-              vdata.v4.isEmpty mustEqual true
               vdata.v5.isEmpty mustEqual true
               vdata.guid mustEqual Default.GUID0
               ownerGuid mustEqual 21
@@ -50,7 +49,7 @@ class CaptureFlagDataTest extends Specification {
       val obj = CaptureFlagData(
         CommonFieldDataWithPlacement(
           PlacementData(3912.0312f, 5169.4375f, 59.96875f, 0f, 0f, 47.8125f),
-          CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, Default.GUID0)
+          CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, Default.GUID0)
         ),
         21,
         4,

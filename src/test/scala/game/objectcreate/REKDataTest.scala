@@ -23,7 +23,7 @@ class REKDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(4174)
           parent.get.slot mustEqual 0
           data match {
-            case REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk1, unk2) =>
+            case REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid), unk1, unk2) =>
               faction mustEqual PlanetSideEmpire.TR
               bops mustEqual false
               alternate mustEqual false
@@ -35,7 +35,6 @@ class REKDataTest extends Specification {
                 case None => ko
               }
               v3 mustEqual false
-              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
               unk1 mustEqual 0
@@ -58,7 +57,7 @@ class REKDataTest extends Specification {
           data match {
             case DroppedItemData(
                   pos,
-                  REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk1, unk2)
+                  REKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid), unk1, unk2)
                 ) =>
               pos.coord mustEqual Vector3(4675.039f, 5506.953f, 72.703125f)
               pos.orient mustEqual Vector3.z(230.625f)
@@ -74,7 +73,6 @@ class REKDataTest extends Specification {
                 case None => ko
               }
               v3 mustEqual false
-              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
 
@@ -90,7 +88,7 @@ class REKDataTest extends Specification {
 
     "encode (held)" in {
       val obj = REKData(
-        CommonFieldData(PlanetSideEmpire.TR, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.TR, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
       )
       val msg = ObjectCreateMessage(
         ObjectClass.remote_electronics_kit,
@@ -106,7 +104,7 @@ class REKDataTest extends Specification {
       val obj = DroppedItemData(
         PlacementData(4675.039f, 5506.953f, 72.703125f, 0f, 0f, 230.625f),
         REKData(
-          CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)),
+          CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
           3,
           0
         )

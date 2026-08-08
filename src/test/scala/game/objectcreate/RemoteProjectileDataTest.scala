@@ -31,7 +31,6 @@ class RemoteProjectileDataTest extends Specification {
               deploy.v1 mustEqual true
               deploy.v2.isEmpty mustEqual true
               deploy.jammered mustEqual false
-              deploy.v4.isEmpty mustEqual true
               deploy.v5.isEmpty mustEqual true
               deploy.guid mustEqual PlanetSideGUID(0)
               unk2 mustEqual 26214
@@ -64,7 +63,6 @@ class RemoteProjectileDataTest extends Specification {
               deploy.v1 mustEqual true
               deploy.v2.isEmpty mustEqual true
               deploy.jammered mustEqual false
-              deploy.v4.isEmpty mustEqual true
               deploy.v5.isEmpty mustEqual true
               deploy.guid mustEqual PlanetSideGUID(0)
               unk2 mustEqual 39577
@@ -98,7 +96,6 @@ class RemoteProjectileDataTest extends Specification {
               dat.data.v1 mustEqual true
               dat.data.v2.isEmpty mustEqual true
               dat.data.jammered mustEqual false
-              dat.data.v4.isEmpty mustEqual true
               dat.data.v5.isEmpty mustEqual true
               dat.data.guid mustEqual PlanetSideGUID(0)
               u2 mustEqual 0
@@ -115,7 +112,7 @@ class RemoteProjectileDataTest extends Specification {
       val obj = RemoteProjectileData(
         CommonFieldDataWithPlacement(
           PlacementData(4644.5938f, 5472.0938f, 82.375f, 0f, 30.9375f, 171.5625f),
-          CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, None, PlanetSideGUID(0))
+          CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0))
         ),
         26214,
         134,
@@ -136,7 +133,7 @@ class RemoteProjectileDataTest extends Specification {
       val obj = RemoteProjectileData(
         CommonFieldDataWithPlacement(
           PlacementData(3621.3672f, 2701.8438f, 140.85938f, 0, 300.9375f, 258.75f),
-          CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0))
+          CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0))
         ),
         39577,
         201,
@@ -160,17 +157,7 @@ class RemoteProjectileDataTest extends Specification {
             Vector3(0, 317.8125f, 357.1875f),
             Some(Vector3(-10.0125f, 101.475f, -101.7f))
           ),
-          CommonFieldData(
-            PlanetSideEmpire.NC,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            guid = PlanetSideGUID(0)
-          )
+          CommonFieldData(PlanetSideEmpire.NC, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0))
         ),
         u2 = 0,
         u4 = true

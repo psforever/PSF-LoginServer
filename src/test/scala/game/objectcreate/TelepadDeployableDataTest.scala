@@ -28,7 +28,7 @@ class TelepadDeployableDataTest extends Specification {
 
               telepad match {
                 case TelepadDeployableData(
-                      CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid),
+                      CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid),
                       u1,
                       u2
                     ) =>
@@ -38,7 +38,6 @@ class TelepadDeployableDataTest extends Specification {
                   v1 mustEqual true
                   v2.isEmpty mustEqual true
                   v3 mustEqual false
-                  v4.isEmpty mustEqual true
                   v5.contains(385) mustEqual true
                   fguid mustEqual PlanetSideGUID(430)
 
@@ -62,17 +61,7 @@ class TelepadDeployableDataTest extends Specification {
           Vector3.z(109.6875f)
         ),
         TelepadDeployableData(
-          CommonFieldData(
-            PlanetSideEmpire.TR,
-            bops = false,
-            alternate = false,
-            true,
-            None,
-            false,
-            None,
-            Some(385),
-            PlanetSideGUID(430)
-          ),
+          CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, true, None, false, Some(385), PlanetSideGUID(430)),
           87,
           12
         )

@@ -18,20 +18,10 @@ class DroppodConverter extends ObjectCreateConverter[Vehicle]() {
         DroppodData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-            CommonFieldData(
-              obj.Faction,
-              bops = false,
-              alternate = false,
-              v1 = false,
-              v2 = None,
-              jammered = obj.Jammed,
-              v4 = Some(false),
-              v5 = None,
-              obj.OwnerGuid match {
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, v2 = None, jammered = obj.Jammed, v5 = None, obj.OwnerGuid match {
                 case Some(owner) => owner
                 case None        => PlanetSideGUID(0)
-              }
-            )
+              })
           ),
           health,
           burn = false,
@@ -43,17 +33,7 @@ class DroppodConverter extends ObjectCreateConverter[Vehicle]() {
         DroppodData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-            CommonFieldData(
-              obj.Faction,
-              bops = false,
-              alternate = false,
-              v1 = false,
-              v2 = None,
-              jammered = false,
-              v4 = Some(false),
-              v5 = None,
-              PlanetSideGUID(0)
-            )
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, PlanetSideGUID(0))
           ),
           0,
           burn = false,
