@@ -97,7 +97,7 @@ object CommonFieldDataTest extends Specification {
     }
 
     "encode (implant interface)" in {
-      val obj = CommonFieldData(PlanetSideEmpire.VS)(false)
+      val obj = CommonFieldData.extra(PlanetSideEmpire.VS)
       val msg = ObjectCreateMessage(0x199, PlanetSideGUID(1075), ObjectCreateMessageParent(PlanetSideGUID(514), 1), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_implant_interface
@@ -106,7 +106,7 @@ object CommonFieldDataTest extends Specification {
     "encode (order terminal a)" in {
       val obj = DroppedItemData(
         PlacementData(4579.3438f, 5615.0703f, 72.953125f, 0f, 0f, 98.4375f),
-        CommonFieldData(PlanetSideEmpire.NC)(false)
+        CommonFieldData.extra(PlanetSideEmpire.NC)
       )
       val msg = ObjectCreateMessage(ObjectClass.order_terminala, PlanetSideGUID(3827), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
@@ -118,9 +118,9 @@ object CommonFieldDataTest extends Specification {
         ObjectClass.order_terminala,
         PlanetSideGUID(1),
         1,
-        CommonFieldData(PlanetSideEmpire.NC)(false)
+        CommonFieldData.extra(PlanetSideEmpire.NC)
       ) mustEqual
-        InternalSlot(ObjectClass.order_terminala, PlanetSideGUID(1), 1, CommonFieldData(PlanetSideEmpire.NC)(false))
+        InternalSlot(ObjectClass.order_terminala, PlanetSideGUID(1), 1, CommonFieldData.extra(PlanetSideEmpire.NC))
     }
   }
 }

@@ -327,9 +327,11 @@ class WeaponDataTest extends Specification {
         WeaponData(
           CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, None, PlanetSideGUID(0)),
           0,
-          List(InternalSlot(ObjectClass.energy_cell, PlanetSideGUID(3268), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 0)(false)))
+          List(InternalSlot(ObjectClass.energy_cell, PlanetSideGUID(3268), 0,
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = false, v5 = None, guid = PlanetSideGUID(0))
+          )
         )
-      )
+      ))
       val msg = ObjectCreateMessage(ObjectClass.lasher, PlanetSideGUID(3074), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_lasher_dropped

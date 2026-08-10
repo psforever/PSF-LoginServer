@@ -53,9 +53,6 @@ final case class CommonFieldData(faction: PlanetSideEmpire.Value, bops: Boolean,
     }
     23L + extraSize + v5Size
   }
-
-  def apply(flag: Boolean): CommonFieldData =
-    CommonFieldData(faction, bops, alternate, v1, Some(CommonFieldDataExtra(v2.flatMap(_.unk1), flag)), jammered, v5, guid)
 }
 
 object CommonFieldData extends Marshallable[CommonFieldData] {
@@ -77,39 +74,6 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
 
   def extra(faction: PlanetSideEmpire.Value): CommonFieldData = {
     CommonFieldData(faction, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, PlanetSideGUID(0))
-  }
-
-  def apply(faction: PlanetSideEmpire.Value, extra: Boolean): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, PlanetSideGUID(0))
-
-  def apply(faction: PlanetSideEmpire.Value, unk: Int): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = false, v1 = unk > 1, None, jammered = unk > 0, None, PlanetSideGUID(0))
-
-  def apply(faction: PlanetSideEmpire.Value, unk: Int, player_guid: PlanetSideGUID): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = false, v1 = unk > 1, None, jammered = unk > 0, None, player_guid)
-
-  def apply(faction: PlanetSideEmpire.Value, destroyed: Boolean, unk: Int): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = destroyed, v1 = unk > 1, None, jammered = unk > 0, None, PlanetSideGUID(0))
-
-  def apply(
-      faction: PlanetSideEmpire.Value,
-      destroyed: Boolean,
-      unk: Int,
-      player_guid: PlanetSideGUID
-  ): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = destroyed, v1 = unk > 1, None, jammered = unk > 0, None, player_guid)
-
-  def apply(
-      faction: PlanetSideEmpire.Value,
-      bops: Boolean,
-      destroyed: Boolean,
-      unk: Int,
-      jammered: Boolean,
-      player_guid: PlanetSideGUID
-  ): CommonFieldData = {
-    val jammeredField = if (jammered) { Some(0) }
-    else { None }
-    CommonFieldData(faction, bops, destroyed, unk > 1, None, jammered = unk > 0, jammeredField, player_guid)
   }
 
   def codec(extra: Boolean, extra16bit: Boolean = false): Codec[CommonFieldData] =

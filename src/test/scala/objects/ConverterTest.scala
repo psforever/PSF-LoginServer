@@ -575,15 +575,15 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedLockerContainerData(
-            8,
-            InternalSlot(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+            Some(InventoryData(List(InternalSlot(
               remote_electronics_kit.ObjectId,
               PlanetSideGUID(1),
               0,
               DetailedREKData(
                 CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
               )
-            ) :: Nil
+            ))))
           )
         case _ =>
           ko
@@ -621,7 +621,7 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual CommonFieldData(PlanetSideEmpire.NEUTRAL)(flag = false)
+          pkt mustEqual CommonFieldData.extra(PlanetSideEmpire.NEUTRAL)flag = false)
         case _ =>
           ko
       }
@@ -641,7 +641,7 @@ class ConverterTest extends Specification {
 
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
-          pkt mustEqual CommonFieldData(PlanetSideEmpire.NEUTRAL)(flag = false)
+          pkt mustEqual CommonFieldData.extra(PlanetSideEmpire.NEUTRAL)flag = false)
         case _ =>
           ko
       }

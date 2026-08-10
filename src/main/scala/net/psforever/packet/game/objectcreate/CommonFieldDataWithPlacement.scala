@@ -17,42 +17,6 @@ final case class CommonFieldDataWithPlacement(pos: PlacementData, data: CommonFi
 }
 
 object CommonFieldDataWithPlacement extends Marshallable[CommonFieldDataWithPlacement] {
-
-  /**
-    * Overloaded constructors.
-    * @return a `CommonFieldDataWithPlacement` object
-    */
-  def apply(pos: PlacementData, faction: PlanetSideEmpire.Value): CommonFieldDataWithPlacement =
-    CommonFieldDataWithPlacement(pos, CommonFieldData(faction))
-
-  def apply(pos: PlacementData, faction: PlanetSideEmpire.Value, unk: Int): CommonFieldDataWithPlacement =
-    CommonFieldDataWithPlacement(pos, CommonFieldData(faction, unk))
-
-  def apply(
-      pos: PlacementData,
-      faction: PlanetSideEmpire.Value,
-      unk: Int,
-      player_guid: PlanetSideGUID
-  ): CommonFieldDataWithPlacement =
-    CommonFieldDataWithPlacement(pos, CommonFieldData(faction, unk, player_guid))
-
-  def apply(
-      pos: PlacementData,
-      faction: PlanetSideEmpire.Value,
-      destroyed: Boolean,
-      unk: Int
-  ): CommonFieldDataWithPlacement =
-    CommonFieldDataWithPlacement(pos, CommonFieldData(faction, destroyed, unk))
-
-  def apply(
-      pos: PlacementData,
-      faction: PlanetSideEmpire.Value,
-      destroyed: Boolean,
-      unk: Int,
-      player_guid: PlanetSideGUID
-  ): CommonFieldDataWithPlacement =
-    CommonFieldDataWithPlacement(pos, CommonFieldData(faction, destroyed, unk, player_guid))
-
   implicit val codec: Codec[CommonFieldDataWithPlacement] =
     (
       ("pos" | PlacementData.codec) ::
