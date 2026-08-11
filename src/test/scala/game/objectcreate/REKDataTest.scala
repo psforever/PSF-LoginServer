@@ -28,12 +28,7 @@ class REKDataTest extends Specification {
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual true
-              v2 match {
-                case Some(extra) =>
-                  extra.unk1.isEmpty mustEqual true
-                  extra.unk2 mustEqual false
-                case None => ko
-              }
+              v2 must beSome(CommonFieldDataExtra.Default)
               v3 mustEqual false
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
@@ -66,12 +61,7 @@ class REKDataTest extends Specification {
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual false
-              v2 match {
-                case Some(extra) =>
-                  extra.unk1.isEmpty mustEqual true
-                  extra.unk2 mustEqual false
-                case None => ko
-              }
+              v2 must beSome(CommonFieldDataExtra.Default)
               v3 mustEqual false
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)

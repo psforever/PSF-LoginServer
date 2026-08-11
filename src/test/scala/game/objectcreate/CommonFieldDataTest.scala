@@ -50,7 +50,7 @@ object CommonFieldDataTest extends Specification {
     "encode (shotgun shells, dropped)" in {
       val obj = DroppedItemData(
         PlacementData(4684.7344f, 5547.4844f, 83.765625f, 0f, 0f, 199.6875f),
-        CommonFieldData()(false)
+        CommonFieldData.extra()
       )
       val msg = ObjectCreateMessage(ObjectClass.shotgun_shell, PlanetSideGUID(3453), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector

@@ -23,7 +23,7 @@ class LockerContainerConverter extends ObjectCreateConverter[LockerEquipment]() 
     if (obj.Inventory.Size > 0) {
       Success(
         DetailedLockerContainerData(
-          CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, true, None, PlanetSideGUID(0)),
+          CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
           Some(InventoryData(MakeDetailedInventory(obj.Inventory)))
         )
       )
