@@ -49,6 +49,14 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
   def apply(deploy: CommonFieldDataWithPlacement, health: Int, internals: InventoryData): OneMannedFieldTurretData =
     new OneMannedFieldTurretData(deploy, health, Some(internals))
 
+  private def structureIfAlive(inHealth: Int, inInternals: Option[InventoryData]): (Int, Option[InventoryData]) = {
+    if (inHealth > 0 && inInternals.exists(_.contents.nonEmpty)) {
+      (inHealth, inInternals)
+    } else {
+      (0, None)
+    }
+  }
+
   implicit val codec: Codec[OneMannedFieldTurretData] = (
     ("deploy" | CommonFieldDataWithPlacement.codec_extra) ::
       PlanetSideGUID.codec :: //hoist/extract with the deploy.owner_guid in field above
@@ -61,17 +69,12 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
   ).exmap[OneMannedFieldTurretData](
     {
       case deploy :: player :: false :: health :: 0 :: 0xf :: 0 :: internals :: HNil =>
-        val (newHealth, newInternals) = if (health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
-          (0, None)
-        } else {
-          (health, internals)
-        }
-        val data = deploy.data
+        val (newHealth, newInternals) = structureIfAlive(health, internals)
         Attempt.successful(
           OneMannedFieldTurretData(
             CommonFieldDataWithPlacement(
               deploy.pos,
-              CommonFieldData(data.faction, data.bops, data.alternate, data.v1, data.v2, data.jammered, data.v5, player)
+              deploy.data.copy(guid = player)
             ),
             newHealth,
             newInternals
@@ -83,15 +86,11 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
     },
     {
       case OneMannedFieldTurretData(CommonFieldDataWithPlacement(pos, data), health, internals) =>
-        val (newHealth, newInternals) = if (health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
-          (0, None)
-        } else {
-          (health, internals)
-        }
+        val (newHealth, newInternals) = structureIfAlive(health, internals)
         Attempt.successful(
           CommonFieldDataWithPlacement(
             pos,
-            CommonFieldData(data.faction, data.bops, data.alternate, data.v1, data.v2, data.jammered, data.v5, PlanetSideGUID(0))
+            data.copy(guid = PlanetSideGUID(0))
           ) :: data.guid :: false :: newHealth :: 0 :: 0xf :: 0 :: newInternals :: HNil
         )
     }

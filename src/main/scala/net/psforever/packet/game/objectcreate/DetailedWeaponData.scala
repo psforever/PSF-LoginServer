@@ -34,7 +34,6 @@ final case class DetailedWeaponData(
 }
 
 object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
-
   /**
     * Overloaded constructor for creating `DetailedWeaponData` while masking use of `InternalSlot` for its `DetailedAmmoBoxData`.
     * @param unk1 na
@@ -88,20 +87,15 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
 
   implicit val codec: Codec[DetailedWeaponData] = (
     ("data" | CommonFieldData.codec) ::
-      uint8 ::
-      uint8 ::
-      ("fire_mode" | uint8) ::
-      uint2 ::
-      ("ammo" | optional(bool, InventoryData.codec_detailed)) ::
-      ("unk" | bool)
+      ToolPatternData.codec
   ).exmap[DetailedWeaponData](
     {
-      case data :: 1 :: 0 :: fmode :: 1 :: Some(InventoryData(ammo)) :: unk :: HNil =>
-        val magSize = ammo.size
+      case data :: ToolPatternData(_, fmode, _, _, Some(InventoryData(ammoList)), unk) :: HNil =>
+        val magSize = ammoList.size
         if (magSize == 0) {
           Attempt.failure(Err("weapon must decode some ammunition"))
         } else {
-          Attempt.successful(DetailedWeaponData(data, fmode, ammo, unk))
+          Attempt.successful(DetailedWeaponData(data, fmode, ammoList, unk))
         }
 
       case data =>
@@ -115,7 +109,7 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
         } else if (magSize >= 255) {
           Attempt.failure(Err("weapon encodes too much ammunition (255+ types!)"))
         } else {
-          Attempt.successful(data :: 1 :: 0 :: fmode :: 1 :: Some(InventoryData(ammo)) :: unk :: HNil)
+          Attempt.successful(data :: ToolPatternData(u1 = 1, fmode, u3 = false, u4 = true, Some(InventoryData(ammo)), u6 = unk) :: HNil)
         }
     }
   )

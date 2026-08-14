@@ -15,7 +15,7 @@ final case class LittleBuddyProjectileData(
   /**
     * The length of the little buddy data is functionally `32u`
     * after all other fields are accounted for
-    * but the packet decode demands an additional bit be accounted for.
+    * but the packet transcoder demands an additional bit be accounted for.
     * @return the number of bits necessary to measure an object of this class
     */
   override def bitsize: Long = 33L + data.bitsize
