@@ -5,6 +5,7 @@ import net.psforever.objects.ballistics.Projectiles
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.projectile.DistanceDegrade
 import net.psforever.objects.vital.prop.DamageWithPosition
+import net.psforever.packet.game.objectcreate.FlightPhysics
 
 /**
   * The definition that outlines the damage-dealing characteristics of any projectile.
@@ -36,8 +37,7 @@ class ProjectileDefinition(objectId: Int)
     * `true` spawns a server-managed object */
   private var existsOnRemoteClients: Boolean        = false
   /** the values used by the `ObjectCreateMessage` packet for construction of the server-managed projectile
-    * `0, 0` are artificial values;
-    * the oicw_little_buddy is undefined for these values */
+    * `0, 0` are artificial values, except for the oicw_little_buddy which uses them */
   private var remoteClientData: (Int, Int) = (0, 0)
   /** this projectile follows its target, after a fashion */
   private var autoLock: Boolean         = false

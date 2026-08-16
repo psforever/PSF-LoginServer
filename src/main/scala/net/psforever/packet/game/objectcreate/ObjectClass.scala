@@ -693,7 +693,7 @@ object ObjectClass {
     (objClass: @switch) match {
       //special cases
       case ObjectClass.avatar            => ConstructorData(DetailedPlayerData.codec(position_defined = true), "avatar")
-      case ObjectClass.oicw_little_buddy => ConstructorData(LittleBuddyProjectileData.codec, "projectile")
+      case ObjectClass.oicw_little_buddy => ConstructorData(RemoteProjectileData.codec, "projectile")
       //defer to other codec selection
       case _ => selectDataDetailedCodec(objClass)
     }
@@ -1273,7 +1273,7 @@ object ObjectClass {
       case ObjectClass.peregrine_particle_cannon_radiation_cloud => ConstructorData(RadiationCloudData.codec, "radiation cloud")
       case ObjectClass.peregrine_sparrow_projectile              => ConstructorData(RemoteProjectileData.codec, "projectile")
       case ObjectClass.phoenix_missile_guided_projectile         => ConstructorData(RemoteProjectileData.codec, "projectile")
-      case ObjectClass.oicw_little_buddy                         => ConstructorData(LittleBuddyProjectileData.codec, "projectile")
+      case ObjectClass.oicw_little_buddy                         => ConstructorData(RemoteProjectileData.codec, "projectile")
       case ObjectClass.oicw_projectile                           => ConstructorData(RemoteProjectileData.codec, "projectile")
       case ObjectClass.radiator_cloud                            => ConstructorData(RadiationCloudData.codec, "radiation cloud")
       case ObjectClass.sparrow_projectile                        => ConstructorData(RemoteProjectileData.codec, "projectile")

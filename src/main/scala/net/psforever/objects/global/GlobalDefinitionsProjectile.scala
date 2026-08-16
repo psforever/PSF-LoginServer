@@ -9,10 +9,7 @@ import net.psforever.objects.equipment.{ArmorSiphonRepairHost, EffectTarget, Tar
 import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage.{RadialDegrade, SameHit, StandardDamageProfile}
-import net.psforever.objects.vital.etc.{
-  ArmorSiphonMaxDistanceCutoff,
-  ExplosionDamagesOnlyAbove
-}
+import net.psforever.objects.vital.etc.{ArmorSiphonMaxDistanceCutoff, ExplosionDamagesOnlyAbove}
 import net.psforever.objects.vital.projectile._
 
 object GlobalDefinitionsProjectile {
@@ -1240,7 +1237,8 @@ object GlobalDefinitionsProjectile {
     oicw_little_buddy.InitialVelocity = 40
     oicw_little_buddy.Lifespan = 0.5f
     oicw_little_buddy.registerAs = "rc-projectiles"
-    oicw_little_buddy.ExistsOnRemoteClients = true //does not use RemoteClientData
+    oicw_little_buddy.ExistsOnRemoteClients = true
+    oicw_little_buddy.RemoteClientData = (0, 0) //explicit restatement
     oicw_little_buddy.Packet = new LittleBuddyProjectileConverter
     //add_property oicw_little_buddy multi_stage_spawn_server_side true ...
     ProjectileDefinition.CalculateDerivedFields(oicw_little_buddy)

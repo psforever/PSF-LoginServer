@@ -57,6 +57,7 @@ class RemoteProjectileDataTest extends Specification {
             case RemoteProjectileData(CommonFieldDataWithPlacement(pos, deploy), unk2, lim, unk3, unk4, unk5) =>
               pos.coord mustEqual Vector3(3621.3672f, 2701.8438f, 140.85938f)
               pos.orient mustEqual Vector3(0, 300.9375f, 258.75f)
+              pos.vel.isEmpty mustEqual true
               deploy.faction mustEqual PlanetSideEmpire.NC
               deploy.bops mustEqual false
               deploy.alternate mustEqual false
@@ -86,20 +87,28 @@ class RemoteProjectileDataTest extends Specification {
           guid mustEqual PlanetSideGUID(3645)
           parent.isDefined mustEqual false
           data match {
-            case LittleBuddyProjectileData(dat, u2, u4) =>
-              dat.pos.coord mustEqual Vector3(3046.2344f, 3715.6953f, 68.578125f)
-              dat.pos.orient mustEqual Vector3(0, 317.8125f, 357.1875f)
-              dat.pos.vel.contains(Vector3(-10.0125f, 101.475f, -101.7f)) mustEqual true
-              dat.data.faction mustEqual PlanetSideEmpire.NC
-              dat.data.bops mustEqual false
-              dat.data.alternate mustEqual false
-              dat.data.v1 mustEqual true
-              dat.data.v2.isEmpty mustEqual true
-              dat.data.jammered mustEqual false
-              dat.data.v5.isEmpty mustEqual true
-              dat.data.guid mustEqual PlanetSideGUID(0)
+            case RemoteProjectileData(dat, u1, u2, u3, u4, u5) =>
+              dat match {
+                case CommonFieldDataWithPlacement(place, CommonFieldData(faction, bops, alt, v1, v2, jam, v5, guid)) =>
+                  place.coord mustEqual Vector3(3046.2344f, 3715.6953f, 68.578125f)
+                  place.orient mustEqual Vector3(0, 317.8125f, 357.1875f)
+                  place.vel.contains(Vector3(-10.0125f, 101.475f, -101.7f)) mustEqual true
+                  faction mustEqual PlanetSideEmpire.NC
+                  bops mustEqual false
+                  alt mustEqual false
+                  v1 mustEqual true
+                  v2.isEmpty mustEqual true
+                  jam mustEqual false
+                  v5.isEmpty mustEqual true
+                  guid mustEqual PlanetSideGUID(0)
+                case _ =>
+                  ko
+              }
+              u1 mustEqual 0
               u2 mustEqual 0
-              u4 mustEqual true
+              u3 mustEqual FlightPhysics.State3
+              u4 mustEqual 7
+              u5 mustEqual 2
             case _ =>
               ko
           }
@@ -111,8 +120,8 @@ class RemoteProjectileDataTest extends Specification {
     "encode (striker_missile_targeting_projectile)" in {
       val obj = RemoteProjectileData(
         CommonFieldDataWithPlacement(
-          PlacementData(4644.5938f, 5472.0938f, 82.375f, 0f, 30.9375f, 171.5625f),
-          CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, None, PlanetSideGUID(0))
+          PlacementData(Vector3(4644.5938f, 5472.0938f, 82.375f), Vector3(0, 30.9375f, 171.5625f), None),
+          CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0))
         ),
         26214,
         134,
@@ -151,7 +160,7 @@ class RemoteProjectileDataTest extends Specification {
     }
 
     "encode (oicw_little_buddy)" in {
-      val obj = LittleBuddyProjectileData(
+      val obj = RemoteProjectileData(
         CommonFieldDataWithPlacement(
             PlacementData(Vector3(3046.2344f, 3715.6953f, 68.578125f),
             Vector3(0, 317.8125f, 357.1875f),
@@ -159,8 +168,11 @@ class RemoteProjectileDataTest extends Specification {
           ),
           CommonFieldData(PlanetSideEmpire.NC, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0))
         ),
+        u1 = 0,
         u2 = 0,
-        u4 = true
+        FlightPhysics.State3,
+        unk4 = 7,
+        unk5 = 2
       )
       val msg = ObjectCreateDetailedMessage(ObjectClass.oicw_little_buddy, PlanetSideGUID(3645), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
