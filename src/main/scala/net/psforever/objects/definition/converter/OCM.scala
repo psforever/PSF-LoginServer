@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ObjectCreateDetailedMessage, ObjectCreateMessage}
-import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.packet.objectcreate.ObjectCreateMessageParent
 
 /**
   * Compose an `ObjectCreateMessage` packet or, if requesting and allowing, an `ObjectCreateDetailedMessage` packet.

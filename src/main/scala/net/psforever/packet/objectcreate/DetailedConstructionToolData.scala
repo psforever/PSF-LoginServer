@@ -1,5 +1,5 @@
 // Copyright (c) 2018 PSForever
-package net.psforever.packet.game.objectcreate
+package net.psforever.packet.objectcreate
 
 import net.psforever.packet.Marshallable
 import scodec.codecs._

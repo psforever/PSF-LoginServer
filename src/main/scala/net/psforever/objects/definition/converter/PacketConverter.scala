@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.packet.game.objectcreate.ConstructorData
+import net.psforever.packet.objectcreate.ConstructorData
 
 import scala.util.{Failure, Try}
 

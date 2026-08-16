@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.{Player, Tool}
 import net.psforever.objects.equipment.EquipmentSlot
-import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.objectcreate._
 import net.psforever.types.{PlanetSideGUID, _}
 
 import scala.annotation.tailrec

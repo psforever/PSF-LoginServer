@@ -6,8 +6,8 @@ import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
-import net.psforever.packet.game.ObjectCreateMessage
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, DroppedItemData, ObjectCreateMessageParent, PlacementData}
+import net.psforever.packet.objectcreateMessage
+import net.psforever.packet.objectcreate.{BasicCharacterData, DroppedItemData, ObjectCreateMessageParent, PlacementData}
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.message.ObjectDelete
 import net.psforever.types._

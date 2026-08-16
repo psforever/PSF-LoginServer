@@ -5,7 +5,6 @@ import net.psforever.objects.ballistics.Projectiles
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.projectile.DistanceDegrade
 import net.psforever.objects.vital.prop.DamageWithPosition
-import net.psforever.packet.game.objectcreate.FlightPhysics
 
 /**
   * The definition that outlines the damage-dealing characteristics of any projectile.

@@ -62,8 +62,8 @@ import net.psforever.packet.game.{AvatarAwardMessage, AvatarSearchCriteriaMessag
 import net.psforever.packet.game.{AvatarDeadStateMessage, BroadcastWarpgateUpdateMessage, ChatMsg, ContinentalLockUpdateMessage, DeadState, DensityLevelUpdateMessage, DeployRequestMessage, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, ObjectAttachMessage, ObjectCreateMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PropertyOverrideMessage, ReplicationStreamMessage, SetEmpireMessage, TimeOfDayMessage, TriggerEffectMessage, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.packet.game.{BeginZoningMessage, DroppodLaunchRequestMessage, ReleaseAvatarRequestMessage, SpawnRequestMessage, WarpgateRequest}
 import net.psforever.packet.game.DeathStatistic
-import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
-import net.psforever.packet.game.objectcreate.ObjectClass
+import net.psforever.packet.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
+import net.psforever.packet.objectcreate.ObjectClass
 import net.psforever.packet.{PlanetSideGamePacket, game}
 import net.psforever.persistence.Savedplayer
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}

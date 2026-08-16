@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.packet.game.objectcreate
+package net.psforever.packet.objectcreate
 
 /**
   * Values for the equipment holster slot whose contained ("held") equipment can be drawn.

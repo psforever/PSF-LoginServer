@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Tool
-import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedWeaponData, InternalSlot, WeaponData}
+import net.psforever.packet.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedWeaponData, InternalSlot, WeaponData}
 import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}

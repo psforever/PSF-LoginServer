@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.mount.{MountInfo, SeatDefinition}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
-import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.objectcreate._
 import net.psforever.types._
 import org.specs2.mutable.Specification
 

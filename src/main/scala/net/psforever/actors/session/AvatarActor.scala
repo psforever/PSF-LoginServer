@@ -47,7 +47,7 @@ import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.sourcing.{PlayerSource,SourceWithHealthEntry}
 import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity}
-import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
+import net.psforever.packet.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
 import net.psforever.persistence
 import net.psforever.services.base.envelope.MessageEnvelope

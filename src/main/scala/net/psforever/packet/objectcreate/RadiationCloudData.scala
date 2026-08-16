@@ -1,5 +1,5 @@
 // Copyright (c) 2021 PSForever
-package net.psforever.packet.game.objectcreate
+package net.psforever.packet.objectcreate
 
 import net.psforever.packet.Marshallable
 import net.psforever.types.PlanetSideEmpire

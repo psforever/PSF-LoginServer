@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.packet.game.objectcreate.CommonFieldData
+import net.psforever.packet.objectcreate.CommonFieldData
 
 import scala.util.{Success, Try}
 

@@ -23,7 +23,7 @@ import net.psforever.objects.vital._
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.zones._
 import net.psforever.packet.game._
-import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.packet.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.local.LocalAction

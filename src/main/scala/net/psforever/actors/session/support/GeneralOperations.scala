@@ -49,7 +49,7 @@ import net.psforever.objects.zones._
 import net.psforever.packet._
 import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, ChangeShortcutBankMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, ZipLineMessage}
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
-import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.objectcreate._
 import net.psforever.packet.game._
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.AvatarAction

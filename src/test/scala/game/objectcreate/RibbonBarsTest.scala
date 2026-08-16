@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package game.objectcreate
 
-import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.objectcreate._
 import net.psforever.types.MeritCommendation
 import org.specs2.mutable._
 

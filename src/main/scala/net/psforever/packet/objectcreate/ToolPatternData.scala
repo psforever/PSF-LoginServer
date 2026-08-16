@@ -1,5 +1,5 @@
 // Copyright (c) 2026 PSForever
-package net.psforever.packet.game.objectcreate
+package net.psforever.packet.objectcreate
 
 import scodec.Codec
 import scodec.codecs._

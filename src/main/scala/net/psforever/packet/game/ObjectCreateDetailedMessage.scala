@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
-import net.psforever.packet.game.objectcreate.{
+import net.psforever.packet.objectcreate.{
   ConstructorData,
   ObjectClass,
   ObjectCreateBase,

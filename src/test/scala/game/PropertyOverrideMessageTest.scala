@@ -4,7 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.packet.game.objectcreate.ObjectClass
+import net.psforever.packet.objectcreate.ObjectClass
 import scodec.bits._
 
 class PropertyOverrideMessageTest extends Specification {

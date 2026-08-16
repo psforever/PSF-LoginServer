@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Kit
-import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedAmmoBoxData}
+import net.psforever.packet.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedAmmoBoxData}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.util.{Success, Try}

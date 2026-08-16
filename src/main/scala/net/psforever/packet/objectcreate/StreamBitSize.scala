@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.packet.game.objectcreate
+package net.psforever.packet.objectcreate
 
 /**
   * Apply this `trait` to a class that needs to have its size in bits calculated.

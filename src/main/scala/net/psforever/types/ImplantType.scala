@@ -4,7 +4,7 @@ package net.psforever.types
 import enumeratum.values.{IntEnum, IntEnumEntry}
 import net.psforever.packet.PacketHelpers
 import net.psforever.packet.game.Shortcut
-import net.psforever.packet.game.objectcreate.ImplantEffects
+import net.psforever.packet.objectcreate.ImplantEffects
 import scodec.Codec
 import scodec.codecs._
 

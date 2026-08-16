@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Vehicle
-import net.psforever.packet.game.objectcreate.UtilityVehicleData
+import net.psforever.packet.objectcreate.UtilityVehicleData
 import net.psforever.types.VehicleFormat
 
 class UtilityVehicleConverter extends VehicleConverter {

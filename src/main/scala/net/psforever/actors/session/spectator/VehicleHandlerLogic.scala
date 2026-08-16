@@ -7,7 +7,7 @@ import net.psforever.actors.session.support.{SessionData, SessionVehicleHandlers
 import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.packet.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ServerVehicleOverrideMsg, VehicleStateMessage}
 import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.services.vehicle.{VehicleAction, VehicleStamp}

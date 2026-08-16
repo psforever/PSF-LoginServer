@@ -3,7 +3,7 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.{Default, PlanetSideGameObject, Vehicle}
-import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.objectcreate._
 import net.psforever.types.{DriveState, PlanetSideGUID, VehicleFormat}
 import net.psforever.zones.Zones
 

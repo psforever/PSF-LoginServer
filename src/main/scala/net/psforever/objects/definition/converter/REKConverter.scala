@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.SimpleItem
-import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedREKData, REKData}
+import net.psforever.packet.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedREKData, REKData}
 import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Success, Try}

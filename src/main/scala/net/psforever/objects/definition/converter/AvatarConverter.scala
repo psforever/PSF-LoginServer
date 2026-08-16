@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.BattleRank
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
-import net.psforever.packet.game.objectcreate._
+import net.psforever.packet.objectcreate._
 import net.psforever.types.{ExoSuitType, GrenadeState, PlanetSideEmpire, PlanetSideGUID}
 
 import scala.annotation.tailrec

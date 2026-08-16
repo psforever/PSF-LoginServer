@@ -5,7 +5,7 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.packet.game.objectcreate.{CaptureFlagData, CommonFieldData, CommonFieldDataWithPlacement, PlacementData}
+import net.psforever.packet.objectcreate.{CaptureFlagData, CommonFieldData, CommonFieldDataWithPlacement, PlacementData}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.util.{Success, Try}

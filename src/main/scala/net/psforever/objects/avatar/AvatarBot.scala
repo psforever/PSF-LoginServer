@@ -21,7 +21,7 @@ import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.objects.zones.ZoneAware
-import net.psforever.packet.game.objectcreate.BasicCharacterData
+import net.psforever.packet.objectcreate.BasicCharacterData
 import net.psforever.types._
 
 /**

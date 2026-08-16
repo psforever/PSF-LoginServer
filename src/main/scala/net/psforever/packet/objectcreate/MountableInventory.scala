@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2021 PSForever
-package net.psforever.packet.game.objectcreate
+package net.psforever.packet.objectcreate
 
 import net.psforever.packet.PacketHelpers
 import net.psforever.types.{PlanetSideGUID, VehicleFormat}
@@ -73,7 +73,7 @@ object MountableInventory {
     )
   }
 
-  import net.psforever.packet.game.objectcreate.{PlayerData => Player_Data}
+  import net.psforever.packet.objectcreate.{PlayerData => Player_Data}
 
   /**
     * Constructor that ignores the coordinate information

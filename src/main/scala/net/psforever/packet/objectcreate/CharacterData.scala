@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.packet.game.objectcreate
+package net.psforever.packet.objectcreate
 
 import net.psforever.objects.avatar.BattleRank
 import net.psforever.packet.{Marshallable, PacketHelpers}

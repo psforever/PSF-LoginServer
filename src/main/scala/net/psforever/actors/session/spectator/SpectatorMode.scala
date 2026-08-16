@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.ServerObject
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Session, SimpleItem, Vehicle}
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.packet.game.{DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, ObjectCreateDetailedMessage, ObjectDeleteMessage}
-import net.psforever.packet.game.objectcreate.{ObjectClass, ObjectCreateMessageParent, RibbonBars}
+import net.psforever.packet.objectcreate.{ObjectClass, ObjectCreateMessageParent, RibbonBars}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.ObjectDelete
 import net.psforever.services.chat.SpectatorChannel

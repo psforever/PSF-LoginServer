@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.packet.game.objectcreate
+package net.psforever.packet.objectcreate
 
 import InventoryItemData._
 import net.psforever.packet.PacketHelpers

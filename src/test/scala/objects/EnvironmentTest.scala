@@ -7,7 +7,7 @@ import net.psforever.objects.definition.{ObjectDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalDefinition}
 import net.psforever.objects.vital.Vitality
-import net.psforever.packet.game.objectcreate.ObjectClass
+import net.psforever.packet.objectcreate.ObjectClass
 import net.psforever.types._
 import org.specs2.mutable.Specification
 

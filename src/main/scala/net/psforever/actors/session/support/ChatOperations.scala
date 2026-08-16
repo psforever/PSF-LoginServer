@@ -42,7 +42,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
-import net.psforever.packet.game.objectcreate.DrawnSlot
+import net.psforever.packet.objectcreate.DrawnSlot
 import net.psforever.packet.game.{ChatMsg, CreateShortcutMessage, DeadState, RequestDestroyMessage, Shortcut}
 import net.psforever.services.{CavernRotationService, InterstellarClusterService}
 import net.psforever.services.chat.ChatService

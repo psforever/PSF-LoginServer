@@ -9,7 +9,7 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.packet.control.{ControlSync, SlottedMetaPacket}
 import net.psforever.packet.{GamePacketOpcode, PacketCoding}
 import net.psforever.packet.game._
-import net.psforever.packet.game.objectcreate.ObjectClass
+import net.psforever.packet.objectcreate.ObjectClass
 import net.psforever.types._
 import scodec.bits._
 
@@ -479,7 +479,7 @@ class PacketCodingActorHTest extends ActorTest {
 }
 
 class PacketCodingActorITest extends ActorTest {
-  import net.psforever.packet.game.objectcreate._
+  import net.psforever.packet.objectcreate._
   val pos: PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
   val app: Int => CharacterAppearanceData = CharacterAppearanceData(
     BasicCharacterData(
@@ -594,7 +594,7 @@ class PacketCodingActorJTest extends ActorTest {
 }
 
 class PacketCodingActorKTest extends ActorTest {
-  import net.psforever.packet.game.objectcreate._
+  import net.psforever.packet.objectcreate._
   val pos: PlacementData = PlacementData(Vector3.Zero, Vector3.Zero)
   val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
     BasicCharacterData(
