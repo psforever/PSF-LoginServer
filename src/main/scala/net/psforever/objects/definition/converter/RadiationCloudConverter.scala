@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.ballistics.Projectile
-import net.psforever.packet.objectcreate._
+import net.psforever.packet.game.objectcreate._
 
 import scala.util.{Failure, Success, Try}
 

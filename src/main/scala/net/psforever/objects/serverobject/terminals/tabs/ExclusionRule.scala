@@ -5,7 +5,7 @@ import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.definition.{EquipmentDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 import net.psforever.types.ExoSuitType
 
 /**

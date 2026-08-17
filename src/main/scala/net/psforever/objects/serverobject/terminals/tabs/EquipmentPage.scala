@@ -5,10 +5,11 @@ import akka.actor.ActorRef
 import net.psforever.objects.Player
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 
 /**
   * The tab used to produce an `Equipment` object to be used by the player.
+ *
   * @param stock the key is always a `String` value as defined from `ItemTransationMessage` data;
   *              the value is a curried function that produces an `Equipment` object
   */

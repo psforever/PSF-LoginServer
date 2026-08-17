@@ -1,7 +1,7 @@
 package net.psforever.objects.avatar
 
 import net.psforever.objects.definition.ImplantDefinition
-import net.psforever.packet.objectcreate.ImplantEntry
+import net.psforever.packet.game.objectcreate.ImplantEntry
 
 case class Implant(
     definition: ImplantDefinition,

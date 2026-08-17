@@ -477,7 +477,7 @@ object GlobalDefinitions {
   /*
   Equipment (locker_container, kits, ammunition, weapons)
    */
-  import net.psforever.packet.objectcreate.ObjectClass
+  import net.psforever.packet.game.objectcreate.ObjectClass
   val locker_container = new LockerContainerDefinition()
 
   val medkit: KitDefinition = KitDefinition(Kits.medkit)

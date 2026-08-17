@@ -5,8 +5,9 @@ import akka.actor.{ActorContext, typed}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.{Default, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, UniquePlayer}
-import net.psforever.packet.objectcreate.ConstructorData
+import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
+import net.psforever.packet.game.packets.{DestroyDisplayMessage, ObjectDeleteMessage}
 import net.psforever.services.avatar.{AvatarAction, AvatarStamp}
 import net.psforever.services.base.envelope.{GenericResponseEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
@@ -15,8 +16,8 @@ import net.psforever.services.chat.OutfitChannel
 import scala.collection.mutable
 //
 import net.psforever.actors.session.AvatarActor
-import net.psforever.packet.objectcreate.ObjectCreateMessageParent
-import net.psforever.packet.game._
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.packet.game.packets._
 import net.psforever.types._
 import net.psforever.util.Config
 

@@ -5,9 +5,9 @@ import io.getquill.{Action, ActionReturning, EntityQuery, Insert, PostgresJAsync
 import net.psforever.objects.avatar.PlayerControl
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.Player
-import net.psforever.packet.game.OutfitEventAction.{Initial, Leaving, OutfitInfo, OutfitRankNames, Unk1, Update, UpdateMemberCount}
-import net.psforever.packet.game.OutfitMembershipResponse.PacketType.CreateResponse
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets.OutfitEventAction.{Initial, Leaving, OutfitInfo, OutfitRankNames, Unk1, Update, UpdateMemberCount}
+import net.psforever.packet.game.packets.OutfitMembershipResponse.PacketType.CreateResponse
+import net.psforever.packet.game.packets.{ChatMsg, OutfitEvent, OutfitListEvent, OutfitListEventAction, OutfitMemberEvent, OutfitMemberEventAction, OutfitMemberUpdate, OutfitMembershipResponse}
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}

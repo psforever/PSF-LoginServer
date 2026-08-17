@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeDefinition}
 import net.psforever.objects.vehicles.Utility.InternalTelepadDefinition
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
 /**

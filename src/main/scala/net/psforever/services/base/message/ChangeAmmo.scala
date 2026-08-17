@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.services.base.message
 
-import net.psforever.packet.objectcreate.ConstructorData
+import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.types.PlanetSideGUID
 
 final case class ChangeAmmo(

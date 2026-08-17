@@ -1,7 +1,7 @@
 // Copyright (c) 2022 PSForever
 package net.psforever.objects.avatar
 
-import net.psforever.packet.game.{Shortcut => GameShortcut}
+import net.psforever.packet.game.packets.{Shortcut => GameShortcut}
 
 /**
  * The internal respresentation of a shortcut on the hotbar.
@@ -23,7 +23,7 @@ object Shortcut {
   /**
    * Transform the internal form of the `Shortcut`
    * into the packet form of the `Shortcut`.
-   * @see `net.psforever.packet.game.Shortcut`
+   * @see `net.psforever.packet.game.packets.Shortcut`
    * @param shortcut internal form of the `Shortcut`
    * @return equivalent packet form of the `Shortcut`
    * @throws `AssertionError` if an implant is not named

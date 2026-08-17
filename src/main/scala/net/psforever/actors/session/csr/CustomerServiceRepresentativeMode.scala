@@ -8,8 +8,8 @@ import net.psforever.objects.serverobject.ServerObject
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ChatMsg, ObjectCreateDetailedMessage, PlanetsideAttributeMessage}
-import net.psforever.packet.objectcreate.RibbonBars
+import net.psforever.packet.game.packets.{ChatMsg, ObjectCreateDetailedMessage, PlanetsideAttributeMessage}
+import net.psforever.packet.game.objectcreate.RibbonBars
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute

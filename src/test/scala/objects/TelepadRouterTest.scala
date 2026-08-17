@@ -13,8 +13,9 @@ import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
-import net.psforever.packet.objectcreate.ObjectCreateMessageParent
-import net.psforever.packet.game._
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{DeployableIcon, DeployableInfo, DeploymentAction, GenericObjectActionMessage, ObjectCreateMessage}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalAction

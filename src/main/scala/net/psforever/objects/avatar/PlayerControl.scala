@@ -22,8 +22,8 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.zones._
-import net.psforever.packet.game._
-import net.psforever.packet.objectcreate.ObjectCreateMessageParent
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.local.LocalAction
@@ -35,6 +35,7 @@ import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.packet.game.packets.{AggravatedDamageMessage, AvatarDeadStateMessage, DamageWithPositionMessage, DeadState, DestroyMessage, GenericObjectAction2Message, OrbitalStrikeWaypointMessage, PlanetsideAttributeMessage, RepairMessage}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{EventMessage, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, SendResponse}
 import org.joda.time.{LocalDateTime, Seconds}

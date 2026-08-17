@@ -29,7 +29,7 @@ import net.psforever.objects.zones.blockmap.{BlockMap, BlockMapEntity, SectorGro
 import net.psforever.services.ServiceManager
 import net.psforever.services.ServiceManager.Lookup
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets.{ChatMsg, DisconnectMessage, ObjectDeleteMessage}
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.ServiceManager.LookupResult
 import net.psforever.services.vehicle.VehicleAction

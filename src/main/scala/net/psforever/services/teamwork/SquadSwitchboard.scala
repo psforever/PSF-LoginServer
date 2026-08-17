@@ -10,7 +10,7 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.definition.converter.StatConverter
 import net.psforever.objects.loadouts.SquadLoadout
 import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures, WaypointData}
-import net.psforever.packet.game.{PlanetSideZoneID, SquadDetail, SquadInfo, SquadPositionDetail, SquadPositionEntry, WaypointEventAction, WaypointInfo, SquadAction => SquadRequestAction}
+import net.psforever.packet.game.packets.{PlanetSideZoneID, SquadDetail, SquadInfo, SquadPositionDetail, SquadPositionEntry, WaypointEventAction, WaypointInfo, SquadAction => SquadRequestAction}
 import net.psforever.types.{PlanetSideGUID, SquadRequestType, SquadWaypoint, Vector3, WaypointSubtype}
 
 /**
@@ -252,7 +252,7 @@ class SquadSwitchboard(
                              action: SquadRequestAction,
                              sendTo: ActorRef
                            ): Unit = {
-    import net.psforever.packet.game.SquadAction._
+    import net.psforever.packet.game.packets.SquadAction._
     //the following actions can only be performed by a squad's leader
     action match {
       case SaveSquadFavorite() =>

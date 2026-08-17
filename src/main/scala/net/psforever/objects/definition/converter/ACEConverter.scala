@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.ConstructionItem
-import net.psforever.packet.objectcreate.{CommonFieldData, DetailedConstructionToolData, HandheldData}
+import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedConstructionToolData, HandheldData}
 import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Success, Try}

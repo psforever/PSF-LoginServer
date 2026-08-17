@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.TurretDeployable
 import net.psforever.objects.serverobject.turret.WeaponTurret
-import net.psforever.packet.objectcreate._
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}

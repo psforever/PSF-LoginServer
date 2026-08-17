@@ -3,8 +3,8 @@ package service.vehicle
 
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Tool, Vehicle}
-import net.psforever.packet.game.ObjectCreateMessage
-import net.psforever.packet.objectcreate.ObjectCreateMessageParent
+import net.psforever.packet.game.packets.ObjectCreateMessage
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{DriveState, PlanetSideGUID}
 import org.specs2.mutable.Specification

@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.turret
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.{Player, Tool, TurretDeployable}
-import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
+import net.psforever.packet.game.packets.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.local.LocalAction

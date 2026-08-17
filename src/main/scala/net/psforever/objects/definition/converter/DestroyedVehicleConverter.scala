@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Vehicle
-import net.psforever.packet.objectcreate.{DestroyedVehicleData, PlacementData}
+import net.psforever.packet.game.objectcreate.{DestroyedVehicleData, PlacementData}
 
 import scala.util.{Failure, Success, Try}
 

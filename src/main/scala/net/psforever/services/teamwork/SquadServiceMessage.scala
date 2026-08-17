@@ -4,7 +4,7 @@ package net.psforever.services.teamwork
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{WaypointEventAction, WaypointInfo, SquadAction => PacketSquadAction}
+import net.psforever.packet.game.packets.{WaypointEventAction, WaypointInfo, SquadAction => PacketSquadAction}
 import net.psforever.services.base.message.{EventMessage, EventResponse}
 import net.psforever.types.{PlanetSideGUID, SquadRequestType, SquadWaypoint, Vector3}
 

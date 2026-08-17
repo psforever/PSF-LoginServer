@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.mount.{MountInfo, SeatDefinition}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles.UtilityType
-import net.psforever.packet.objectcreate._
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
@@ -404,9 +404,9 @@ class ConverterTest extends Specification {
             TelepadDeployableData(
               CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = true, None, jammered = false, Some(1001), PlanetSideGUID(5001)),
               unk1 = false,
-              unk2 = 128,
+              owner_guid = PlanetSideGUID(5001),
               unk3 = true,
-              unk4 = true
+              unk4 = false
             )
           )
         case _ =>
@@ -428,9 +428,9 @@ class ConverterTest extends Specification {
             TelepadDeployableData(
               CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = true, v1 = true, None, jammered = false, Some(1001), PlanetSideGUID(0)),
               unk1 = false,
-              unk2 = 1,
+              owner_guid = Default.GUID0,
               unk3 = true,
-              unk4 = false
+              unk4 = true
             )
           )
         case _ =>

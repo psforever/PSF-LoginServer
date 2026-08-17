@@ -6,7 +6,7 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.{ItemTransactionMessage, TriggeredSound}
+import net.psforever.packet.game.packets.{ItemTransactionMessage, TriggeredSound}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 /**

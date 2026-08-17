@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferCo
 import net.psforever.objects._
 import net.psforever.types.DriveState
 import net.psforever.objects.serverobject.transfer.TransferContainer.TransferMaterial
-import net.psforever.packet.game.PlanetsideAttributeMessage
+import net.psforever.packet.game.packets.PlanetsideAttributeMessage
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 

@@ -33,8 +33,8 @@ import net.psforever.objects.vital.{DamagingActivity, DismountingActivity, InGam
 import net.psforever.objects.zones._
 import net.psforever.objects.zones.interaction.IndependentZoneInteraction
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game._
-import net.psforever.packet.objectcreate.ObjectCreateMessageParent
+import net.psforever.packet.game.packets.{DismountVehicleCargoMsg, HackState1, ItemTransactionMessage, ObjectAttachMessage}
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope

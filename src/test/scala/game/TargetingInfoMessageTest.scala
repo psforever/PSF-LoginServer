@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.{packets, _}
+import net.psforever.packet.game.packets.{TargetInfo, TargetingInfoMessage}
 import net.psforever.types.PlanetSideGUID
 import scodec.bits._
 
@@ -40,7 +41,7 @@ class TargetingInfoMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = TargetingInfoMessage(
+    val msg = packets.TargetingInfoMessage(
       TargetInfo(PlanetSideGUID(4157), 0.7607844f) ::
         TargetInfo(PlanetSideGUID(3671), 1.0000001f, 0.23529413f) ::
         TargetInfo(PlanetSideGUID(1572), 0.92549026f) ::

@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSiloControl
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.packet.game.{GenericObjectActionMessage, PlanetsideAttributeMessage}
+import net.psforever.packet.game.packets.{GenericObjectActionMessage, PlanetsideAttributeMessage}
 import net.psforever.services.InterstellarClusterService
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse}

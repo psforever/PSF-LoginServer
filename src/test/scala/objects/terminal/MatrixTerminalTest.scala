@@ -4,7 +4,7 @@ package objects.terminal
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
 import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 import net.psforever.types._
 import org.specs2.mutable.Specification
 

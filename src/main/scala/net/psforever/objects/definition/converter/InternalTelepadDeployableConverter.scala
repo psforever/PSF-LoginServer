@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.objects.ce.TelepadLike
-import net.psforever.packet.objectcreate._
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.util.{Failure, Success, Try}
@@ -19,7 +19,7 @@ class InternalTelepadDeployableConverter extends ObjectCreateConverter[PlanetSid
           TelepadDeployableData(
             CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = Some(router.guid), guid = PlanetSideGUID(0)),
             unk1 = true,
-            unk2 = 0,
+            owner_guid = Default.GUID0,
             unk3 = false,
             unk4 = false
           )

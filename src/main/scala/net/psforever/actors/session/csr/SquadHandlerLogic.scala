@@ -7,7 +7,8 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, SessionSquadHandlers, SquadHandlerFunctions}
 import net.psforever.objects.{Default, LivePlayerList}
 import net.psforever.objects.avatar.Avatar
-import net.psforever.packet.game.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, MemberEvent, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEvent, WaypointEventAction}
+import net.psforever.packet.game.packets.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, MemberEvent, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEvent, WaypointEventAction}
+import net.psforever.packet.game.packets
 import net.psforever.services.chat.SquadChannel
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadAction => SquadServiceAction}
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadListDecoration, SquadResponseType, WaypointSubtype}
@@ -69,16 +70,16 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
           sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), line, SquadAction.ListSquadFavorite(task)))
 
         case SquadResponse.InitList(infos) =>
-          sendResponse(ReplicationStreamMessage(infos))
+          sendResponse(packets.ReplicationStreamMessage(infos))
 
         case SquadResponse.UpdateList(infos) if infos.nonEmpty =>
           sendResponse(
-            ReplicationStreamMessage(
+            packets.ReplicationStreamMessage(
               6,
               None,
               infos.map {
                 case (index, squadInfo) =>
-                  SquadListing(index, squadInfo)
+                  packets.SquadListing(index, squadInfo)
               }.toVector
             )
           )
@@ -110,7 +111,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
           sendResponse(SquadDefinitionActionMessage(guid, 0, SquadAction.SquadListDecorator(decoration)))
 
         case SquadResponse.Detail(guid, detail) =>
-          sendResponse(SquadDetailDefinitionUpdateMessage(guid, detail))
+          sendResponse(packets.SquadDetailDefinitionUpdateMessage(guid, detail))
 
         case SquadResponse.IdentifyAsSquadLeader(squad_guid) =>
           sendResponse(SquadDefinitionActionMessage(squad_guid, 0, SquadAction.IdentifyAsSquadLeader()))

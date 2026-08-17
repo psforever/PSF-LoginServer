@@ -11,7 +11,8 @@ import net.psforever.objects.Session
 import net.psforever.objects.avatar.ModePermissions
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
 import net.psforever.objects.sourcing.{TurretSource, VehicleSource}
-import net.psforever.packet.game.ImplantAction
+import net.psforever.packet.game.packets
+import net.psforever.packet.game.packets.{ActionProgressMessage, AvatarStatisticsMessage, AvatarVehicleTimerMessage, BattleExperienceMessage, CharacterInfoMessage, CreateShortcutMessage, DeathStatistic, DisplayedAwardMessage, FavoritesMessage, FriendsResponse, ImplantAction, ItemTransactionResultMessage, PlanetSideZoneID, PlanetsideAttributeMessage, RibbonBarSlot, SessionStatistic, Shortcut}
 import net.psforever.services.avatar.AvatarStamp
 import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
@@ -47,8 +48,9 @@ import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.sourcing.{PlayerSource,SourceWithHealthEntry}
 import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity}
-import net.psforever.packet.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
-import net.psforever.packet.game.{Friend => GameFriend, _}
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{Friend => GameFriend}
 import net.psforever.persistence
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{SendResponse, PlanetsideAttribute}
@@ -1831,7 +1833,7 @@ class AvatarActor(
                     case Some(existingShortcut: AvatarShortcut) =>
                       //redraw redundant shortcut slot with existing shortcut
                       sessionActor ! SessionActor.SendResponse(
-                        CreateShortcutMessage(
+                        packets.CreateShortcutMessage(
                           session.get.player.GUID,
                           slot + 1,
                           Some(AvatarShortcut.convert(existingShortcut))

@@ -7,7 +7,7 @@ import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.objects.serverobject.terminals.EquipmentTerminalDefinition.BuildSimplifiedPattern
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 
 /**
   * The tab used to select which custom loadout the player is using.
@@ -20,6 +20,7 @@ import net.psforever.packet.game.ItemTransactionMessage
   * `A` will be expected as an exo-suit type, and `B` will be expected as its subtype,
   * and the pair must both match to block the whole loadout.
   * If any of the player's inventory is considered excluded, only those items will be filtered.
+ *
   * @see `ExoSuitType`
   * @see `Equipment`
   * @see `InfantryLoadout`

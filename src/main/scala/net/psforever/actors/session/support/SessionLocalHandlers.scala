@@ -6,7 +6,7 @@ import net.psforever.objects.{Players, TurretDeployable}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.interior.Sidedness
-import net.psforever.packet.game.{GenericObjectActionMessage, ObjectDeleteMessage, PlanetsideAttributeMessage, TriggerEffectMessage}
+import net.psforever.packet.game.packets.{GenericObjectActionMessage, ObjectDeleteMessage, PlanetsideAttributeMessage, TriggerEffectMessage}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
 trait LocalHandlerFunctions extends CommonSessionInterfacingFunctionality with CommonHandlerFunctions {

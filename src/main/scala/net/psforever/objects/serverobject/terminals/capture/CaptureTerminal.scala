@@ -2,7 +2,7 @@ package net.psforever.objects.serverobject.terminals.capture
 
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.TriggeredSound
+import net.psforever.packet.game.packets.TriggeredSound
 import net.psforever.types.Vector3
 
 class CaptureTerminal(private val idef: CaptureTerminalDefinition) extends Amenity with Hackable {

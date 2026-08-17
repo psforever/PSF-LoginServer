@@ -12,7 +12,8 @@ import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{DeployOutcome, DeployableIcon, DeployableInfo, DeploymentAction, GenericObjectActionMessage, ObjectDeployedMessage}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ObjectDelete, SendResponse}
 import net.psforever.services.local.LocalAction

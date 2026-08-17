@@ -3,11 +3,12 @@ package net.psforever.actors.session.spectator
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.AvatarActor
-import net.psforever.actors.session.support.SessionSquadHandlers.{rethrowSquadServiceResponse, SquadUIElement}
+import net.psforever.actors.session.support.SessionSquadHandlers.{SquadUIElement, rethrowSquadServiceResponse}
 import net.psforever.actors.session.support.{SessionData, SessionSquadHandlers, SpawnOperations, SquadHandlerFunctions}
 import net.psforever.objects.{Default, LivePlayerList}
 import net.psforever.objects.avatar.Avatar
-import net.psforever.packet.game.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEventAction}
+import net.psforever.packet.game.packets.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEventAction}
+import net.psforever.packet.game.packets
 import net.psforever.services.chat.SquadChannel
 import net.psforever.services.teamwork.SquadResponse
 import net.psforever.types.{PlanetSideGUID, SquadListDecoration, SquadResponseType}
@@ -37,16 +38,16 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
     if (!excluded.exists(_ == avatar.id)) {
       response match {
         case SquadResponse.InitList(infos) =>
-          sendResponse(ReplicationStreamMessage(infos))
+          sendResponse(packets.ReplicationStreamMessage(infos))
 
         case SquadResponse.UpdateList(infos) if infos.nonEmpty =>
           sendResponse(
-            ReplicationStreamMessage(
+            packets.ReplicationStreamMessage(
               6,
               None,
               infos.map {
                 case (index, squadInfo) =>
-                  SquadListing(index, squadInfo)
+                  packets.SquadListing(index, squadInfo)
               }.toVector
             )
           )
@@ -134,7 +135,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
           )
 
         case SquadResponse.Detail(guid, detail) =>
-          sendResponse(SquadDetailDefinitionUpdateMessage(guid, detail))
+          sendResponse(packets.SquadDetailDefinitionUpdateMessage(guid, detail))
 
         case SquadResponse.Membership(request_type, unk1, unk2, charId, opt_char_id, player_name, unk5, unk6) =>
           val name = request_type match {

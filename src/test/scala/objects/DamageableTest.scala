@@ -20,7 +20,6 @@ import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurret
 import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.vital.{SpawningActivity, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.support.SupportActor
@@ -36,6 +35,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
+import net.psforever.packet.game.packets.DamageWithPositionMessage
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.support.TurretUpgrader

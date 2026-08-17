@@ -5,7 +5,7 @@ import net.psforever.objects.Player
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.UseItemMessage
+import net.psforever.packet.game.packets.UseItemMessage
 import net.psforever.types.Vector3
 
 /**

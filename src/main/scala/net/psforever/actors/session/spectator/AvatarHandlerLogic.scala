@@ -8,7 +8,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.Players
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.packet.game.{AvatarImplantMessage, ImplantAction}
+import net.psforever.packet.game.packets.{AvatarImplantMessage, ImplantAction}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, PlanetsideAttribute, ReloadTool, SendResponse, WeaponDryFire}
 
@@ -24,8 +24,8 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.zones.Zoning
-import net.psforever.packet.objectcreate.ObjectCreateMessageParent
-import net.psforever.packet.game.{ArmorChangedMessage, AvatarDeadStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, DeadState, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, UseItemMessage, WeaponDryFireMessage}
+import net.psforever.packet.game.packets.{ArmorChangedMessage, AvatarDeadStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, DeadState, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, UseItemMessage, WeaponDryFireMessage}
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.util.Config

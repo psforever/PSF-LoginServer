@@ -56,8 +56,8 @@ import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.blockmap.{BlockMap, SectorPopulation}
-import net.psforever.packet.game.EmpireBenefitsMessage.{ZoneBenefit, ZoneLock, ZoneLockBenefit, ZoneLockZone}
-import net.psforever.packet.game.{EmpireBenefitsMessage, PropertyOverrideMessage}
+import net.psforever.packet.game.packets.EmpireBenefitsMessage.{ZoneBenefit, ZoneLock, ZoneLockBenefit, ZoneLockZone}
+import net.psforever.packet.game.packets.{EmpireBenefitsMessage, PropertyOverrideMessage}
 import net.psforever.services.Service
 import net.psforever.zones.Zones
 

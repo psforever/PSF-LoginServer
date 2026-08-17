@@ -8,7 +8,8 @@ import scala.concurrent.duration._
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{DeployableInfo, DeploymentAction}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.local.LocalAction

@@ -7,8 +7,8 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{GenericObjectActionMessage, ObjectCreateMessage, ObjectDeleteMessage}
-import net.psforever.packet.objectcreate.ObjectCreateMessageParent
+import net.psforever.packet.game.packets.{GenericObjectActionMessage, ObjectCreateMessage, ObjectDeleteMessage}
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalAction

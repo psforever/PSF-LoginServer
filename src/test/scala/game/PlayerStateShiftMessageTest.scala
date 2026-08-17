@@ -3,7 +3,7 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.{PlayerStateShiftMessage, ShiftState}
+import net.psforever.packet.game.packets.{PlayerStateShiftMessage, ShiftState}
 import net.psforever.types.Vector3
 import scodec.bits._
 

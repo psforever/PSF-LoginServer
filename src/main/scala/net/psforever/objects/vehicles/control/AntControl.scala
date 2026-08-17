@@ -3,7 +3,6 @@ package net.psforever.objects.vehicles.control
 
 import net.psforever.objects._
 import net.psforever.objects.serverobject.transfer.TransferBehavior
-import net.psforever.objects.vehicles._
 import net.psforever.types.DriveState
 
 import scala.concurrent.ExecutionContext.Implicits.global

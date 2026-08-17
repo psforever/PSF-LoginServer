@@ -34,7 +34,7 @@ class ShuttleAmenity(shuttle: OrbitalShuttle) extends Amenity {
 }
 
 object ShuttleAmenity {
-  final val definition = new AmenityDefinition(net.psforever.packet.objectcreate.ObjectClass.orbital_shuttle) {
+  final val definition = new AmenityDefinition(net.psforever.packet.game.objectcreate.ObjectClass.orbital_shuttle) {
     Name = "orbital_shuttle_fake"
     Damageable = false
     Repairable = false

@@ -2,7 +2,7 @@
 package service.local
 
 import net.psforever.objects.{Default, ExplosiveDeployable, GlobalDefinitions}
-import net.psforever.packet.game.{ObjectCreateMessage, TriggeredEffect, TriggeredEffectLocation}
+import net.psforever.packet.game.packets.{ObjectCreateMessage, TriggeredEffect, TriggeredEffectLocation}
 import net.psforever.services.Service
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalAction

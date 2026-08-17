@@ -4,17 +4,7 @@ import enumeratum.{Enum, EnumEntry}
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.packet.control.ServerStart
 import net.psforever.packet.crypto.ServerFinished
-import net.psforever.packet.game.{
-  AvatarDeadStateMessage,
-  CharacterInfoMessage,
-  DeadState,
-  LoginRespMessage,
-  ObjectCreateDetailedMessage,
-  PlayerStateMessage,
-  SetCurrentAvatarMessage,
-  VNLWorldStatusMessage,
-  WorldInformation
-}
+import net.psforever.packet.game.packets.{AvatarDeadStateMessage, CharacterInfoMessage, DeadState, LoginRespMessage, ObjectCreateDetailedMessage, PlayerStateMessage, SetCurrentAvatarMessage, VNLWorldStatusMessage, WorldInformation}
 import net.psforever.tools.client.State.{Avatar, Connection}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 

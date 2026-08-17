@@ -5,11 +5,12 @@ import akka.actor.ActorRef
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 
 /**
   * The tab used to select a certification to be utilized by the player.
   * Only certifications may be returned to the interface defined by this page.
+ *
   * @see `CertificationType`
   * @param stock the key is always a `String` value as defined from `ItemTransationMessage` data;
   *              the value is a `CertificationType` value

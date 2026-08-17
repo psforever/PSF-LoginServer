@@ -11,7 +11,7 @@ import net.psforever.actors.zone.building.WarpGateLogic
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.ChatMsg
+import net.psforever.packet.game.packets.ChatMsg
 import net.psforever.services.base.envelope.{BundledEnvelope, GenericResponseEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyStamp}

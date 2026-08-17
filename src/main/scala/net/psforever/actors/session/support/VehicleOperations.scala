@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
 import net.psforever.objects.zones.interaction.InteractsWithZone
-import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, VehicleSubStateMessage, _}
+import net.psforever.packet.game.packets.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, PlanetsideAttributeMessage, ServerVehicleOverrideMsg, VehicleStateMessage, VehicleSubStateMessage}
 import net.psforever.types.DriveState
 
 trait VehicleFunctions extends CommonSessionInterfacingFunctionality {

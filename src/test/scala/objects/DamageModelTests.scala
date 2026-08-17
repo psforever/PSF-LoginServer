@@ -12,7 +12,7 @@ import ResolutionCalculations._
 import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.{ProjectileDefinition, VehicleDefinition}
 import net.psforever.objects.vital.Vitality
-import net.psforever.packet.objectcreate.ObjectClass
+import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.objects.avatar.Avatar

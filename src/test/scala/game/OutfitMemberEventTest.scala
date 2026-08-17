@@ -2,8 +2,8 @@
 package game
 
 import net.psforever.packet._
-import net.psforever.packet.game.{OutfitMemberEvent, OutfitMemberEventAction}
-import net.psforever.packet.game.OutfitMemberEventAction._
+import net.psforever.packet.game.packets.{OutfitMemberEvent, OutfitMemberEventAction}
+import net.psforever.packet.game.packets.OutfitMemberEventAction._
 import org.specs2.mutable._
 import scodec.bits._
 

@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.terminals.tabs
 import akka.actor.ActorRef
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 import net.psforever.types.ExoSuitType
 
 /**

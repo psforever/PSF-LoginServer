@@ -12,7 +12,8 @@ import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vital.RevivingActivity
-import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
+import net.psforever.packet.game.packets.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
+import net.psforever.packet.game.packets
 import net.psforever.services.avatar.{AvatarAction, AvatarStamp}
 import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ReloadTool, WeaponDryFire}
@@ -27,8 +28,8 @@ import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.zones.Zoning
-import net.psforever.packet.objectcreate.ObjectCreateMessageParent
-import net.psforever.packet.game.{ArmorChangedMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, UseItemMessage, WeaponDryFireMessage}
+import net.psforever.packet.game.packets.{ArmorChangedMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, UseItemMessage, WeaponDryFireMessage}
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.util.Config
 
@@ -184,7 +185,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         }
 
     case AvatarAction.AvatarImplant(action, implant_slot, value) =>
-      sendResponse(AvatarImplantMessage(ResolvedGuid, action, implant_slot, value))
+      sendResponse(packets.AvatarImplantMessage(ResolvedGuid, action, implant_slot, value))
 
     case AvatarAction.ObjectHeld(slot, _)
       if TestFilter(() => { SameTarget && player.VisibleSlots.contains(slot) }) =>

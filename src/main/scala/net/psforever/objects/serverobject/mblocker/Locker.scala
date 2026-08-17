@@ -5,7 +5,7 @@ import akka.actor.{ActorContext, Props}
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.TriggeredSound
+import net.psforever.packet.game.packets.TriggeredSound
 
 class Locker extends Amenity with Hackable {
   def Definition: LockerDefinition = GlobalDefinitions.mb_locker

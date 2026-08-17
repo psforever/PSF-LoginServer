@@ -2,6 +2,7 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, typed}
+import net.psforever.packet.game.packets.{MemberEvent, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadMemberEvent, SquadMembershipRequest, SquadState, SquadStateInfo, SquadWaypointRequest}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.teamwork.SquadServiceResponse
@@ -11,7 +12,6 @@ import scala.collection.mutable
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.{Default, Player}
-import net.psforever.packet.game._
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadAction => SquadServiceAction}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 

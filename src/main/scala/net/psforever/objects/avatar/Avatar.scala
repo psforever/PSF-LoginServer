@@ -9,7 +9,7 @@ import net.psforever.objects.inventory.LocallyRegisteredInventory
 import net.psforever.objects.loadouts.{Loadout, SquadLoadout}
 import net.psforever.objects.locker.{LockerContainer, LockerEquipment}
 import net.psforever.objects.{GlobalDefinitions, OffhandEquipmentSlot}
-import net.psforever.packet.objectcreate.{BasicCharacterData, RibbonBars}
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, RibbonBars}
 import net.psforever.types._
 import org.joda.time.{Duration, LocalDateTime, Seconds}
 

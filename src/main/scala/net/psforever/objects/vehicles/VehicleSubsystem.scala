@@ -6,7 +6,7 @@ import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Vehicle}
 import net.psforever.objects.equipment.{Equipment, JammableUnit}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ComponentDamageField, ComponentDamageMessage, GenericObjectActionMessage}
+import net.psforever.packet.game.packets.{ComponentDamageField, ComponentDamageMessage, GenericObjectActionMessage}
 import net.psforever.types.{PlanetSideGUID, SubsystemComponent}
 
 //data

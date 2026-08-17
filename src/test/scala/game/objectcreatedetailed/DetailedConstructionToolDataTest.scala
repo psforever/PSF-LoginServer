@@ -2,8 +2,9 @@
 package game.objectcreatedetailed
 
 import net.psforever.packet._
-import net.psforever.packet.game._
-import net.psforever.packet.objectcreate._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.ObjectCreateDetailedMessage
+import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import org.specs2.mutable._
 import scodec.bits._

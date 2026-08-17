@@ -4,7 +4,7 @@ package net.psforever.actors.session.support
 import akka.actor.Actor.Receive
 import akka.actor.ActorContext
 import net.psforever.objects.Tool
-import net.psforever.packet.game.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, GenericObjectActionMessage, HitHint, ObjectDeleteMessage, PlanetsideAttributeMessage, ReloadMessage, SetEmpireMessage, WeaponDryFireMessage}
+import net.psforever.packet.game.packets.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, GenericObjectActionMessage, HitHint, ObjectDeleteMessage, PlanetsideAttributeMessage, ReloadMessage, SetEmpireMessage, WeaponDryFireMessage}
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ConcealPlayer, GenericObjectAction, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, SetEmpire, WeaponDryFire}
 
 class CommonHandlerLogic(val sessionLogic: SessionData, implicit val context: ActorContext)

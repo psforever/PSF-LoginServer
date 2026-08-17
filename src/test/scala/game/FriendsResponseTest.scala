@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.{packets, _}
+import net.psforever.packet.game.packets.{Friend, FriendsResponse}
 import net.psforever.types.MemberAction
 import scodec.bits._
 
@@ -79,7 +80,7 @@ class FriendsResponseTest extends Specification {
   }
 
   "encode (multiple friends)" in {
-    val msg = FriendsResponse(
+    val msg = packets.FriendsResponse(
       MemberAction.InitializeFriendList,
       0,
       true,

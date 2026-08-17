@@ -11,8 +11,8 @@ import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.participation.MajorFacilityHackParticipation
-import net.psforever.packet.game.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.packet.game.packets.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelopeOnly}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.PlanetsideAttribute

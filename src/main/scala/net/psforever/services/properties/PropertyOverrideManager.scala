@@ -1,9 +1,9 @@
 package net.psforever.services.properties
 
 import akka.actor.Actor
-import net.psforever.packet.game.{GamePropertyTarget, PropertyOverrideMessage}
-import net.psforever.packet.game.PropertyOverrideMessage.GamePropertyScope
-import net.psforever.packet.objectcreate.ObjectClass
+import net.psforever.packet.game.packets.{GamePropertyTarget, PropertyOverrideMessage}
+import net.psforever.packet.game.packets.PropertyOverrideMessage.GamePropertyScope
+import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.zones.Zones
 
 import scala.collection.mutable.ListBuffer

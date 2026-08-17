@@ -15,7 +15,7 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.ShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets.{ChatMsg, ComponentDamageMessage, GenericObjectActionMessage, ItemTransactionMessage, TriggerEffectMessage, TriggeredEffectLocation}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse}
 import net.psforever.types._

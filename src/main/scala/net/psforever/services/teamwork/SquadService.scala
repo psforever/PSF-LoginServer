@@ -13,9 +13,8 @@ import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures}
 import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.definition.converter.StatConverter
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.ChatMsg
-import net.psforever.packet.game.SquadAction._
-import net.psforever.packet.game.{PlanetSideZoneID, SquadDetail, SquadInfo, SquadPositionDetail, SquadPositionEntry, SquadAction => SquadRequestAction}
+import net.psforever.packet.game.packets.SquadAction._
+import net.psforever.packet.game.packets.{ChatMsg, PlanetSideZoneID, SquadDetail, SquadInfo, SquadPositionDetail, SquadPositionEntry, SquadAction => SquadRequestAction}
 import net.psforever.services.Service
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, SquadRequestType, SquadResponseType}
 

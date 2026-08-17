@@ -8,8 +8,9 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.ServerObject
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Session, SimpleItem, Vehicle}
 import net.psforever.packet.PlanetSidePacket
-import net.psforever.packet.game.{DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, ObjectCreateDetailedMessage, ObjectDeleteMessage}
-import net.psforever.packet.objectcreate.{ObjectClass, ObjectCreateMessageParent, RibbonBars}
+import net.psforever.packet.game.packets.{DeployableObjectsInfoMessage, DeploymentAction, ObjectCreateDetailedMessage, ObjectDeleteMessage}
+import net.psforever.packet.game.packets
+import net.psforever.packet.game.objectcreate.{ObjectClass, ObjectCreateMessageParent, RibbonBars}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.ObjectDelete
 import net.psforever.services.chat.SpectatorChannel
@@ -19,7 +20,7 @@ import net.psforever.types.{CapacitorStateType, ChatMessageType, ExoSuitType, Me
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{ModeLogic, PlayerMode, SessionData}
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
-import net.psforever.packet.game.{ChatMsg, CreateShortcutMessage, UnuseItemMessage}
+import net.psforever.packet.game.packets.{ChatMsg, CreateShortcutMessage, UnuseItemMessage}
 
 class SpectatorModeLogic(data: SessionData) extends ModeLogic {
   val avatarResponse: AvatarHandlerFunctions = AvatarHandlerLogic(data.avatarResponse)
@@ -111,7 +112,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       .foreach { obj =>
         sendResponse(DeployableObjectsInfoMessage(
           DeploymentAction.Dismiss,
-          DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Default.GUID0)
+          packets.DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Default.GUID0)
         ))
       }
     if (player.silenced) {

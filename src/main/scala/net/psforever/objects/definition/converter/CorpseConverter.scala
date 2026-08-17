@@ -3,8 +3,8 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.Certification
-import net.psforever.packet.objectcreate._
-import net.psforever.types.{PlanetSideGUID, _}
+import net.psforever.packet.game.objectcreate._
+import net.psforever.types._
 
 import scala.util.{Failure, Success, Try}
 

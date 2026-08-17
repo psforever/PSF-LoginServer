@@ -91,7 +91,7 @@ class WithEntrance()
                                   door: Door
                                 ): Sidedness = {
     import net.psforever.objects.{Player, Vehicle}
-    import net.psforever.packet.game.ChatMsg
+    import net.psforever.packet.game.packets.ChatMsg
     import net.psforever.types.ChatMessageType
     val channel = obj match {
       case p: Player => p.Name
