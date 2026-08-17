@@ -3,7 +3,7 @@ package game.objectcreatedetailed
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.objectcreateDetailedMessage
+import net.psforever.packet.game.ObjectCreateDetailedMessage
 import net.psforever.packet.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scodec.bits._

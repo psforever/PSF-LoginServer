@@ -403,8 +403,10 @@ class ConverterTest extends Specification {
             PlacementData(Vector3.Zero, Vector3.Zero),
             TelepadDeployableData(
               CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = true, None, jammered = false, Some(1001), PlanetSideGUID(5001)),
-              unk1 = 87,
-              unk2 = 12
+              unk1 = false,
+              unk2 = 128,
+              unk3 = true,
+              unk4 = true
             )
           )
         case _ =>
@@ -425,8 +427,10 @@ class ConverterTest extends Specification {
             PlacementData(Vector3.Zero, Vector3.Zero),
             TelepadDeployableData(
               CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = true, v1 = true, None, jammered = false, Some(1001), PlanetSideGUID(0)),
-              unk1 = 0,
-              unk2 = 6
+              unk1 = false,
+              unk2 = 1,
+              unk3 = true,
+              unk4 = false
             )
           )
         case _ =>
