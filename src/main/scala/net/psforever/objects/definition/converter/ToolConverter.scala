@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Success, Try}
 
-class ToolConverter extends ObjectCreateConverter[Tool]() {
+object ToolConverter extends ObjectCreateConverter[Tool] {
   override def ConstructorData(obj: Tool): Try[WeaponData] = {
     val slots: List[InternalSlot] = (0 until obj.MaxAmmoSlot)
       .map(index => {

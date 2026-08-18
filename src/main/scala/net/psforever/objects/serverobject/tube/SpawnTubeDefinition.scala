@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition
   * The definition for any spawn point in the game world.
   */
 class SpawnTubeDefinition(object_id: Int) extends AmenityDefinition(object_id) with SpawnPointDefinition {
-  Packet = new SpawnTubeConverter
+  Packet = SpawnTubeConverter
   registerAs = "terminals"
 }
 

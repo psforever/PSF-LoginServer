@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
-class ProjectileConverter extends ObjectCreateConverter[Projectile]() {
+object ProjectileConverter extends ObjectCreateConverter[Projectile]() {
   override def ConstructorData(obj: Projectile): Try[RemoteProjectileData] = {
     Success(
       RemoteProjectileData(

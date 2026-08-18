@@ -17,7 +17,7 @@ class TrapDeployable(cdef: TrapDeployableDefinition)
 
 class TrapDeployableDefinition(objectId: Int) extends DeployableDefinition(objectId) {
   Model = SimpleResolutions.calculate
-  Packet = new TRAPConverter
+  Packet = TRAPConverter
 
   override def Initialize(obj: Deployable, context: ActorContext) = {
     obj.Actor = context.actorOf(Props(classOf[TrapDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))

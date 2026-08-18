@@ -59,7 +59,7 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.objects._
-import net.psforever.packet.game.packets.{AvatarAwardMessage, AvatarDeadStateMessage, AvatarSearchCriteriaMessage, AvatarStatisticsMessage, AwardCompletion, BeginZoningMessage, BindPlayerMessage, BindStatus, BroadcastWarpgateUpdateMessage, CargoMountPointStatusMessage, ChangeShortcutBankMessage, ChatChannel, ChatMsg, ContinentalLockUpdateMessage, CreateShortcutMessage, DeadState, DeathStatistic, DensityLevelUpdateMessage, DeployRequestMessage, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodFreefallingMessage, DroppodLaunchRequestMessage, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, LoadMapMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PlayerStateShiftMessage, PropertyOverrideMessage, ReleaseAvatarRequestMessage, ReplicationStreamMessage, SetChatFilterMessage, SetCurrentAvatarMessage, SetEmpireMessage, ShiftState, SpawnRequestMessage, TimeOfDayMessage, TriggerEffectMessage, WarpgateRequest, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
+import net.psforever.packet.game.packets.{AvatarAwardMessage, AvatarDeadStateMessage, AvatarSearchCriteriaMessage, AvatarStatisticsMessage, AwardCompletion, BeginZoningMessage, BindPlayerMessage, BindStatus, BroadcastWarpgateUpdateMessage, CargoMountPointStatusMessage, ChangeShortcutBankMessage, ChatChannel, ChatMsg, ContinentalLockUpdateMessage, DeadState, DeathStatistic, DensityLevelUpdateMessage, DeployRequestMessage, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodFreefallingMessage, DroppodLaunchRequestMessage, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, LoadMapMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PlayerStateShiftMessage, PropertyOverrideMessage, ReleaseAvatarRequestMessage, ReplicationStreamMessage, SetChatFilterMessage, SetCurrentAvatarMessage, SetEmpireMessage, ShiftState, SpawnRequestMessage, TimeOfDayMessage, TriggerEffectMessage, WarpgateRequest, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
 import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.packet.PlanetSideGamePacket
@@ -2960,7 +2960,7 @@ class ZoningOperations(
         ObjectCreateDetailedMessage(
           ObjectClass.avatar,
           guid,
-          CorpseConverter.converter.DetailedConstructorData(tplayer).get
+          CorpseConverter.DetailedConstructorData(tplayer).get
         )
       )
     }

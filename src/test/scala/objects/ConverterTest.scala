@@ -158,7 +158,7 @@ class ConverterTest extends Specification {
   "SimpleItem" should {
     "convert to packet" in {
       val sdef = SimpleItemDefinition(SItem.remote_electronics_kit)
-      sdef.Packet = new REKConverter()
+      sdef.Packet = REKConverter
       val obj = SimpleItem(sdef)
       obj.GUID = PlanetSideGUID(90)
       obj.Definition.Packet.DetailedConstructorData(obj) match {
@@ -492,7 +492,6 @@ class ConverterTest extends Specification {
       obj.Slot(8).Equipment.get.GUID = PlanetSideGUID(91)
       obj
     }
-    val converter = new CharacterSelectConverter
 
     "convert to packet (BR < 24)" in {
       avatar = avatar.copy(bep = 0)
@@ -528,26 +527,26 @@ class ConverterTest extends Specification {
 
     "convert to simple packet (BR < 24)" in {
       avatar = avatar.copy(bep = 0)
-      converter.DetailedConstructorData(obj) match {
+      CharacterSelectConverter.DetailedConstructorData(obj) match {
         case Success(_) =>
           ok
         case _ =>
           ko
       }
-      converter.ConstructorData(obj).isFailure mustEqual true
-      converter.ConstructorData(obj).get must throwA[Exception]
+      CharacterSelectConverter.ConstructorData(obj).isFailure mustEqual true
+      CharacterSelectConverter.ConstructorData(obj).get must throwA[Exception]
     }
 
     "convert to simple packet (BR >= 24)" in {
       avatar = avatar.copy(bep = 10000000)
-      converter.DetailedConstructorData(obj) match {
+      CharacterSelectConverter.DetailedConstructorData(obj) match {
         case Success(_) =>
           ok
         case _ =>
           ko
       }
-      converter.ConstructorData(obj).isFailure mustEqual true
-      converter.ConstructorData(obj).get must throwA[Exception]
+      CharacterSelectConverter.ConstructorData(obj).isFailure mustEqual true
+      CharacterSelectConverter.ConstructorData(obj).get must throwA[Exception]
     }
   }
 
@@ -725,14 +724,14 @@ class ConverterTest extends Specification {
       val ams = Vehicle(GlobalDefinitions.ams)
       ams.GUID = PlanetSideGUID(413)
       (ams.Health > 0) mustEqual true //not destroyed vehicle
-      DestroyedVehicleConverter.converter.ConstructorData(ams).isFailure mustEqual true
+      DestroyedVehicleConverter.ConstructorData(ams).isFailure mustEqual true
     }
 
     "convert to packet" in {
       val ams = Vehicle(GlobalDefinitions.ams)
       ams.GUID = PlanetSideGUID(413)
       ams.Health = 0
-      DestroyedVehicleConverter.converter.ConstructorData(ams).isSuccess mustEqual true
+      DestroyedVehicleConverter.ConstructorData(ams).isSuccess mustEqual true
       //did not initialize the utilities, but the converter did not fail
     }
 
@@ -740,7 +739,7 @@ class ConverterTest extends Specification {
       val ams = Vehicle(GlobalDefinitions.ams)
       ams.GUID = PlanetSideGUID(413)
       ams.Health = 0
-      DestroyedVehicleConverter.converter.DetailedConstructorData(ams).isFailure mustEqual true
+      DestroyedVehicleConverter.DetailedConstructorData(ams).isFailure mustEqual true
     }
   }
 }

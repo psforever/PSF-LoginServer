@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
-class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
+object TRAPConverter extends ObjectCreateConverter[TrapDeployable] {
   override def ConstructorData(obj: TrapDeployable): Try[TRAPData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if (health > 0) {

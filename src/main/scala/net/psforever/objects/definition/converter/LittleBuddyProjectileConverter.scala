@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Success, Try}
 
-class LittleBuddyProjectileConverter extends ObjectCreateConverter[Projectile]() {
+object LittleBuddyProjectileConverter extends ObjectCreateConverter[Projectile] {
   override def ConstructorData(obj: Projectile): Try[RemoteProjectileData] = lilBudData(obj)
 
   override def DetailedConstructorData(obj: Projectile): Try[RemoteProjectileData] = lilBudData(obj)

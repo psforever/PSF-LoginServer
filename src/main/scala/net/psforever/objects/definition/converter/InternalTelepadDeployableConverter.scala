@@ -8,7 +8,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.util.{Failure, Success, Try}
 
-class InternalTelepadDeployableConverter extends ObjectCreateConverter[PlanetSideGameObject with TelepadLike]() {
+object InternalTelepadDeployableConverter extends ObjectCreateConverter[PlanetSideGameObject with TelepadLike] {
   override def ConstructorData(obj: PlanetSideGameObject with TelepadLike): Try[TelepadDeployableData] = {
     obj.Router match {
       case Some(PlanetSideGUID(0)) =>

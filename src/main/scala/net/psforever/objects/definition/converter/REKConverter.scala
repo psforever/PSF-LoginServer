@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Success, Try}
 
-class REKConverter extends ObjectCreateConverter[SimpleItem]() {
+object REKConverter extends ObjectCreateConverter[SimpleItem] {
   override def ConstructorData(obj: SimpleItem): Try[REKData] = {
     Success(
       REKData(

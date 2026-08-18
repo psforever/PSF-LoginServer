@@ -15,7 +15,7 @@ import scala.util.{Failure, Success, Try}
   * that is tailored for appearance of the player character on the character selection screen.
   * Details that would not be apparent on that screen such as implants or certifications are ignored.
   */
-class CharacterSelectConverter extends AvatarConverter {
+object CharacterSelectConverter extends ObjectCreateConverter[Player] {
   override def ConstructorData(obj: Player): Try[PlayerData] =
     Failure(new Exception("CharacterSelectConverter should not be used to generate CharacterData"))
 
@@ -26,7 +26,7 @@ class CharacterSelectConverter extends AvatarConverter {
         MakeAppearanceData(obj),
         MakeDetailedCharacterData(obj),
         InventoryData(recursiveMakeHolsters(obj.Holsters().iterator)),
-        AvatarConverter.GetDrawnSlot(obj)
+        CharacterConverter.GetDrawnSlot(obj)
       )
     )
   }
@@ -139,7 +139,7 @@ class CharacterSelectConverter extends AvatarConverter {
         case Some(equip: Tool) =>
           val jammed = equip.Jammed
           equip.Jammed = false
-          val slot = AvatarConverter.BuildDetailedEquipment(index, equip)
+          val slot = CharacterConverter.BuildDetailedEquipment(index, equip)
           equip.Jammed = jammed
           recursiveMakeHolsters(
             iter,
@@ -149,7 +149,7 @@ class CharacterSelectConverter extends AvatarConverter {
         case Some(equip) =>
           recursiveMakeHolsters(
             iter,
-            list :+ AvatarConverter.BuildDetailedEquipment(index, equip),
+            list :+ CharacterConverter.BuildDetailedEquipment(index, equip),
             index + 1
           )
         case _ =>

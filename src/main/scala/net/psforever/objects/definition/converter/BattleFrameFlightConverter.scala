@@ -9,7 +9,7 @@ import net.psforever.packet.game.objectcreate._
 
 import scala.util.{Failure, Success, Try}
 
-class BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle]() {
+object BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle] {
   override def DetailedConstructorData(obj: Vehicle): Try[BattleFrameRoboticsData] =
     Failure(new Exception("BattleFrameFlightConverter should not be used to generate detailed BattleFrameRoboticsData (nothing should)"))
 

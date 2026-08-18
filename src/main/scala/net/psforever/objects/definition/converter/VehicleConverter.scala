@@ -9,7 +9,9 @@ import net.psforever.zones.Zones
 
 import scala.util.{Failure, Success, Try}
 
-class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
+object VehicleConverter extends BasicVehicleConverter()
+
+abstract class BasicVehicleConverter extends ObjectCreateConverter[Vehicle] {
   override def DetailedConstructorData(obj: Vehicle): Try[VehicleData] =
     Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData (nothing should)"))
 

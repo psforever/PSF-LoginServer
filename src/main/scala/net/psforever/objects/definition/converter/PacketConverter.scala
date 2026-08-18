@@ -16,7 +16,7 @@ sealed trait PacketConverter
   * This is the decoded packet form of the game object, as if hexadecimal data from a packet was decoded.
   * @tparam A the type of game object
   */
-abstract class ObjectCreateConverter[A <: PlanetSideGameObject] extends PacketConverter {
+trait ObjectCreateConverter[A <: PlanetSideGameObject] extends PacketConverter {
   /** some objects do not have a detailed constructor data form */
   def noDetailedForm(obj: A): Boolean = DetailedConstructorData(obj).isFailure
 

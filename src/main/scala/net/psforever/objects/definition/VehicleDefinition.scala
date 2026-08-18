@@ -65,7 +65,7 @@ class VehicleDefinition(objectId: Int)
   var destructionDelay: Option[Long]                             = None
   private var destroyedModel: Option[DestroyedVehicle.Value]     = None
   Name = "vehicle"
-  Packet = VehicleDefinition.converter
+  Packet = VehicleConverter
   DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = StandardVehicleResistance
   Model = VehicleResolutions.calculate
@@ -234,8 +234,6 @@ class VehicleDefinition(objectId: Int)
 }
 
 object VehicleDefinition {
-  private val converter = new VehicleConverter
-
   def apply(objectId: Int): VehicleDefinition = {
     new VehicleDefinition(objectId)
   }

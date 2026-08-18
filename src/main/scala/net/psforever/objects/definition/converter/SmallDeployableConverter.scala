@@ -8,7 +8,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
-class SmallDeployableConverter extends ObjectCreateConverter[Deployable]() {
+object SmallDeployableConverter extends ObjectCreateConverter[Deployable] {
   override def ConstructorData(obj: Deployable): Try[SmallDeployableData] = {
     Success(
       SmallDeployableData(CommonFieldDataWithPlacement(

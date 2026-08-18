@@ -26,7 +26,7 @@ class SensorDeployableDefinition(private val objectId: Int) extends DeployableDe
   Name = "sensor_deployable"
   DeployCategory = DeployableCategory.Sensors
   Model = SimpleResolutions.calculate
-  Packet = new SmallDeployableConverter
+  Packet = SmallDeployableConverter
 
   override def Initialize(obj: Deployable, context: ActorContext): Unit = {
     obj.Actor =

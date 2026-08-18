@@ -2197,7 +2197,6 @@ class AvatarActor(
       case Success(pairedResults) =>
         lazy val now       = LocalDateTime.now()
         lazy val gen       = new AtomicInteger(1)
-        lazy val converter = new CharacterSelectConverter
         pairedResults.foreach {
           case (a, saveOpt) =>
             //setup character
@@ -2253,7 +2252,7 @@ class AvatarActor(
               ObjectCreateDetailedMessage(
                 ObjectClass.avatar,
                 pguid,
-                converter.DetailedConstructorData(player).get
+                CharacterSelectConverter.DetailedConstructorData(player).get
               )
             )
             //display zone

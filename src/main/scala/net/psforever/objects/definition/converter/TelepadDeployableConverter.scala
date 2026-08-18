@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
-class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable]() {
+object TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable] {
   override def ConstructorData(obj: TelepadDeployable): Try[DroppedItemData[TelepadDeployableData]] = {
     obj.Router match {
       case Some(Default.GUID0) =>

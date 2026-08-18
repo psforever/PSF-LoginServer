@@ -8,7 +8,7 @@ import net.psforever.types._
 
 import scala.util.{Failure, Success, Try}
 
-class CorpseConverter extends AvatarConverter {
+object CorpseConverter extends ObjectCreateConverter[Player] {
   override def ConstructorData(obj: Player): Try[PlayerData] =
     Failure(new Exception("CorpseConverter should not be used to generate CharacterData"))
 
@@ -106,8 +106,4 @@ class CorpseConverter extends AvatarConverter {
     )
     pad_length: Option[Int] => DetailedCharacterData(ba, bb(0, pad_length))(pad_length)
   }
-}
-
-object CorpseConverter {
-  val converter = new CorpseConverter
 }

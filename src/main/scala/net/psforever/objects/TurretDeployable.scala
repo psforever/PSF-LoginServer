@@ -62,7 +62,7 @@ abstract class TurretDeployableDefinition(private val objectId: Int)
     extends DeployableDefinition(objectId)
     with TurretDefinition {
   Name = "turret_deployable"
-  Packet = new SmallTurretConverter
+  Packet = SmallTurretConverter
   DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = StandardVehicleResistance
   Model = SimpleResolutions.calculate

@@ -7,7 +7,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.util.{Success, Try}
 
-class KitConverter extends ObjectCreateConverter[Kit]() {
+object KitConverter extends ObjectCreateConverter[Kit] {
   override def ConstructorData(obj: Kit): Try[CommonFieldData] = {
     Success(
       CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = false, v5 = None, guid = PlanetSideGUID(0))

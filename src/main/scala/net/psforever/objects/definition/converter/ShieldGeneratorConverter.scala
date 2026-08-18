@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
-class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDeployable]() {
+object ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDeployable] {
   override def ConstructorData(obj: ShieldGeneratorDeployable): Try[AegisShieldGeneratorData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
     if (health > 0) {

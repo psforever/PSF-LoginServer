@@ -24,7 +24,7 @@ class ShieldGeneratorDeployable(cdef: ShieldGeneratorDefinition)
 
 class ShieldGeneratorDefinition extends DeployableDefinition(objectId = 240)
   with WithShields {
-  Packet = new ShieldGeneratorConverter
+  Packet = ShieldGeneratorConverter
   DeployCategory = DeployableCategory.ShieldGenerators
 
   override def Initialize(obj: Deployable, context: ActorContext): Unit = {

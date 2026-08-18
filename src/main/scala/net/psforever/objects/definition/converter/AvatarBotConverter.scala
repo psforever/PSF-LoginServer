@@ -10,9 +10,8 @@ import net.psforever.types.{ExoSuitType, GrenadeState, PlanetSideEmpire, PlanetS
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
 
-class AvatarBotConverter extends ObjectCreateConverter[AvatarBot]() {
+object AvatarBotConverter extends ObjectCreateConverter[AvatarBot] {
   override def ConstructorData(obj: AvatarBot): Try[PlayerData] = {
-    import AvatarBotConverter._
     Success(
       PlayerData(
         PlacementData(obj.Position, obj.Orientation, None),
@@ -25,7 +24,6 @@ class AvatarBotConverter extends ObjectCreateConverter[AvatarBot]() {
   }
 
   override def DetailedConstructorData(obj: AvatarBot): Try[DetailedPlayerData] = {
-    import AvatarBotConverter._
     Success(
       DetailedPlayerData.apply(
         PlacementData(obj.Position, obj.Orientation, None),
@@ -36,9 +34,6 @@ class AvatarBotConverter extends ObjectCreateConverter[AvatarBot]() {
       )
     )
   }
-}
-
-object AvatarBotConverter {
 
   /**
     * Compose some data from a `AvatarBot` into a representation common to both `CharacterData` and `DetailedCharacterData`.
@@ -48,7 +43,7 @@ object AvatarBotConverter {
   def MakeAppearanceData(obj: AvatarBot): Int => CharacterAppearanceData = {
     val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
       obj.basic,
-      CommonFieldData(obj.Faction, bops = false, false, v1 = false, None, obj.Jammed, v5 = None, PlanetSideGUID(0)),
+      CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, None, obj.Jammed, v5 = None, PlanetSideGUID(0)),
       obj.ExoSuit,
       0,
       0,
@@ -62,15 +57,15 @@ object AvatarBotConverter {
       "",
       outfit_logo = 0,
       unk1 = false,
-      false,
+      backpack = false,
       unk2 = false,
       unk3 = false,
       unk4 = false,
       facingPitch = obj.Orientation.y,
       facingYawUpper = obj.FacingYawUpper,
-      false,
+      lfs = false,
       GrenadeState.None,
-      obj.Cloaked,
+      is_cloaking = obj.Cloaked,
       unk5 = false,
       unk6 = false,
       charging_pose = false,

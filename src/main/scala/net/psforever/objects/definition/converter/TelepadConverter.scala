@@ -1,19 +1,18 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.Telepad
+import net.psforever.objects.{Default, Telepad}
 import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedConstructionToolData, HandheldData}
-import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
-class TelepadConverter extends ObjectCreateConverter[Telepad]() {
+object TelepadConverter extends ObjectCreateConverter[Telepad] {
   override def ConstructorData(obj: Telepad): Try[HandheldData] = {
     obj.Router match {
       case Some(router) =>
         Success(
           HandheldData(
-            CommonFieldData(obj.Faction, false, false, false, None, false, Some(router.guid), PlanetSideGUID(0))
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = Some(router.guid), guid = Default.GUID0)
           )
         )
       case None =>
@@ -26,7 +25,7 @@ class TelepadConverter extends ObjectCreateConverter[Telepad]() {
       case Some(router) =>
         Success(
           DetailedConstructionToolData(
-            CommonFieldData(obj.Faction, false, false, true, None, false, Some(router.guid), PlanetSideGUID(0))
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = Some(router.guid), guid = Default.GUID0)
           )
         )
       case None =>

@@ -10,7 +10,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.util.{Success, Try}
 
-class CaptureFlagConverter extends ObjectCreateConverter[CaptureFlag]() {
+object CaptureFlagConverter extends ObjectCreateConverter[CaptureFlag] {
   override def ConstructorData(obj : CaptureFlag) : Try[CaptureFlagData] = {
     val hackInfo = obj.Owner.asInstanceOf[Building].CaptureTerminal.get.HackedBy match {
       case Some(hackInfo) => hackInfo

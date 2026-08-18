@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
-class DroppodConverter extends ObjectCreateConverter[Vehicle]() {
+object DroppodConverter extends ObjectCreateConverter[Vehicle] {
   override def DetailedConstructorData(obj: Vehicle): Try[DroppodData] =
     Failure(new Exception("DroppodConverter should not be used to generate detailed DroppodData (nothing should)"))
 

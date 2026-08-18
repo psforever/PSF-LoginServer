@@ -15,13 +15,11 @@ class KitDefinition(objectId: Int) extends EquipmentDefinition(objectId) {
   Size = EquipmentSize.Inventory
   Tile = InventoryTile.Tile42
   Name = "kit"
-  Packet = KitDefinition.converter
+  Packet = KitConverter
   registerAs = "kits"
 }
 
 object KitDefinition {
-  private val converter = new KitConverter()
-
   def apply(objectId: Int): KitDefinition = {
     new KitDefinition(objectId)
   }

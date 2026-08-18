@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Success, Try}
 
-class TerminalConverter extends ObjectCreateConverter[Terminal]() {
+object TerminalConverter extends ObjectCreateConverter[Terminal] {
   override def ConstructorData(obj: Terminal): Try[CommonFieldData] = {
     Success(
       CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = false, v5 = None, guid = PlanetSideGUID(0))
