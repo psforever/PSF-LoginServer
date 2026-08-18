@@ -16,7 +16,7 @@ import ch.qos.logback.classic.joran.JoranConfigurator
 import io.sentry.{Sentry, SentryOptions}
 import net.psforever.actors.net.{LoginActor, MiddlewareActor, SocketSetup, SocketSetupInfo, SocketPane}
 import net.psforever.actors.session.SessionActor
-import net.psforever.login.psadmin.PsAdminActor
+import net.psforever.actors.api.AdminHttpService
 import net.psforever.login._
 import net.psforever.objects.Default
 import net.psforever.objects.zones._
@@ -148,16 +148,9 @@ object Server {
       name = SocketPane.SocketPaneKey.id
     )
 
-    val adminListener = system.actorOf(
-      classic.Props(
-        new TcpListener(
-          classOf[PsAdminActor],
-          "psadmin-client-",
-          InetAddress.getByName(Config.app.admin.bind),
-          Config.app.admin.port
-        )
-      ),
-      "psadmin-tcp-endpoint"
+    val adminEndpoint = system.actorOf(
+      classic.Props(new AdminHttpService(Config.app.admin.bind, Config.app.admin.port)),
+      "admin-http-endpoint"
     )
 
     logger.info(
