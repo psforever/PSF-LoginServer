@@ -374,8 +374,9 @@ class SquadService extends Actor {
    */
   def JoinByFaction(faction: String, sender: ActorRef): Unit = {
     val path = s"/$faction/Squad"
-    log.trace(s"$sender has joined $path")
-    subs.SquadEvents.subscribe(sender, path)
+    val routed = SquadStamp.routing(path)
+    log.trace(s"$sender has joined $routed")
+    subs.SquadEvents.subscribe(sender, routed)
   }
 
   /**
@@ -413,8 +414,9 @@ class SquadService extends Actor {
    */
   def LeaveByFaction(faction: String, sender: ActorRef): Unit = {
     val path = s"/$faction/Squad"
-    log.trace(s"$sender has left $path")
-    subs.SquadEvents.unsubscribe(sender, path)
+    val routed = SquadStamp.routing(path)
+    log.trace(s"$sender has left $routed")
+    subs.SquadEvents.unsubscribe(sender, routed)
   }
 
   /**
@@ -1008,7 +1010,7 @@ class SquadService extends Actor {
           memberToSquad.remove(charId)
           member.Name = ""
           member.CharId = 0L
-          subs.SquadEvents.unsubscribe(actor, channel)
+          subs.SquadEvents.unsubscribe(actor, SquadStamp.routing(channel))
           subs.Publish(
             charId,
             SquadResponse.Leave(
@@ -1109,7 +1111,7 @@ class SquadService extends Actor {
         val size = squad.Size
         subs.UserEvents.remove(charId) match {
           case Some(events) =>
-            subs.SquadEvents.unsubscribe(events, s"/${features.ToChannel}/Squad")
+            subs.SquadEvents.unsubscribe(events, SquadStamp.routing(s"/${features.ToChannel}/Squad"))
           case _ => ()
         }
         if (size > 2) {

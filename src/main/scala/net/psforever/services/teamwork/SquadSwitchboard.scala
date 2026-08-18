@@ -166,7 +166,7 @@ class SquadSwitchboard(
         .collect { case (id, _, Some(sub)) =>
           subscriptions.Publish(sub, SquadResponse.Join(squad, indices, toChannel, self))
           InitWaypoints(id, features)
-          subscriptions.SquadEvents.subscribe(sub, s"/$toChannel/Squad")
+          subscriptions.SquadEvents.subscribe(sub, SquadStamp.routing(s"/$toChannel/Squad"))
         }
       //update for leader
       features.InitialAssociation = false
@@ -201,7 +201,7 @@ class SquadSwitchboard(
       subscriptions.Publish(toChannel, SquadResponse.Join(squad, List(position), "", self), Seq(charId))
       //update for leader
       subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, player.avatar.br.value, player.avatar.cr.value, role.ZoneId))
-      subscriptions.SquadEvents.subscribe(sendTo, s"/$toChannel/Squad")
+      subscriptions.SquadEvents.subscribe(sendTo, SquadStamp.routing(s"/$toChannel/Squad"))
       subscriptions.InitSquadDetail(squad.GUID, Seq(charId), squad)
     }
     context.parent ! SquadService.UpdateSquadListWhenListed(
