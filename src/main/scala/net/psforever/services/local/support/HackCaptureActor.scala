@@ -2,6 +2,7 @@
 package net.psforever.services.local.support
 
 import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
+import net.psforever.actors.api.{AdminHttpService, InterstellarEvent}
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -70,6 +71,14 @@ class HackCaptureActor extends Actor {
       hackedObjects = hackedObjects.filterNot(_.target == target) :+ HackCaptureActor.HackEntry(target, zone, unk1, unk2, duration, startTime)
       RestartTimer()
       NotifyHackStateChange(target, isResecured = false)
+      reportEvent(
+        AdminHttpService.EventKinds.HackStarted,
+        target,
+        target.HackedBy.map(_.player.Name).getOrElse(""),
+        target.Faction.id,
+        hackingFaction.id,
+        flipped = false
+      )
       TrySpawnCaptureFlag(target)
 
     case HackCaptureActor.ProcessCompleteHacks() =>
@@ -92,15 +101,29 @@ class HackCaptureActor extends Actor {
             // LLU was destroyed while in the field. Send resecured notifications
             terminal.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.FlagLost))
             NotifyHackStateChange(terminal, isResecured = true)
+            reportEvent(
+              AdminHttpService.EventKinds.LluDestroyed, terminal, "",
+              terminal.Faction.id, terminal.Faction.id, flipped = false
+            )
 
           case Some(llu) =>
             // LLU was not delivered in time. Send resecured notifications
             terminal.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.TimedOut))
             NotifyHackStateChange(terminal, isResecured = true)
+            reportEvent(
+              AdminHttpService.EventKinds.LluLost, terminal, "",
+              terminal.Faction.id, terminal.Faction.id, flipped = false
+            )
 
           case _ =>
             // Timed hack finished (or neutral LLU base with no neighbour as timed hack), capture the base
             val hackTime = terminal.Definition.FacilityHackTime.toMillis
+            // A CTF base finishing on the timer means the LLU was bypassed (base was neutral).
+            reportEvent(
+              if (building.IsCtfBase) AdminHttpService.EventKinds.LluBypassCompleted
+              else AdminHttpService.EventKinds.HackHoldCompleted,
+              terminal, "", building.Faction.id, hackedByFaction.id, flipped = true
+            )
             HackCompleted(terminal, hackedByFaction)
             building.Participation.RewardFacilityCapture(
               HackCaptureActor.GetDefendingFaction(terminal, building, hackedByFaction),
@@ -125,10 +148,19 @@ class HackCaptureActor extends Actor {
       val building = target.Owner.asInstanceOf[Building]
       val hackTime = results.headOption.map { now - _.hack_timestamp }.getOrElse(facilityHackTime)
       // If LLU exists it was not delivered. Send resecured notifications
+      val hadFlag = building.GetFlag.isDefined
       building.GetFlag.collect {
         case flag: CaptureFlag => target.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Resecured))
       }
       NotifyHackStateChange(target, isResecured = true)
+      reportEvent(
+        // A live LLU cut short by a resecure is the LLU being destroyed; otherwise the hold failed,
+        // and on a CTF base with no flag the bypass attempt was the thing intercepted.
+        if (hadFlag) AdminHttpService.EventKinds.LluDestroyed
+        else if (building.IsCtfBase) AdminHttpService.EventKinds.LluBypassFailed
+        else AdminHttpService.EventKinds.HackHoldFailed,
+        target, hacker.Name, target.Faction.id, target.Faction.id, flipped = false
+      )
       building.Participation.RewardFacilityCapture(
         target.Faction,
         HackCaptureActor.GetAttackingFaction(building, faction),
@@ -151,6 +183,10 @@ class HackCaptureActor extends Actor {
           val hacker =  hackInfo.player
           val hackedByFaction = hackInfo.hackerFaction
           hackedObjects = hackedObjects.filterNot(x => x == entry)
+          reportEvent(
+            AdminHttpService.EventKinds.LluDelivered, terminal, "",
+            building.Faction.id, hackedByFaction.id, flipped = true
+          )
           HackCompleted(terminal, hackedByFaction)
           building.Participation.RewardFacilityCapture(
             HackCaptureActor.GetDefendingFaction(terminal, building, hackedByFaction),
@@ -187,6 +223,35 @@ class HackCaptureActor extends Actor {
       owner.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.FlagLost))
 
     case _ => ()
+  }
+
+  /**
+    * Report a base capture outcome to the admin API's interstellar log.
+    *
+    * `player` is only meaningful for acts performed at a control console (starting or clearing a
+    * hack) or carrying an LLU; a plain ownership change has no single responsible player, so it is
+    * reported blank rather than attributed to whoever happened to finish the timer.
+    */
+  private def reportEvent(
+      kind: String,
+      terminal: CaptureTerminal,
+      player: String,
+      from: Int,
+      to: Int,
+      flipped: Boolean
+  ): Unit = {
+    AdminHttpService.report(
+      InterstellarEvent(
+        at = System.currentTimeMillis(),
+        kind = kind,
+        zone = terminal.Zone.id,
+        base = terminal.Owner match { case b: Building => b.Name; case _ => "" },
+        actor = player,
+        from = from,
+        to = to,
+        flipped = flipped
+      )
+    )
   }
 
   private def TrySpawnCaptureFlag(terminal: CaptureTerminal): Boolean = {
