@@ -8,7 +8,11 @@ import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.prop.{DamageProperties, DamageWithPosition}
 import net.psforever.objects.vital.resolution.{DamageAndResistance, DamageResistanceModel}
 
-final case class OrbitalStrike(player: PlayerSource)
+/**
+  * @param player the commander who called the strike in, if there was one; an administrator calling
+  *               one from outside the game has no character, so nothing is credited with the kills
+  */
+final case class OrbitalStrike(player: Option[PlayerSource])
   extends DamageReason {
   def resolution: DamageResolution.Value = DamageResolution.Hit
 
@@ -20,11 +24,14 @@ final case class OrbitalStrike(player: PlayerSource)
 
   def damageModel: DamageAndResistance = OrbitalStrike.drm
 
-  override def adversary : Option[SourceEntry] = Some(player)
+  override def adversary : Option[SourceEntry] = player
 
 }
 
 object OrbitalStrike {
+  /** The ordinary case: a Command Uplink Device strike, credited to the commander who called it. */
+  def apply(player: PlayerSource): OrbitalStrike = OrbitalStrike(Some(player))
+
 
   final val cr4_os = new DamageWithPosition {
     CausesDamageType = DamageType.Splash
