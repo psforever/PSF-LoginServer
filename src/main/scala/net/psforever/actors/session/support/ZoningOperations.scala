@@ -314,7 +314,7 @@ class ZoningOperations(
 
     //custom
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
-    sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
+    sendResponse(PlanetsideAttributeMessage(Default.GUID0, 112, 0)) // disable festive backpacks
 
     val deployables = continent.DeployableList
     reclaimOurDeployables(deployables, name, manageDeployablesWith(player.GUID, avatar.deployables))
@@ -600,7 +600,7 @@ class ZoningOperations(
     galaxyService.tell(MessageEnvelope("", GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     //PropertyOverrideMessage
     ServiceManager.serviceManager ! Lookup("propertyOverrideManager")
-    sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
+    sendResponse(PlanetsideAttributeMessage(Default.GUID0, 112, 0)) // disable festive backpacks
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
     spawn.initializeFriendsAndIgnoredLists()
     //the following subscriptions last until character switch/logout
@@ -1605,7 +1605,7 @@ class ZoningOperations(
     sessionLogic.terminals.CancelAllProximityUnits()
     //droppod action
     val droppod = Vehicle(GlobalDefinitions.droppod)
-    droppod.GUID = PlanetSideGUID(0) //droppod is not registered, we must jury-rig this
+    droppod.GUID = Default.GUID0 //droppod is not registered, we must jury-rig this
     droppod.Faction = player.Faction
     droppod.Position = spawnPosition.xy + Vector3.z(1024)
     droppod.Orientation = Vector3.z(180) //you always seems to land looking south; don't know why
@@ -1613,7 +1613,7 @@ class ZoningOperations(
     droppod.Invalidate() //now, we must short-circuit the jury-rig
     interstellarFerry = Some(droppod) //leverage vehicle gating
     player.Position = droppod.Position
-    player.VehicleSeated = PlanetSideGUID(0)
+    player.VehicleSeated = Default.GUID0
     spawn.LoadZonePhysicalSpawnPoint(zone.id, droppod.Position, Vector3.Zero, 0 seconds, None)
   }
 
@@ -2623,7 +2623,7 @@ class ZoningOperations(
           player.VehicleSeated = vguid
           if (Vehicles.AllGatedOccupantsInSameZone(vehicle)) {
             //do not dispatch delete action if any hierarchical occupant has not gotten this far through the summoning process
-            val vehicleToDelete = interstellarFerryTopLevelGUID.orElse(originalSeated).getOrElse(PlanetSideGUID(0))
+            val vehicleToDelete = interstellarFerryTopLevelGUID.orElse(originalSeated).getOrElse(Default.GUID0)
             val zone            = vehicle.PreviousGatingManifest().get.origin
             zone.VehicleEvents ! MessageEnvelope(
               zone.id,
@@ -3316,7 +3316,7 @@ class ZoningOperations(
       val tavatar = tplayer.avatar
       val guid = tplayer.GUID
       sessionLogic.general.updateDeployableUIElements(Deployables.InitializeDeployableUIElements(tavatar))
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
+      sendResponse(PlanetsideAttributeMessage(Default.GUID0, 75, 0))
       sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, wideContents=true, "", "1 on", None)) //CC on //TODO once per respawn?
       val pos = tplayer.Position = shiftPosition.getOrElse(tplayer.Position)
@@ -3332,7 +3332,7 @@ class ZoningOperations(
       avatarActor ! AvatarActor.SoftResetImplants
       val originalDeadState = deadState
       deadState = DeadState.Alive
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
+      sendResponse(PlanetsideAttributeMessage(Default.GUID0, 82, 0))
       initializeShortcutsAndBank(guid, tavatar.shortcuts)
       //Favorites lists
       avatarActor ! AvatarActor.InitialRefreshLoadouts()
@@ -3621,7 +3621,7 @@ class ZoningOperations(
         obj.GUID,
         Deployable.Icon(obj.Definition.Item),
         obj.Position,
-        obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
+        obj.OwnerGuid.getOrElse(Default.GUID0)
       )
       sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
     }

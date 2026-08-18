@@ -2293,7 +2293,7 @@ class AvatarActor(
           }
           //finalize list
           sessionActor ! SessionActor.SendResponse(
-            CharacterInfoMessage(unk = 15, PlanetSideZoneID(0), 0, PlanetSideGUID(0), finished = true, secondsSinceLastLogin = 0L)
+            CharacterInfoMessage(unk = 15, PlanetSideZoneID(0), 0, Default.GUID0, finished = true, secondsSinceLastLogin = 0L)
           )
       case Failure(e) =>
         log.error(e)("db failure")
@@ -2677,7 +2677,7 @@ class AvatarActor(
 
   // same as in SA, this really doesn't belong here
   def updateDeployableUIElements(list: List[(Int, Int, Int, Int)]): Unit = {
-    val guid = PlanetSideGUID(0)
+    val guid = Default.GUID0
     list.foreach({
       case (currElem, curr, maxElem, max) =>
         //fields must update in ordered pairs: max, curr

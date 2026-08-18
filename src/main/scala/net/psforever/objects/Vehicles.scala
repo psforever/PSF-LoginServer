@@ -142,7 +142,7 @@ object Vehicles {
     val pguid = player.GUID
     if (vehicle.OwnerGuid.contains(pguid)) {
       vehicle.AssignOwnership(None)
-      //vehicle.Zone.VehicleEvents ! MessageEnvelope(player.Name, pguid, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
+      //vehicle.Zone.VehicleEvents ! MessageEnvelope(player.Name, pguid, VehicleAction.Ownership(pguid, Default.GUID0))
       //val vguid  = vehicle.GUID
       val empire = VehicleLockState.Empire.id
       (0 to 2).foreach(group => {

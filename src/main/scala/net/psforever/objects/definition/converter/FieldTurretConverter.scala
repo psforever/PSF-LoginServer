@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.TurretDeployable
+import net.psforever.objects.{Default, TurretDeployable}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
@@ -15,7 +14,7 @@ object FieldTurretConverter extends ObjectCreateConverter[TurretDeployable] {
         OneMannedFieldTurretData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = obj.OwnerGuid.getOrElse(PlanetSideGUID(0)))
+            CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = obj.OwnerGuid.getOrElse(Default.GUID0))
           ),
           health,
           Some(InventoryData(TurretConverter.MakeMountings(obj)))
@@ -26,7 +25,7 @@ object FieldTurretConverter extends ObjectCreateConverter[TurretDeployable] {
         OneMannedFieldTurretData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(faction = obj.Faction, bops = false, alternate = true, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = PlanetSideGUID(0))
+            CommonFieldData(faction = obj.Faction, bops = false, alternate = true, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = Default.GUID0)
           ),
           0
         )

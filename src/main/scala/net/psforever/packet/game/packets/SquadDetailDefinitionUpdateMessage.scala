@@ -1,6 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.packet.game.packets
 
+import net.psforever.objects.Default
 import net.psforever.objects.avatar.Certification
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import net.psforever.types.PlanetSideGUID
@@ -1464,7 +1465,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     * Blank squad data set up for `FullSquad` parsing.
     * The `guid` value is significant - it represents the client-local squad data.
     */
-  final val Init = SquadDetailDefinitionUpdateMessage(PlanetSideGUID(0), SquadDetail().Complete)
+  final val Init = SquadDetailDefinitionUpdateMessage(Default.GUID0, SquadDetail().Complete)
 
   /**
     * Produces a byte-aligned Pascal strings encoded through common manipulations.

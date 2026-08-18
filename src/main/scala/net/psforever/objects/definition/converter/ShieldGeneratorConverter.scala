@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.ShieldGeneratorDeployable
+import net.psforever.objects.{Default, ShieldGeneratorDeployable}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
@@ -17,7 +16,7 @@ object ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDep
             PlacementData(obj.Position, obj.Orientation),
             CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = obj.Jammed, None, obj.OwnerGuid match {
                 case Some(owner) => owner
-                case None        => PlanetSideGUID(0)
+                case None        => Default.GUID0
               })
           ),
           health
@@ -28,7 +27,7 @@ object ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDep
         AegisShieldGeneratorData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(obj.Faction, bops = false, alternate = true, v1 = false, v2 = None, jammered = obj.Jammed, None, PlanetSideGUID(0))
+            CommonFieldData(obj.Faction, bops = false, alternate = true, v1 = false, v2 = None, jammered = obj.Jammed, None, Default.GUID0)
           ),
           0
         )

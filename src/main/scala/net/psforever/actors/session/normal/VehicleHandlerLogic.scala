@@ -6,7 +6,7 @@ import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, SessionVehicleHandlers, VehicleHandlerFunctions}
 import net.psforever.objects.avatar.SpecialCarry
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle, Vehicles}
+import net.psforever.objects.{Default, GlobalDefinitions, Player, Vehicle, Vehicles}
 import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.interior.Sidedness.OutsideOf
@@ -215,7 +215,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       val resp = GenericResponseEnvelope(
         VehicleStamp,
         "",
-        PlanetSideGUID(0),
+        Default.GUID0,
         VehicleAction.KickCargo(vehicle, speed=0, delay)
       )
       context.system.scheduler.scheduleOnce(delay milliseconds, context.self, resp)

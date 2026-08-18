@@ -3,8 +3,8 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.vehicles.VehicleSubsystemEntry
-import net.psforever.objects.{PlanetSideGameObject, Vehicle}
-import net.psforever.types.{PlanetSideGUID, VehicleFormat}
+import net.psforever.objects.{Default, PlanetSideGameObject, Vehicle}
+import net.psforever.types.VehicleFormat
 import net.psforever.packet.game.objectcreate._
 
 import scala.util.{Failure, Success, Try}
@@ -21,7 +21,7 @@ object BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle] {
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
           CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, obj.OwnerGuid match {
               case Some(owner) => owner
-              case None => PlanetSideGUID(0)
+              case None => Default.GUID0
             }),
           health,
           StatConverter.Health(obj.Shields, obj.MaxShields),
@@ -41,7 +41,7 @@ object BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle] {
       Success(
         BattleFrameRoboticsData(
           PlacementData(obj.Position, obj.Orientation),
-          CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid =  PlanetSideGUID(0)),
+          CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid =  Default.GUID0),
           0,
           0,
           unk1 = 0,

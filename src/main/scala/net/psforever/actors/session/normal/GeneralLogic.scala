@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData, SessionOutfitHandlers}
-import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, GlobalDefinitions, LivePlayerList, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
+import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, Default, GlobalDefinitions, LivePlayerList, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
 import net.psforever.objects.avatar.{Avatar, AvatarBot, PlayerControl, SpecialCarry}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.{Deployable, DeployedItem}
@@ -662,7 +662,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case (None, _, _) =>
         ()
 
-      case (Some(us: PlanetSideServerObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
+      case (Some(us: PlanetSideServerObject with Vitality with FactionAffinity), Default.GUID0, _) =>
         if (updateCollisionHistoryForTarget(us, curr)) {
           if (!bailProtectStatus) {
             sessionLogic.handleDealingDamage(

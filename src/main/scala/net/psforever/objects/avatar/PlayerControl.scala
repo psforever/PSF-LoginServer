@@ -998,7 +998,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               case _ =>
                 zone.AvatarEvents ! MessageEnvelope(
                   target.Name,
-                  AvatarAction.EnvironmentalDamage(target.GUID, ValidPlanetSideGUID(0), countableDamage)
+                  AvatarAction.EnvironmentalDamage(target.GUID, Default.GUID0, countableDamage)
                 )
             }
         }

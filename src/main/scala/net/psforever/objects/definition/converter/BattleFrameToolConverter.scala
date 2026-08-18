@@ -1,9 +1,8 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.Tool
+import net.psforever.objects.{Default, Tool}
 import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedWeaponData, InternalSlot, WeaponData}
-import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
@@ -15,7 +14,7 @@ object BattleFrameToolConverter extends ObjectCreateConverter[Tool] {
     }).toList
     Success(
       WeaponData(
-        CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = PlanetSideGUID(0)),
+        CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = Default.GUID0),
         obj.FireModeIndex,
         slots
       )

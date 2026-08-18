@@ -1,10 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
+import net.psforever.objects.Default
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
@@ -18,7 +18,7 @@ object SmallDeployableConverter extends ObjectCreateConverter[Deployable] {
             case _               => false
           }, None, obj.OwnerGuid match {
             case Some(owner) => owner
-            case None        => PlanetSideGUID(0)
+            case None        => Default.GUID0
           })
       ))
     )

@@ -1,9 +1,8 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.Vehicle
+import net.psforever.objects.{Default, Vehicle}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
@@ -20,7 +19,7 @@ object DroppodConverter extends ObjectCreateConverter[Vehicle] {
             PlacementData(obj.Position, obj.Orientation, obj.Velocity),
             CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, v2 = None, jammered = obj.Jammed, v5 = None, obj.OwnerGuid match {
                 case Some(owner) => owner
-                case None        => PlanetSideGUID(0)
+                case None        => Default.GUID0
               })
           ),
           health,
@@ -33,7 +32,7 @@ object DroppodConverter extends ObjectCreateConverter[Vehicle] {
         DroppodData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, PlanetSideGUID(0))
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, Default.GUID0)
           ),
           0,
           burn = false,

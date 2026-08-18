@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.Tool
+import net.psforever.objects.{Default, Tool}
 import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedWeaponData, InternalSlot, WeaponData}
-import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Success, Try}
 
@@ -17,7 +16,7 @@ object ToolConverter extends ObjectCreateConverter[Tool] {
       .toList
     Success(
       WeaponData(
-        CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, obj.Jammed, None, PlanetSideGUID(0)),
+        CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, obj.Jammed, None, Default.GUID0),
         obj.FireModeIndex,
         slots
       )
@@ -33,7 +32,7 @@ object ToolConverter extends ObjectCreateConverter[Tool] {
       .toList
     Success(
       DetailedWeaponData(
-        CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, obj.Jammed, None, PlanetSideGUID(0)),
+        CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, obj.Jammed, None, Default.GUID0),
         obj.FireModeIndex,
         slots
       )

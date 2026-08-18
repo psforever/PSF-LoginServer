@@ -4,7 +4,7 @@ package net.psforever.actors.session.spectator
 import akka.actor.Actor.Receive
 import akka.actor.ActorContext
 import net.psforever.actors.session.support.{SessionData, SessionVehicleHandlers, VehicleHandlerFunctions}
-import net.psforever.objects.{Vehicle, Vehicles}
+import net.psforever.objects.{Default, Vehicle, Vehicles}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.packet.game.packets.{ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ServerVehicleOverrideMsg, VehicleStateMessage}
@@ -164,7 +164,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       val resp = GenericResponseEnvelope(
         VehicleStamp,
         "",
-        PlanetSideGUID(0),
+        Default.GUID0,
         VehicleAction.KickCargo(vehicle, speed=0, delay)
       )
       context.system.scheduler.scheduleOnce(delay milliseconds, context.self, resp)

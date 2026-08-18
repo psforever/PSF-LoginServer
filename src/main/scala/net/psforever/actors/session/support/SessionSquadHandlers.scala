@@ -54,7 +54,7 @@ class SessionSquadHandlers(
 
   private[session] val squadUI: mutable.LongMap[SquadUIElement] = new mutable.LongMap[SquadUIElement]()
   private[session] var squad_supplement_id: Int = 0
-  private[session] var squad_guid: PlanetSideGUID = PlanetSideGUID(0)
+  private[session] var squad_guid: PlanetSideGUID = Default.GUID0
   /**
    * When joining or creating a squad, the original state of the avatar's internal LFS variable is blanked.
    * This `WorldSessionActor`-local variable is then used to indicate the ongoing state of the LFS UI component,
@@ -76,19 +76,19 @@ class SessionSquadHandlers(
   def FirstTimeSquadSetup(): Unit = {
     sendResponse(SquadDetailDefinitionUpdateMessage.Init)
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
-    sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(6)))
+    sendResponse(SquadDefinitionActionMessage(Default.GUID0, 0, SquadAction.Unknown(6)))
     //only need to load these once - they persist between zone transfers and respawns
     avatar.loadouts.squad.zipWithIndex.foreach {
       case (Some(loadout), index) =>
         sendResponse(
-          SquadDefinitionActionMessage(PlanetSideGUID(0), index, SquadAction.ListSquadFavorite(loadout.task))
+          SquadDefinitionActionMessage(Default.GUID0, index, SquadAction.ListSquadFavorite(loadout.task))
         )
       case (None, _) => ()
     }
     //non-squad GUID-0 counts as the settings when not joined with a squad
-    sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.IdentifyAsSquadLeader()))
-    sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.SetListSquad()))
-    sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
+    sendResponse(SquadDefinitionActionMessage(Default.GUID0, 0, SquadAction.IdentifyAsSquadLeader()))
+    sendResponse(SquadDefinitionActionMessage(Default.GUID0, 0, SquadAction.SetListSquad()))
+    sendResponse(SquadDefinitionActionMessage(Default.GUID0, 0, SquadAction.Unknown(18)))
     squadService ! SquadServiceMessage(player, continent, SquadServiceAction.InitSquadList())
     squadService ! SquadServiceMessage(player, continent, SquadServiceAction.InitCharId())
     cleanUpSquadCards()
@@ -341,7 +341,7 @@ class SessionSquadHandlers(
         sendResponse(SquadDefinitionActionMessage(sguid, 0, SquadAction.IdentifyAsSquadLeader()))
         sendResponse(SquadDefinitionActionMessage(sguid, 0, SquadAction.Unknown(18)))
       } else if (secondCharId == charId) {
-        sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.IdentifyAsSquadLeader()))
+        sendResponse(SquadDefinitionActionMessage(Default.GUID0, 0, SquadAction.IdentifyAsSquadLeader()))
         sendResponse(PlanetsideAttributeMessage(pguid, 32, fromIndex))
         sendResponse(SquadDefinitionActionMessage(sguid, 0, SquadAction.Unknown(18)))
       }

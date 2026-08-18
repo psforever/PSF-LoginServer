@@ -433,7 +433,7 @@ object Building {
     new Building(name = "", 0, map_id = 0, Zone.Nowhere, StructureType.Platform, GlobalDefinitions.building) {
       override def Faction_=(faction: PlanetSideEmpire.Value): PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
       override def Amenities_=(obj: Amenity): List[Amenity]                           = Nil
-      GUID = net.psforever.types.PlanetSideGUID(0)
+      GUID = net.psforever.objects.Default.GUID0
     }
 
   def apply(name: String, guid: Int, map_id: Int, zone: Zone, buildingType: StructureType): Building = {

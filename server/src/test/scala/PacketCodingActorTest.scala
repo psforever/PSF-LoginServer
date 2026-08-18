@@ -613,7 +613,7 @@ class PacketCodingActorKTest extends ActorTest {
       false,
       None,
       None,
-      PlanetSideGUID(0)
+      Default.GUID0
     ),
     ExoSuitType.Standard,
     0,

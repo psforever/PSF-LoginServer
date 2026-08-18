@@ -27,7 +27,7 @@ trait TelepadLike {
       case None =>
         router = rguid
       case Some(_) =>
-        if (rguid.isEmpty || rguid.contains(PlanetSideGUID(0))) {
+        if (rguid.isEmpty || rguid.contains(Default.GUID0)) {
           router = None
         }
     }

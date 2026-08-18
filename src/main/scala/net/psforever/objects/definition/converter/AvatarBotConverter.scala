@@ -1,11 +1,11 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.Player
+import net.psforever.objects.{Default, Player}
 import net.psforever.objects.avatar.{AvatarBot, BattleRank}
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{ExoSuitType, GrenadeState, PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.{ExoSuitType, GrenadeState, PlanetSideEmpire}
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
@@ -43,7 +43,7 @@ object AvatarBotConverter extends ObjectCreateConverter[AvatarBot] {
   def MakeAppearanceData(obj: AvatarBot): Int => CharacterAppearanceData = {
     val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
       obj.basic,
-      CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, None, obj.Jammed, v5 = None, PlanetSideGUID(0)),
+      CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, None, obj.Jammed, v5 = None, Default.GUID0),
       obj.ExoSuit,
       0,
       0,
@@ -211,7 +211,7 @@ object AvatarBotConverter extends ObjectCreateConverter[AvatarBot] {
           equip.GUID,
           5,
           DetailedLockerContainerData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops=false, alternate=false, v1=true, None, jammered=false, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops=false, alternate=false, v1=true, None, jammered=false, None, Default.GUID0),
             None
           )
         ))

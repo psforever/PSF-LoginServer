@@ -339,8 +339,8 @@ class SquadSwitchboard(
       case Some(loadout: SquadLoadout) if squad.Size == 1 =>
         SquadSwitchboard.LoadSquadDefinition(squad, loadout)
         context.parent ! SquadService.UpdateSquadListWhenListed(features, SquadService.PublishFullListing(squad))
-        subscriptions.Publish(sendTo, SquadResponse.IdentifyAsSquadLeader(PlanetSideGUID(0)))
-        subscriptions.InitSquadDetail(PlanetSideGUID(0), Seq(tplayer.CharId), squad)
+        subscriptions.Publish(sendTo, SquadResponse.IdentifyAsSquadLeader(Default.GUID0))
+        subscriptions.InitSquadDetail(Default.GUID0, Seq(tplayer.CharId), squad)
         subscriptions.UpdateSquadDetail(features)
         subscriptions.Publish(sendTo, SquadResponse.IdentifyAsSquadLeader(squad.GUID))
       case _ => ;
@@ -545,7 +545,7 @@ class SquadSwitchboard(
     if (squad.Leader.CharId == tplayer.CharId) {
       if (features.Listed) {
         features.Listed = false
-        subscriptions.Publish(sendTo, SquadResponse.SetListSquad(PlanetSideGUID(0)))
+        subscriptions.Publish(sendTo, SquadResponse.SetListSquad(Default.GUID0))
         context.parent ! SquadService.UpdateSquadList(features, None)
       }
     }
@@ -569,7 +569,7 @@ class SquadSwitchboard(
       if (features.Listed) {
         //unlist the squad
         features.Listed = false
-        subscriptions.Publish(features.ToChannel, SquadResponse.SetListSquad(PlanetSideGUID(0)))
+        subscriptions.Publish(features.ToChannel, SquadResponse.SetListSquad(Default.GUID0))
         context.parent ! SquadService.UpdateSquadList(features, None)
       }
       subscriptions.UpdateSquadDetail(features)
@@ -735,7 +735,7 @@ class SquadSwitchboard(
       //to old and to new squad leader
       if (features.Listed) {
         context.parent ! SquadService.UpdateSquadList(features, Some(SquadInfo().Leader(memberName)))
-        subscriptions.Publish(sponsoringPlayer, SquadResponse.SetListSquad(PlanetSideGUID(0)))
+        subscriptions.Publish(sponsoringPlayer, SquadResponse.SetListSquad(Default.GUID0))
         subscriptions.Publish(promotedPlayer, SquadResponse.SetListSquad(squad.GUID))
       }
       //to old squad leader and rest of squad
@@ -890,7 +890,7 @@ class SquadSwitchboard(
             squad.Membership
               .filterNot { _.CharId == 0 }
               .map { member =>
-                SquadAction.Update(member.CharId, PlanetSideGUID(0), member.Health, 0, member.Armor, 0, member.Certifications, member.Position, member.ZoneId)
+                SquadAction.Update(member.CharId, Default.GUID0, member.Health, 0, member.Armor, 0, member.Certifications, member.Position, member.ZoneId)
               }
               .toList
           )

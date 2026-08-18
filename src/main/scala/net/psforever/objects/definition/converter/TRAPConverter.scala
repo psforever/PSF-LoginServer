@@ -1,9 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.TrapDeployable
+import net.psforever.objects.{Default, TrapDeployable}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
@@ -17,7 +16,7 @@ object TRAPConverter extends ObjectCreateConverter[TrapDeployable] {
             PlacementData(obj.Position, obj.Orientation),
             CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, jammered = false, None, obj.OwnerGuid match {
                 case Some(owner) => owner
-                case None        => PlanetSideGUID(0)
+                case None        => Default.GUID0
               })
           ),
           health
@@ -28,7 +27,7 @@ object TRAPConverter extends ObjectCreateConverter[TrapDeployable] {
         TRAPData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(obj.Faction, bops = false, alternate = true, v1 = true, None, jammered = false, None, PlanetSideGUID(0))
+            CommonFieldData(obj.Faction, bops = false, alternate = true, v1 = true, None, jammered = false, None, Default.GUID0)
           ),
           0
         )

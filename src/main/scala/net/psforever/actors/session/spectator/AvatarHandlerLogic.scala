@@ -5,7 +5,7 @@ import akka.actor.Actor.Receive
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions
 import net.psforever.actors.zone.ZoneActor
-import net.psforever.objects.Players
+import net.psforever.objects.{Default, Players}
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.packet.game.packets.{AvatarImplantMessage, ImplantAction}
@@ -27,7 +27,7 @@ import net.psforever.objects.zones.Zoning
 import net.psforever.packet.game.packets.{ArmorChangedMessage, AvatarDeadStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, DeadState, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, UseItemMessage, WeaponDryFireMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.services.avatar.AvatarAction
-import net.psforever.types.{ChatMessageType, PlanetSideGUID, TransactionType, Vector3}
+import net.psforever.types.{ChatMessageType, TransactionType, Vector3}
 import net.psforever.util.Config
 
 object AvatarHandlerLogic {
@@ -506,7 +506,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           projectile.Orientation,
           sequence_num=0,
           end=true,
-          hit_target_guid=PlanetSideGUID(0)
+          hit_target_guid=Default.GUID0
         )
       )
       sendResponse(ObjectDeleteMessage(projectileGuid, unk1=2))

@@ -69,7 +69,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
 
   override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
-    SensorDeployableControl.DestructionAwareness(sensor, PlanetSideGUID(0))
+    SensorDeployableControl.DestructionAwareness(sensor, Default.GUID0)
   }
 
   override def StartJammeredSound(target: Any, dur: Int): Unit =

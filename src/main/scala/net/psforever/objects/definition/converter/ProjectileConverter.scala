@@ -1,9 +1,9 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.definition.converter
 
+import net.psforever.objects.Default
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataWithPlacement, FlightPhysics, PlacementData, RemoteProjectileData}
-import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
@@ -17,7 +17,7 @@ object ProjectileConverter extends ObjectCreateConverter[Projectile]() {
             obj.Orientation,
             obj.Velocity
           ),
-          CommonFieldData(obj.owner.Faction, bops = false, alternate = false, v1 = true, v2= None, jammered = false, v5 = None, guid = PlanetSideGUID(0))
+          CommonFieldData(obj.owner.Faction, bops = false, alternate = false, v1 = true, v2= None, jammered = false, v5 = None, guid = Default.GUID0)
         ),
         u1 = obj.profile.RemoteClientData._1,
         u2 = obj.profile.RemoteClientData._2,

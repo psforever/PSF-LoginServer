@@ -683,7 +683,7 @@ class VehicleControl(vehicle: Vehicle)
     val vguid = vehicle.GUID
     val (dname, dguid) = other match {
       case Some(p: Player) => (p.Name, p.GUID)
-      case _               => (vehicle.OwnerName.getOrElse("The driver"), PlanetSideGUID(0))
+      case _               => (vehicle.OwnerName.getOrElse("The driver"), Default.GUID0)
     }
     val zone = vehicle.Zone
     if (9 < attribute && attribute < 14) {

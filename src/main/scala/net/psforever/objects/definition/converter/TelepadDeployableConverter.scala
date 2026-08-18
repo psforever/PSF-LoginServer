@@ -3,7 +3,6 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.{Default, TelepadDeployable}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
 
@@ -15,7 +14,7 @@ object TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployabl
 
       case Some(router) =>
         if (obj.Health > 0) {
-          val ownerGuid = obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
+          val ownerGuid = obj.OwnerGuid.getOrElse(Default.GUID0)
           Success(
             DroppedItemData(
               PlacementData(obj.Position, obj.Orientation),

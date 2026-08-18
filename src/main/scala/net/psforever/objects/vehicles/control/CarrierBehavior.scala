@@ -64,9 +64,9 @@ trait CarrierBehavior {
           SendResponse(
             CargoMountPointStatusMessage(
               obj.GUID,
-              PlanetSideGUID(0),
+              Default.GUID0,
               cargo_guid,
-              PlanetSideGUID(0),
+              Default.GUID0,
               mountPoint,
               CargoStatus.InProgress,
               0
@@ -225,8 +225,8 @@ object CarrierBehavior {
             cargoDriverGUID,
             SendResponse(CargoMountPointStatusMessage(
                 carrierGUID,
-                PlanetSideGUID(0),
-                PlanetSideGUID(0),
+                Default.GUID0,
+                Default.GUID0,
                 cargoGUID,
                 mountPoint,
                 CargoStatus.Empty,
@@ -325,8 +325,8 @@ object CarrierBehavior {
             cargoDriverGUID,
             SendResponse(CargoMountPointStatusMessage(
                 carrierGUID,
-                PlanetSideGUID(0),
-                PlanetSideGUID(0),
+                Default.GUID0,
+                Default.GUID0,
                 cargoGUID,
                 mountPoint,
                 CargoStatus.Empty,
@@ -554,7 +554,7 @@ object CarrierBehavior {
         carrierGUID,
         cargoGUID,
         cargoGUID,
-        PlanetSideGUID(0),
+        Default.GUID0,
         mountPoint,
         CargoStatus.Occupied,
         orientation

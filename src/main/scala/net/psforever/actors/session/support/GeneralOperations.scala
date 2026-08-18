@@ -260,7 +260,7 @@ class GeneralOperations(
     continent.zipLinePaths.find(x => x.PathId == pathId) match {
       case Some(path) if path.IsTeleporter =>
         val endPoint = path.ZipLinePoints.last
-        sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, pathId, pos))
+        sendResponse(ZipLineMessage(Default.GUID0, forwards, 0, pathId, pos))
         //todo: send to zone to show teleport animation to all clients
         sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, (player.Orientation.z + player.FacingYawUpper) % 360f, None)))
         GeneralOperations.ZiplineBehavior.Teleporter
@@ -964,7 +964,7 @@ class GeneralOperations(
    *             second pair is maximum quantity
    */
   def updateDeployableUIElements(list: List[(Int, Int, Int, Int)]): Unit = {
-    val guid = PlanetSideGUID(0)
+    val guid = Default.GUID0
     list.foreach {
       case (currElem, curr, maxElem, max) =>
         //fields must update in ordered pairs: max, curr
@@ -1372,7 +1372,7 @@ class GeneralOperations(
           sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           terminal.Actor ! Terminal.Request(
             player,
-            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
+            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "router_telepad", 0, Default.GUID0)
           )
         } else if (tdef == GlobalDefinitions.targeting_laser_dispenser) {
           //explicit request
@@ -1380,7 +1380,7 @@ class GeneralOperations(
           sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           terminal.Actor ! Terminal.Request(
             player,
-            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, PlanetSideGUID(0))
+            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, Default.GUID0)
           )
         } else {
           log.info(s"${player.Name} is accessing a ${terminal.Definition.Name}")

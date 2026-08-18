@@ -58,7 +58,7 @@ class CryptoTest extends Specification {
           PacketCoding
             .encodePacket(
               HandleGamePacket(
-                PacketCoding.encodePacket(PlanetsideAttributeMessage(PlanetSideGUID(0), 0, 0L)).require.toByteVector
+                PacketCoding.encodePacket(PlanetsideAttributeMessage(Default.GUID0, 0, 0L)).require.toByteVector
               )
             )
             .require

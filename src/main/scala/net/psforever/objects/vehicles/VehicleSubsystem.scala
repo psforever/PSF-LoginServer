@@ -3,7 +3,7 @@ package net.psforever.objects.vehicles
 
 import enumeratum.values.{IntEnum, IntEnumEntry}
 import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Vehicle}
+import net.psforever.objects.{Default, GlobalDefinitions, PlanetSideGameObject, Vehicle}
 import net.psforever.objects.equipment.{Equipment, JammableUnit}
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.packets.{ComponentDamageField, ComponentDamageMessage, GenericObjectActionMessage}
@@ -155,7 +155,7 @@ trait VehicleWeaponStatus
   override def getMessageTargetId(vehicle: Vehicle): PlanetSideGUID = {
     getMessageTarget(vehicle) match {
       case Some(e) => e.GUID
-      case None    => PlanetSideGUID(0)
+      case None    => Default.GUID0
     }
   }
 

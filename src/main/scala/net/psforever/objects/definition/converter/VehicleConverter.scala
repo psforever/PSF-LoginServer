@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.{Default, PlanetSideGameObject, Vehicle}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{DriveState, PlanetSideGUID, VehicleFormat}
+import net.psforever.types.{DriveState, VehicleFormat}
 import net.psforever.zones.Zones
 
 import scala.util.{Failure, Success, Try}
@@ -23,7 +23,7 @@ abstract class BasicVehicleConverter extends ObjectCreateConverter[Vehicle] {
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-          CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = obj.OwnerGuid.getOrElse(PlanetSideGUID(0))),
+          CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = obj.OwnerGuid.getOrElse(Default.GUID0)),
           boostMaxHealth = boosted,
           health,
           unk4 = false,

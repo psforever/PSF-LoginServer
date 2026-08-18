@@ -611,7 +611,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           projectile.Orientation,
           sequence_num=0,
           end=true,
-          hit_target_guid=PlanetSideGUID(0)
+          hit_target_guid=Default.GUID0
         )
       )
       sendResponse(ObjectDeleteMessage(projectileGuid, unk1=2))

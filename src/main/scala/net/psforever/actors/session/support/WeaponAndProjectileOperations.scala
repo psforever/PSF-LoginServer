@@ -30,7 +30,7 @@ import net.psforever.packet.game.packets.{AIDamage, AvatarGrenadeStateMessage, C
 import net.psforever.services.base.CachedEnvelope
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ReloadTool, SendResponse, WeaponDryFire}
-import net.psforever.types.{ChatMessageType, PlanetSideEmpire, ValidPlanetSideGUID, Vector3}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 
 import scala.collection.mutable
@@ -390,7 +390,7 @@ class WeaponAndProjectileOperations(
         player.Zone.LocalEvents ! MessageEnvelope(
           s"${player.Zone.id}",
           PlanetSideGUID(-1),
-          SendResponse(TriggerEffectMessage(ValidPlanetSideGUID(0), strikeType, None, Some(TriggeredEffectLocation(orbitalStrikePos.get, Vector3(0, 0, 90)))))
+          SendResponse(TriggerEffectMessage(Default.GUID0, strikeType, None, Some(TriggeredEffectLocation(orbitalStrikePos.get, Vector3(0, 0, 90)))))
         )
         player.Zone.LocalEvents ! MessageEnvelope(
           s"$playerFaction",

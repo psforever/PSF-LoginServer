@@ -66,7 +66,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
       response match {
         /* these messages will never be queued for later */
         case SquadResponse.ListSquadFavorite(line, task) =>
-          sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), line, SquadAction.ListSquadFavorite(task)))
+          sendResponse(SquadDefinitionActionMessage(Default.GUID0, line, SquadAction.ListSquadFavorite(task)))
 
         case SquadResponse.InitList(infos) =>
           sendResponse(packets.ReplicationStreamMessage(infos))
@@ -301,8 +301,8 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
               sendResponse(PlanetsideAttributeMessage(playerGuid, 34, 4294967295L)) //unknown, perhaps unrelated?
               avatarActor ! AvatarActor.SetLookingForSquad(false)
               //a finalization? what does this do?
-              sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
-              ops.squad_guid = PlanetSideGUID(0)
+              sendResponse(SquadDefinitionActionMessage(Default.GUID0, 0, SquadAction.Unknown(18)))
+              ops.squad_guid = Default.GUID0
               ops.squad_supplement_id = 0
               ops.squadUpdateCounter = 0
               ops.updateSquad = ops.NoSquadUpdates

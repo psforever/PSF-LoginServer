@@ -113,7 +113,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
 
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
-    ShieldGeneratorControl.DestructionAwareness(gen, PlanetSideGUID(0))
+    ShieldGeneratorControl.DestructionAwareness(gen, Default.GUID0)
   }
 
   /*

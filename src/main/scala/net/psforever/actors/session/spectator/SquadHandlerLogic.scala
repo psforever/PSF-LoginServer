@@ -171,7 +171,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
               sendResponse(PlanetsideAttributeMessage(playerGuid, 34, 4294967295L)) //unknown, perhaps unrelated?
               avatarActor ! AvatarActor.SetLookingForSquad(false)
               //a finalization? what does this do?
-              sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
+              sendResponse(SquadDefinitionActionMessage(Default.GUID0, 0, SquadAction.Unknown(18)))
               ops.squad_supplement_id = 0
               ops.squadUpdateCounter = 0
               ops.updateSquad = ops.NoSquadUpdates
