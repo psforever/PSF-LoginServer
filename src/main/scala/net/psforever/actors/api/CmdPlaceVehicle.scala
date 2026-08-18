@@ -22,8 +22,12 @@ import scala.concurrent.Future
   *
   *   - `vehicle:<name>` -- an ordinary vehicle, mobile, sitting on the ground;
   *   - `ams`            -- an AMS already in its deployed state, so it is immediately a spawn point;
-  *   - `router`         -- a Router already deployed, optionally with its telepad placed by a second
-  *                         click, which is the pair a Router is useless without.
+  *   - `router`         -- a Router already deployed. A second click's coordinates may be supplied
+  *                         as `telepadX`/`telepadY` and are accepted and echoed in the response, but
+  *                         KNOWN GAP: nothing here yet constructs the matching `TelepadDeployable` or
+  *                         links it via `TelepadLike.InitializeTelepadDeployable`, so the Router is
+  *                         placed with no working telepad -- it is not yet the "useless without one"
+  *                         pair the second click implies. Wiring that up is the next step here.
   *
   * Height and attitude are DERIVED, not supplied. The caller clicks a point on a 2D map, so it knows
   * only x and y; the ground height comes from the same terrain resource the orbital strike samples, and
