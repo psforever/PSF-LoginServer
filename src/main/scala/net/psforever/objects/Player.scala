@@ -635,6 +635,30 @@ object Player {
 
   case object Revive
 
+  /**
+    * Apply administrator-set GM / spectator permissions to this player's live session.
+    *
+    * Sent from outside a session (the admin API), which can reach a `Player` through its zone but has
+    * no handle on the owning `AvatarActor`; the player's own control actor does, and forwards it.
+    */
+  final case class SetModePermissions(canSpectate: Boolean, canGm: Boolean)
+
+  /**
+    * Force this player to recall to their faction's sanctuary, as if they had typed `/recall`.
+    *
+    * Relayed the same way as `SetModePermissions`, and for the same reason: only the session can
+    * perform a zone transfer, and the admin API cannot reach it directly.
+    */
+  final case class ForceRecall()
+
+  /**
+    * Force this player to a specific zone and position, as if a CSR had typed `/zone`.
+    *
+    * @param zoneId   the zone's internal name (`z8`, `home2`, ...), NOT its display alias
+    * @param position where in that zone to arrive -- normally one of the zone's warp gates
+    */
+  final case class ForceZone(zoneId: String, position: Vector3)
+
   def apply(core: Avatar): Player = {
     new Player(core)
   }
