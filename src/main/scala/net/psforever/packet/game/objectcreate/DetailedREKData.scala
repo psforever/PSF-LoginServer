@@ -25,7 +25,7 @@ object DetailedREKData extends Marshallable[DetailedREKData] {
   private val base: ToolPatternData = ToolPatternData(u1 = 2, u2 = 0, u3 = true, u4 = false, u5 = None, u6 = false)
 
   implicit val codec: Codec[DetailedREKData] = (
-    ("data" | CommonFieldData.codec(extra = true)) ::
+    ("data" | CommonFieldData.codec_extra) ::
       ToolPatternData.codec ::
       ("unk" | uint8) ::
       uint(bits = 7)
