@@ -44,7 +44,7 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   private var testToResetToDefaultFireMode: Boolean = false
 
-  AutomaticOperation = true
+  //AutomaticOperation = true
 
   override def postStop(): Unit = {
     super.postStop()
