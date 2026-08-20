@@ -258,7 +258,15 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
                   at = System.currentTimeMillis(),
                   kind = AdminHttpService.EventKinds.PortalDesignation,
                   zone = detail.getOrElse("zone", ""),
-                  base = detail.getOrElse("building", detail.getOrElse("assignments", "continent")),
+                  // Prefer the facility name the command resolved for us. The request only carries a
+                  // local id, which is meaningless in a log a person reads; a whole-continent or bulk
+                  // designation has no single facility, so it says so rather than reporting a count.
+                  base = r match {
+                    case CommandGoodResponse(_, d) if d.contains("building_name") => d("building_name").toString
+                    case _ if action == "zone.faction"    => "(whole continent)"
+                    case _ if action == "zone.buildings"  => s"(${detail.getOrElse("assignments", "?")} facilities)"
+                    case _                                => s"building ${detail.getOrElse("building", "?")}"
+                  },
                   actor = admin.getOrElse("unknown"),
                   from = -1,
                   to = AdminHttpService.factionId(detail.getOrElse("faction", "")),

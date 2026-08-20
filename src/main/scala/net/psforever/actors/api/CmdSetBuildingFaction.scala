@@ -87,6 +87,10 @@ class CmdSetBuildingFaction(args: Array[String], services: Map[String, ActorRef]
               val data = Map[String, Any]()
               data("zone_id")  = zone.id
               data("local_id") = localId
+              // The facility's own name, so a caller does not have to resolve a local id back to
+              // something a person recognises. The interstellar log reads this to record which
+              // facility was designated rather than a bare number.
+              data("building_name") = building.Name
               data("faction")  = faction.toString
               context.parent ! CommandGoodResponse(
                 s"set $zoneId building $localId to ${faction.toString}\n",
