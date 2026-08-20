@@ -309,6 +309,57 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
       }
     }
 
+  /**
+    * Complete a request from a database read.
+    *
+    * Portal reads are plain queries with no world-state effect, so they take this path rather than the
+    * command-actor bridge: there is nothing to serialise through an actor, and nothing to audit. A
+    * failed query answers 503 rather than 500 -- the database being unreachable is the login server
+    * being degraded, not the caller having asked for something wrong.
+    */
+  private def queryRoute(query: => Future[Any]): Route =
+    onComplete(query) {
+      case Success(rows) =>
+        // json4s serialises a bare `None` as nothing at all, which is an empty body rather than JSON.
+        // A route that looks up one row and finds none has to answer `null` for the portal to be able
+        // to tell "absent" from "the server broke".
+        val body = rows match {
+          case None  => "null"
+          case other => write(other)
+        }
+        complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`application/json`, body)))
+      case Failure(e) =>
+        log.error(e)("portal query failed")
+        complete(
+          HttpResponse(
+            StatusCodes.ServiceUnavailable,
+            entity = HttpEntity(ContentTypes.`application/json`, write(Map("message" -> "database unavailable", "error" -> true)))
+          )
+        )
+    }
+
+  /** A 200 carrying a JSON body. */
+  private def jsonOk(value: Any): HttpResponse =
+    HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`application/json`, write(value)))
+
+  /**
+    * A page of rows plus the total the pager needs.
+    *
+    * The portal computes page numbers from this; it is deliberately not told a page number back,
+    * since it is the side that decided which page to ask for.
+    */
+  private def paged(items: Seq[Any], total: Seq[PortalQueries.Count]): Map[String, Any] =
+    Map("items" -> items, "item_count" -> total.headOption.map(_.count).getOrElse(0L))
+
+  /**
+    * An upper bound on page size.
+    *
+    * A caller supplies `limit`, and a caller that asks for a million rows should not get them: this is
+    * a listing API, and no page the portal renders is larger than this. Also guards against a negative
+    * limit, which Postgres rejects outright.
+    */
+  private def capped(limit: Int): Int = math.max(1, math.min(limit, 500))
+
   /** Pull a string field out of a JSON request body. */
   private def field(body: String, name: String): Option[String] =
     scala.util.Try((parse(body) \ name).extract[String]).toOption
@@ -323,6 +374,220 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
     // Combat snapshot for one continent: soldiers, vehicles (with seat/cargo), and deployables.
     path("zones" / Segment / "combat") { zoneId =>
       get(runRoute(classOf[CmdCombatSnapshot], Array(zoneId)))
+    },
+    // Who holds each capturable facility, from the live zones rather than the database.
+    path("zones" / "control") {
+      get(runRoute(classOf[CmdListBuildingControl], Array.empty))
+    },
+    path("zones" / Segment / "control") { zoneId =>
+      get(runRoute(classOf[CmdListBuildingControl], Array(zoneId)))
+    },
+
+    // --- portal reads --------------------------------------------------------------------------
+    // Projections of the database for the web portal, which no longer has a PostgreSQL pool of its
+    // own. Grouped under /portal so they read as a distinct surface from the world-admin routes, and
+    // served without auditing: they change nothing, and every open admin page polls them.
+    path("portal" / "accounts") {
+      get {
+        parameters("offset".as[Int].withDefault(0), "limit".as[Int].withDefault(25),
+                   "sort".withDefault("created"), "order".withDefault("desc"),
+                   "filter".withDefault("all")) { (offset, limit, sort, order, filter) =>
+          queryRoute(
+            for {
+              items <- PortalQueries.accountsWithLastLogin(offset, capped(limit), sort, order == "asc", filter)
+              total <- PortalQueries.accountCount(filter)
+            } yield paged(items, total)
+          )
+        }
+      }
+    },
+    path("portal" / "accounts" / IntNumber) { id =>
+      get(queryRoute(PortalQueries.account(id).map(_.headOption)))
+    },
+    path("portal" / "accounts" / IntNumber / "logins") { id =>
+      get {
+        parameters("offset".as[Int].withDefault(0), "limit".as[Int].withDefault(25)) { (offset, limit) =>
+          queryRoute(
+            for {
+              items <- PortalQueries.accountLogins(id, offset, capped(limit))
+              total <- PortalQueries.loginCount(id)
+            } yield paged(items, total)
+          )
+        }
+      }
+    },
+    path("portal" / "accounts" / IntNumber / "characters") { id =>
+      get(queryRoute(PortalQueries.charactersByAccount(id)))
+    },
+    path("portal" / "characters") {
+      get {
+        parameters("offset".as[Int].withDefault(0), "limit".as[Int].withDefault(25)) { (offset, limit) =>
+          queryRoute(
+            for {
+              items <- PortalQueries.characters(offset, capped(limit))
+              total <- PortalQueries.characterCount()
+            } yield paged(items, total)
+          )
+        }
+      }
+    },
+    path("portal" / "characters" / "by-name" / Segment) { name =>
+      get(queryRoute(PortalQueries.characterByName(name).map(_.headOption)))
+    },
+    path("portal" / "characters" / "batch" / IntNumber) { batch =>
+      get {
+        parameters("sort".withDefault("id"), "order".withDefault("asc")) { (sort, order) =>
+          queryRoute(PortalQueries.characterBatch(batch, sort, order == "asc"))
+        }
+      }
+    },
+    path("portal" / "roles") {
+      get {
+        parameters("offset".as[Int].withDefault(0), "limit".as[Int].withDefault(25)) { (offset, limit) =>
+          queryRoute(
+            for {
+              items <- PortalQueries.roles(offset, capped(limit))
+              total <- PortalQueries.roleCount()
+            } yield paged(items, total)
+          )
+        }
+      }
+    },
+    path("portal" / "avatars" / IntNumber) { id =>
+      get(queryRoute(PortalQueries.avatar(id).map(_.headOption)))
+    },
+    path("portal" / "avatars" / IntNumber / "owner") { id =>
+      get(queryRoute(PortalQueries.avatarOwner(id).map(_.headOption)))
+    },
+    path("portal" / "avatars" / IntNumber / "weapon-stats") { id =>
+      get(queryRoute(PortalQueries.weaponStats(id)))
+    },
+    path("portal" / "avatars" / IntNumber / "kd-by-date") { id =>
+      get(queryRoute(PortalQueries.avatarKdByDate(id)))
+    },
+    path("portal" / "avatars" / IntNumber / "locker") { id =>
+      get(queryRoute(PortalQueries.lockerItems(id).map(_.headOption)))
+    },
+    path("portal" / "avatars" / IntNumber / "loadouts") { id =>
+      get(queryRoute(PortalQueries.loadouts(id)))
+    },
+    path("portal" / "avatars" / IntNumber / "vehicle-loadouts") { id =>
+      get(queryRoute(PortalQueries.vehicleLoadouts(id)))
+    },
+    path("portal" / "leaderboard" / "top-kills") {
+      get(queryRoute(PortalQueries.topKills()))
+    },
+    path("portal" / "leaderboard" / "top-kills-by-date") {
+      get(queryRoute(PortalQueries.topKillsByDate()))
+    },
+    path("portal" / "leaderboard" / "top-outfits") {
+      get(queryRoute(PortalQueries.topOutfits()))
+    },
+    path("portal" / "outfits" / IntNumber) { id =>
+      get(queryRoute(PortalQueries.outfit(id).map(_.headOption)))
+    },
+    path("portal" / "outfits" / IntNumber / "members") { id =>
+      get(queryRoute(PortalQueries.outfitMembers(id)))
+    },
+    // Accounts and characters matching one term. Both halves are returned separately rather than
+    // merged: they carry different fields, and the portal labels and sorts them itself.
+    path("portal" / "search") {
+      get {
+        parameters("q", "offset".as[Int].withDefault(0), "limit".as[Int].withDefault(25)) { (term, offset, limit) =>
+          // `%` is stripped rather than escaped -- a caller has no business steering the LIKE pattern,
+          // and a term shorter than three characters matches too much to be worth running.
+          val cleaned = term.replace("%", "")
+          if (cleaned.length < 3) {
+            complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`application/json`,
+              write(Map("accounts" -> List.empty[String], "characters" -> List.empty[String])))))
+          } else {
+            val pattern = s"%${cleaned.toUpperCase}%"
+            queryRoute(
+              for {
+                accounts   <- PortalQueries.searchAccounts(pattern, offset, capped(limit))
+                characters <- PortalQueries.searchCharacters(pattern, offset, capped(limit))
+              } yield Map("accounts" -> accounts, "characters" -> characters)
+            )
+          }
+        }
+      }
+    },
+    path("portal" / "stats") {
+      get(
+        queryRoute(
+          for {
+            accounts   <- PortalQueries.accountTotal()
+            characters <- PortalQueries.characterCount()
+            newest     <- PortalQueries.newestCharacter()
+          } yield Map(
+            "accounts"       -> accounts.headOption.map(_.count).getOrElse(0L),
+            "characters"     -> characters.headOption.map(_.count).getOrElse(0L),
+            "last_character" -> newest.headOption
+          )
+        )
+      )
+    },
+    // Registration. 409 rather than 400 for a taken username: the request was well-formed, the
+    // world just already contains that name.
+    path("portal" / "accounts") {
+      post(entity(as[String]) { body =>
+        (field(body, "username"), field(body, "password")) match {
+          case (Some(username), Some(password)) =>
+            onComplete(PortalQueries.createAccount(username, password)) {
+              case Success(Some(id)) => complete(jsonOk(Map("id" -> id)))
+              case Success(None) =>
+                complete(HttpResponse(StatusCodes.Conflict, entity = HttpEntity(ContentTypes.`application/json`,
+                  write(Map("message" -> "username already taken", "error" -> true)))))
+              case Failure(e) =>
+                log.error(e)("account creation failed")
+                complete(HttpResponse(StatusCodes.ServiceUnavailable, entity = HttpEntity(
+                  ContentTypes.`application/json`, write(Map("message" -> "database unavailable", "error" -> true)))))
+            }
+          case _ => complete(StatusCodes.BadRequest, """{"message":"username and password required","error":true}""")
+        }
+      })
+    },
+    // Password check. The answer is only ever an account id or a refusal -- no hash crosses the wire,
+    // and the refusal is identical whether the account is missing, wrong-password, or banned.
+    path("portal" / "login") {
+      post(entity(as[String]) { body =>
+        (field(body, "username"), field(body, "password")) match {
+          case (Some(username), Some(password)) =>
+            onComplete(PortalQueries.validateAccount(username, password)) {
+              case Success(Some(id)) => complete(jsonOk(Map("account_id" -> id)))
+              case Success(None) =>
+                complete(HttpResponse(StatusCodes.Unauthorized, entity = HttpEntity(
+                  ContentTypes.`application/json`, write(Map("message" -> "invalid credentials", "error" -> true)))))
+              case Failure(e) =>
+                log.error(e)("login check failed")
+                complete(HttpResponse(StatusCodes.ServiceUnavailable, entity = HttpEntity(
+                  ContentTypes.`application/json`, write(Map("message" -> "database unavailable", "error" -> true)))))
+            }
+          case _ => complete(StatusCodes.BadRequest, """{"message":"username and password required","error":true}""")
+        }
+      })
+    },
+    // The portal's Express session store. Opaque here on purpose: the session body is whatever
+    // express-session serialised, and this end only keeps it and expires it.
+    path("portal" / "sessions" / "reap") {
+      post(queryRoute(PortalQueries.sessionReap().map(n => Map("removed" -> n))))
+    },
+    path("portal" / "sessions" / Segment) { sid =>
+      get(queryRoute(PortalQueries.sessionGet(sid).map(_.headOption.map(_.sess)))) ~
+        put(entity(as[String]) { body =>
+          (field(body, "sess"), scala.util.Try((parse(body) \ "expires").extract[Long]).toOption) match {
+            case (Some(sess), Some(expires)) =>
+              queryRoute(PortalQueries.sessionSet(sid, sess, expires).map(n => Map("stored" -> n)))
+            case _ => complete(StatusCodes.BadRequest, """{"message":"sess and expires required","error":true}""")
+          }
+        }) ~
+        patch(entity(as[String]) { body =>
+          scala.util.Try((parse(body) \ "expires").extract[Long]).toOption match {
+            case Some(expires) => queryRoute(PortalQueries.sessionTouch(sid, expires).map(n => Map("touched" -> n)))
+            case None => complete(StatusCodes.BadRequest, """{"message":"expires required","error":true}""")
+          }
+        }) ~
+        delete(queryRoute(PortalQueries.sessionDestroy(sid).map(n => Map("removed" -> n))))
     },
     // Base captures and failed captures, newest first; same seven-day in-memory retention.
     path("interstellar-log") {
