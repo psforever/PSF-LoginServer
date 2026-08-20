@@ -109,6 +109,12 @@ case class WorldConfig(
     serverType: ServerType
 )
 
+/**
+  * Where the PSF-Server HTTP API listens.
+  *
+  * Named `admin` because that is the configuration key, which predates the HTTP API and is set by
+  * existing deployments (`CONFIG_FORCE_admin_bind`); renaming it would break them for no gain.
+  */
 case class AdminConfig(
     port: Int,
     bind: String

@@ -82,7 +82,7 @@ class CmdPlayerTransfer(args: Array[String], services: Map[String, ActorRef]) ex
             )
           } else {
             player.Actor ! Player.ForceRecall()
-            log.info(s"${player.Name} recalled to $sanctuary by the admin API")
+            log.info(s"${player.Name} recalled to $sanctuary by the PSF-Server HTTP API")
             respond(player.Name, sanctuary, zone.id, gate = None)
           }
           context.stop(self)
@@ -100,7 +100,7 @@ class CmdPlayerTransfer(args: Array[String], services: Map[String, ActorRef]) ex
               )
             case Some(pos) =>
               player.Actor ! Player.ForceZone(poi.zonename, pos)
-              log.info(s"${player.Name} sent to ${poi.zonename} by the admin API")
+              log.info(s"${player.Name} sent to ${poi.zonename} by the PSF-Server HTTP API")
               respond(player.Name, poi.zonename, zone.id, gateId)
           }
           context.stop(self)

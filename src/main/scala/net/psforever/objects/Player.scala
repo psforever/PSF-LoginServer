@@ -638,7 +638,7 @@ object Player {
   /**
     * Apply administrator-set GM / spectator permissions to this player's live session.
     *
-    * Sent from outside a session (the admin API), which can reach a `Player` through its zone but has
+    * Sent from outside a session (the PSF-Server HTTP API), which can reach a `Player` through its zone but has
     * no handle on the owning `AvatarActor`; the player's own control actor does, and forwards it.
     */
   final case class SetModePermissions(canSpectate: Boolean, canGm: Boolean)
@@ -647,7 +647,7 @@ object Player {
     * Force this player to recall to their faction's sanctuary, as if they had typed `/recall`.
     *
     * Relayed the same way as `SetModePermissions`, and for the same reason: only the session can
-    * perform a zone transfer, and the admin API cannot reach it directly.
+    * perform a zone transfer, and the PSF-Server HTTP API cannot reach it directly.
     */
   final case class ForceRecall()
 

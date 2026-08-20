@@ -12,6 +12,7 @@ COPY --from=builder /PSF-LoginServer/server/target/pack/ /usr/local
 
 EXPOSE 51000/udp
 EXPOSE 51001/udp
+# The PSF-Server HTTP API.
 EXPOSE 51002/tcp
 
 CMD ["psforever-server"]

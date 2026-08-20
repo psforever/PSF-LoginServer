@@ -18,7 +18,7 @@ import scala.collection.mutable.Map
   * Act on one live entity in a continent from the administration portal's Combat view.
   *
   * Everything here is something an administrator could already do from inside the game with customer
-  * service commands; the point of routing it through the admin API is that it does not require an
+  * service commands; the point of routing it through the PSF-Server HTTP API is that it does not require an
   * administrator to be logged in and standing next to the thing.
   *
   * "Deconstruct" and "destroy" are deliberately different. Deconstruction is the clean nanite recall
@@ -189,7 +189,7 @@ class CmdEntityAction(args: Array[String], services: Map[String, ActorRef]) exte
     data("guid") = guid
     data("action") = action
     extra.foreach { case (k, v) => data(k) = v }
-    log.warn(s"admin API: $message (${zoneId}/$guid)")
+    log.warn(s"PSF-Server HTTP API: $message (${zoneId}/$guid)")
     context.parent ! CommandGoodResponse(s"$message\n", data)
     context.stop(self)
   }

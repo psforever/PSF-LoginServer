@@ -126,7 +126,7 @@ class CmdPlaceVehicle(args: Array[String], services: Map[String, ActorRef]) exte
     TaskWorkflow.execute(TaskBundleFor(zone, vehicle))
 
     val what = if (deployed) s"deployed ${definition.Name}" else definition.Name
-    log.info(s"admin API placed a ${faction.get} $what in ${zone.id} at $position")
+    log.info(s"PSF-Server HTTP API placed a ${faction.get} $what in ${zone.id} at $position")
 
     val data = Map[String, Any]()
     data("zone_id") = zone.id
@@ -178,7 +178,7 @@ class CmdPlaceVehicle(args: Array[String], services: Map[String, ActorRef]) exte
         private val localVehicle = vehicle
         private val localZone    = zone
 
-        override def description(): String = s"admin API places a ${localVehicle.Definition.Name}"
+        override def description(): String = s"PSF-Server HTTP API places a ${localVehicle.Definition.Name}"
 
         def action(): Future[Any] = {
           localZone.Transport ! Zone.Vehicle.Spawn(localVehicle)

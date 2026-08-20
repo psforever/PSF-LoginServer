@@ -98,7 +98,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       .orElse(containerBehavior)
       .orElse(environmentBehavior)
       .orElse {
-        // The admin API can find a live Player through its zone, but not the typed AvatarActor that
+        // The PSF-Server HTTP API can find a live Player through its zone, but not the typed AvatarActor that
         // owns the avatar record; this control actor holds that reference, so it relays.
         case Player.SetModePermissions(canSpectate, canGm) =>
           avatarActor ! AvatarActor.SetModePermissions(canSpectate, canGm)

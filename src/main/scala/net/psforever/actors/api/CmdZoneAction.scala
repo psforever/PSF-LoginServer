@@ -127,7 +127,7 @@ class CmdZoneAction(args: Array[String], services: Map[String, ActorRef]) extend
     data("zone_id") = zoneId
     data("action") = action
     extra.foreach { case (k, v) => data(k) = v }
-    log.warn(s"admin API: $message")
+    log.warn(s"PSF-Server HTTP API: $message")
     context.parent ! CommandGoodResponse(s"$message\n", data)
     context.stop(self)
   }

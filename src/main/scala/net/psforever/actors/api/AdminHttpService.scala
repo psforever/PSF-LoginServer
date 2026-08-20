@@ -14,11 +14,11 @@ import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
 /**
-  * The admin API, served over HTTP (Akka HTTP) instead of the old raw-TCP PSAdmin protocol.
+  * The PSF-Server HTTP API, served over Akka HTTP in place of the old raw-TCP PSAdmin protocol.
   *
   * This actor owns the HTTP binding for its whole lifetime -- it is the "server hosted in an actor":
   * bound on preStart, unbound on stop, and any bind failure terminates the system exactly as the old
-  * TCP listener did. Each route reuses the existing PSAdmin command actors (list/set/randomize) via a
+  * TCP listener did. Each route reuses the existing command actors (list/set/randomize) via a
   * per-request bridge, so all the domain + database logic is shared, not reimplemented. Responses are
   * the SAME json4s-serialised `data` maps the TCP protocol returned, so clients only change transport.
   *
@@ -80,7 +80,7 @@ object AdminHttpService {
     * The recognised interstellar event kinds. `HackHoldCompleted` / `HackHoldFailed` are a plain
     * hack-and-hold resolving; the `Llu*` kinds cover a facility that spawns a Lattice Logic Unit; the
     * `LluBypass*` kinds are a hack against a NEUTRAL base, where no LLU is required. `PortalDesignation`
-    * is ownership set from this admin API rather than won in the field.
+    * is ownership set through this API rather than won in the field.
     */
   object EventKinds {
     /** A hack begun at a control console; carries the player, and flips nothing on its own. */
@@ -106,7 +106,7 @@ object AdminHttpService {
 
   private[api] def installSink(f: InterstellarEvent => Unit): Unit = sink = Some(f)
 
-  /** Report an interstellar event. Does nothing if the admin API is not running. */
+  /** Report an interstellar event. Does nothing if the PSF-Server HTTP API is not running. */
   def report(event: InterstellarEvent): Unit = sink.foreach(_(event))
 
   /** Audited actions that change base ownership, and so are also interstellar events. */
@@ -195,7 +195,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
   override def receive: Receive = {
     case b: Http.ServerBinding =>
       binding = Some(b)
-      log.info(s"Admin HTTP API listening on ${b.localAddress}")
+      log.info(s"PSF-Server HTTP API listening on ${b.localAddress}")
     case default =>
       log.error(s"Unexpected message $default")
   }
@@ -203,7 +203,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
   // --- command bridging --------------------------------------------------------------------------
 
   /**
-    * Run one of the existing PSAdmin command actors and capture its reply. The command actor replies
+    * Run one of the existing command actors and capture its reply. The command actor replies
     * to its parent, so spawning it under a short-lived [[CommandBridge]] (whose parent-role receives
     * that reply) captures the response without changing any command.
     */
@@ -800,7 +800,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
 }
 
 /**
-  * Runs a single PSAdmin command actor and fulfils `promise` with its response. The command actor
+  * Runs a single command actor and fulfils `promise` with its response. The command actor
   * replies to its parent (this bridge); a timeout guards against a command that never answers (e.g.
   * the interstellar cluster service is unavailable).
   */

@@ -226,7 +226,7 @@ class HackCaptureActor extends Actor {
   }
 
   /**
-    * Report a base capture outcome to the admin API's interstellar log.
+    * Report a base capture outcome to the PSF-Server HTTP API's interstellar log.
     *
     * `player` is only meaningful for acts performed at a control console (starting or clearing a
     * hack) or carrying an LLU; a plain ownership change has no single responsible player, so it is
