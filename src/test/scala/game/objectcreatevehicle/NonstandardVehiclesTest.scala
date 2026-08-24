@@ -115,6 +115,7 @@ class NonstandardVehiclesTest extends Specification {
       val msg = ObjectCreateMessage(ObjectClass.orbital_shuttle, PlanetSideGUID(1127), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
+      msg.streamLength mustEqual 195
       pkt mustEqual string_orbital_shuttle_2
     }
   }

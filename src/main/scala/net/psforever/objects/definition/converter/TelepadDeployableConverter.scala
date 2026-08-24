@@ -14,7 +14,7 @@ object TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployabl
 
       case Some(router) =>
         if (obj.Health > 0) {
-          val ownerGuid = obj.OwnerGuid.getOrElse(Default.GUID0)
+          val ownerGuid = GetOwner(obj)
           Success(
             DroppedItemData(
               PlacementData(obj.Position, obj.Orientation),

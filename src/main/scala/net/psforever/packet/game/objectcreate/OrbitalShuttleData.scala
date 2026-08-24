@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{DriveState, PlanetSideEmpire, VehicleFormat}
 import scodec.codecs._
 import scodec.{Attempt, Codec, Err}
 import shapeless.{::, HNil}
@@ -36,12 +36,17 @@ import shapeless.{::, HNil}
   */
 final case class OrbitalShuttleData(faction: PlanetSideEmpire.Value, pos: Option[PlacementData] = None)
     extends ConstructorData {
-  override def bitsize: Long =
-    if (pos.isDefined) {
-      54L + pos.get.bitsize
-    } else {
-      46L
+  override def bitsize: Long = {
+    pos match {
+      case Some(position) =>
+        //common field data (normal) = 23
+        //vehicle base = 23
+        //vehicle variant = 8
+        54L + position.bitsize
+      case None =>
+        46L
     }
+  }
 }
 
 object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
@@ -56,7 +61,7 @@ object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
   def apply(pos: PlacementData, faction: PlanetSideEmpire.Value): OrbitalShuttleData =
     OrbitalShuttleData(faction, Some(pos))
 
-  implicit val codec: Codec[OrbitalShuttleData] = (
+ implicit val codec: Codec[OrbitalShuttleData] = (
     ("faction" | PlanetSideEmpire.codec) ::
       uintL(bits = 25) ::
       uint8L :: //255
@@ -78,32 +83,31 @@ object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
   )
 
   /**
-    * Used when the shuttle is not attached to something else.
-    */
-  val codec_pos: Codec[OrbitalShuttleData] = (
-    ("pos" | PlacementData.codec) ::
-      ("faction" | PlanetSideEmpire.codec) ::
-      uintL(22) ::
-      uint8L :: //255
-      uintL(3) ::
-      uint8L :: //255
-      uintL(6) ::
-      uint4L :: //15
-      bool
-  ).exmap[OrbitalShuttleData](
+   * Used when the shuttle is not attached to something else.
+   */
+  val codec_pos: Codec[OrbitalShuttleData] = VehicleData.codec(VehicleFormat.Variant).exmap[OrbitalShuttleData](
     {
-      case pos :: faction :: 0 :: 255 :: 0 :: 255 :: 0 :: 15 :: false :: HNil =>
-        Attempt.successful(OrbitalShuttleData(faction, Some(pos)))
-
-      case data =>
-        Attempt.failure(Err(s"invalid shuttle data format - $data"))
+      case VehicleData(pos, data, _, _, _, _, _, _, _, _, _, _) =>
+        Attempt.successful(OrbitalShuttleData(data.faction, Some(pos)))
     },
     {
       case OrbitalShuttleData(faction, Some(pos)) =>
-        Attempt.successful(pos :: faction :: 0 :: 255 :: 0 :: 255 :: 0 :: 15 :: false :: HNil)
-
-      case OrbitalShuttleData(_, None) =>
-        Attempt.failure(Err("invalid shuttle data format (needs position)"))
+        Attempt.successful(
+          VehicleData(
+            pos,
+            CommonFieldData(faction), //pass as expecting codec, parse as codec_extra
+            boostMaxHealth = false,
+            health = 255,
+            unk4 = false,
+            no_mount_points = false,
+            DriveState.State127,
+            unk5 = true,
+            unk6 = false,
+            cloak = false,
+            Some(VariantVehicleData(15)),
+            None
+          )(VehicleFormat.Variant)
+        )
     }
   )
 }

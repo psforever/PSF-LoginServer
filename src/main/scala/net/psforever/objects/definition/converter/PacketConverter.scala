@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.{Default, OwnableByPlayer, PlanetSideGameObject}
 import net.psforever.packet.game.objectcreate.ConstructorData
+import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Try}
 
@@ -36,5 +37,9 @@ trait ObjectCreateConverter[A <: PlanetSideGameObject] extends PacketConverter {
     */
   def DetailedConstructorData(obj: A): Try[ConstructorData] = {
     Failure(new NoSuchMethodException(s"method not defined for object $obj"))
+  }
+
+  def GetOwner(obj: OwnableByPlayer): PlanetSideGUID = {
+    obj.OwnerGuid.getOrElse(Default.GUID0)
   }
 }

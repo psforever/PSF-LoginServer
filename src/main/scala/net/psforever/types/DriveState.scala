@@ -20,6 +20,7 @@ object DriveState extends Enumeration {
   val UNK6        = Value(6)   // to have decoding tool working
   val State7      = Value(7)   //unknown; not encountered on a vehicle that can deploy; functions like Mobile
   val State127    = Value(127) //unknown
+  val State255    = Value(255) //special orbital shuttle decode
 
   //the following values should never be encoded
   val Kneeling    = Value(-1) //flag bfr kneeling state

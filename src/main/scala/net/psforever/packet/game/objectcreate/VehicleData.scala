@@ -81,10 +81,8 @@ final case class VehicleData(
     //factor guard bool values into the base size, not its corresponding optional field
     val posSize: Long  = pos.bitsize
     val dataSize: Long = data.bitsize
-    val extraBitsSize: Long = if (vehicle_format_data.isDefined) { vehicle_format_data.get.bitsize }
-    else { 0L }
-    val inventorySize = if (inventory.isDefined) { inventory.get.bitsize }
-    else { 0L }
+    val extraBitsSize: Long = vehicle_format_data.map(_.bitsize).getOrElse(0L)
+    val inventorySize: Long = inventory.map(_.bitsize).getOrElse(0L)
     23L + posSize + dataSize + extraBitsSize + inventorySize
   }
 }

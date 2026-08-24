@@ -43,8 +43,7 @@ class VariantVehiclesTest extends Specification {
             case WeaponData(
                   CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                   fmode,
-                  ammo,
-                  _
+                  ammo
                 ) =>
               wfaction mustEqual PlanetSideEmpire.NEUTRAL
               wbops mustEqual false

@@ -14,10 +14,7 @@ object TRAPConverter extends ObjectCreateConverter[TrapDeployable] {
         TRAPData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, jammered = false, None, obj.OwnerGuid match {
-                case Some(owner) => owner
-                case None        => Default.GUID0
-              })
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, None, jammered = false, None, GetOwner(obj))
           ),
           health
         )

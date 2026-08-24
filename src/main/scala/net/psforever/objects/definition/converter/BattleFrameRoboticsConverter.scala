@@ -19,10 +19,7 @@ object BattleFrameRoboticsConverter extends ObjectCreateConverter[Vehicle] {
       Success(
         BattleFrameRoboticsData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-          CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = obj.Jammed, v5 = None, obj.OwnerGuid match {
-              case Some(owner) => owner
-              case None => Default.GUID0
-            }),
+          CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = obj.Jammed, v5 = None, GetOwner(obj)),
           health,
           StatConverter.Health(obj.Shields, obj.MaxShields),
           unk1 = 0,

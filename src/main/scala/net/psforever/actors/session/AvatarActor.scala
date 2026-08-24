@@ -1833,7 +1833,7 @@ class AvatarActor(
                     case Some(existingShortcut: AvatarShortcut) =>
                       //redraw redundant shortcut slot with existing shortcut
                       sessionActor ! SessionActor.SendResponse(
-                        packets.CreateShortcutMessage(
+                        CreateShortcutMessage(
                           session.get.player.GUID,
                           slot + 1,
                           Some(AvatarShortcut.convert(existingShortcut))

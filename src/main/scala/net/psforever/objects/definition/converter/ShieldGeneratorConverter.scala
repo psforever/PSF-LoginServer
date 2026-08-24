@@ -14,10 +14,7 @@ object ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDep
         AegisShieldGeneratorData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation),
-            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = obj.Jammed, None, obj.OwnerGuid match {
-                case Some(owner) => owner
-                case None        => Default.GUID0
-              })
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = obj.Jammed, None, GetOwner(obj))
           ),
           health
         )

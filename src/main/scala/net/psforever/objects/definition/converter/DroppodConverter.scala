@@ -17,10 +17,7 @@ object DroppodConverter extends ObjectCreateConverter[Vehicle] {
         DroppodData(
           CommonFieldDataWithPlacement(
             PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, v2 = None, jammered = obj.Jammed, v5 = None, obj.OwnerGuid match {
-                case Some(owner) => owner
-                case None        => Default.GUID0
-              })
+            CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, v2 = None, jammered = obj.Jammed, v5 = None, GetOwner(obj))
           ),
           health,
           burn = false,

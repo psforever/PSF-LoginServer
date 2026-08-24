@@ -9,9 +9,7 @@ import net.psforever.zones.Zones
 
 import scala.util.{Failure, Success, Try}
 
-object VehicleConverter extends BasicVehicleConverter()
-
-abstract class BasicVehicleConverter extends ObjectCreateConverter[Vehicle] {
+trait BasicVehicleConverter extends ObjectCreateConverter[Vehicle] {
   override def DetailedConstructorData(obj: Vehicle): Try[VehicleData] =
     Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData (nothing should)"))
 
@@ -23,7 +21,7 @@ abstract class BasicVehicleConverter extends ObjectCreateConverter[Vehicle] {
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-          CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = obj.OwnerGuid.getOrElse(Default.GUID0)),
+          CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = GetOwner(obj)),
           boostMaxHealth = boosted,
           health,
           unk4 = false,
@@ -98,3 +96,5 @@ abstract class BasicVehicleConverter extends ObjectCreateConverter[Vehicle] {
 
   protected def SpecificFormatData(obj: Vehicle): Option[SpecificVehicleData] = None
 }
+
+object VehicleConverter extends BasicVehicleConverter

@@ -57,7 +57,7 @@ class BattleframeRoboticsTest extends Specification {
                   list.head.guid mustEqual PlanetSideGUID(335)
                   list.head.parentSlot mustEqual 2
                   list.head.obj match {
-                    case WeaponData(wdata, fire_mode, ammo, unk) =>
+                    case WeaponData(wdata, fire_mode, ammo) =>
                       wdata match {
                         case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, wguid) =>
                           faction mustEqual PlanetSideEmpire.NEUTRAL
@@ -75,7 +75,6 @@ class BattleframeRoboticsTest extends Specification {
                       ammo.head.objectClass mustEqual ObjectClass.aphelion_ppa_ammo
                       ammo.head.guid mustEqual PlanetSideGUID(340)
                       ammo.head.parentSlot mustEqual 0
-                      unk mustEqual false
                     case _ =>
                       ko
                   }
@@ -84,7 +83,7 @@ class BattleframeRoboticsTest extends Specification {
                   list(1).guid mustEqual PlanetSideGUID(411)
                   list(1).parentSlot mustEqual 3
                   list(1).obj match {
-                    case WeaponData(wdata, fire_mode, ammo, unk) =>
+                    case WeaponData(wdata, fire_mode, ammo) =>
                       wdata match {
                         case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, wguid) =>
                           faction mustEqual PlanetSideEmpire.NEUTRAL
@@ -102,7 +101,6 @@ class BattleframeRoboticsTest extends Specification {
                       ammo.head.objectClass mustEqual ObjectClass.aphelion_ppa_ammo
                       ammo.head.guid mustEqual PlanetSideGUID(342)
                       ammo.head.parentSlot mustEqual 0
-                      unk mustEqual false
                     case _ =>
                       ko
                   }
@@ -111,7 +109,7 @@ class BattleframeRoboticsTest extends Specification {
                   list(2).guid mustEqual PlanetSideGUID(409)
                   list(2).parentSlot mustEqual 4
                   list(2).obj match {
-                    case WeaponData(wdata, fire_mode, ammo, unk) =>
+                    case WeaponData(wdata, fire_mode, ammo) =>
                       wdata match {
                         case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, wguid) =>
                           faction mustEqual PlanetSideEmpire.NEUTRAL
@@ -129,7 +127,6 @@ class BattleframeRoboticsTest extends Specification {
                       ammo.head.objectClass mustEqual ObjectClass.aphelion_plasma_rocket_ammo
                       ammo.head.guid mustEqual PlanetSideGUID(359)
                       ammo.head.parentSlot mustEqual 0
-                      unk mustEqual false
                     case _ =>
                       ko
                   }
@@ -188,7 +185,7 @@ class BattleframeRoboticsTest extends Specification {
                   list.head.guid mustEqual PlanetSideGUID(385)
                   list.head.parentSlot mustEqual 1
                   list.head.obj match {
-                    case WeaponData(wdata, fire_mode, ammo, unk) =>
+                    case WeaponData(wdata, fire_mode, ammo) =>
                       wdata match {
                         case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, wguid) =>
                           faction mustEqual PlanetSideEmpire.NEUTRAL
@@ -206,7 +203,6 @@ class BattleframeRoboticsTest extends Specification {
                       ammo.head.objectClass mustEqual ObjectClass.aphelion_ppa_ammo
                       ammo.head.guid mustEqual PlanetSideGUID(371)
                       ammo.head.parentSlot mustEqual 0
-                      unk mustEqual false
                     case _ =>
                       ko
                   }
@@ -215,7 +211,7 @@ class BattleframeRoboticsTest extends Specification {
                   list(1).guid mustEqual PlanetSideGUID(336)
                   list(1).parentSlot mustEqual 2
                   list(1).obj match {
-                    case WeaponData(wdata, fire_mode, ammo, unk) =>
+                    case WeaponData(wdata, fire_mode, ammo) =>
                       wdata match {
                         case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, wguid) =>
                           faction mustEqual PlanetSideEmpire.NEUTRAL
@@ -233,7 +229,6 @@ class BattleframeRoboticsTest extends Specification {
                       ammo.head.objectClass mustEqual ObjectClass.aphelion_ppa_ammo
                       ammo.head.guid mustEqual PlanetSideGUID(376)
                       ammo.head.parentSlot mustEqual 0
-                      unk mustEqual false
                     case _ =>
                       ko
                   }

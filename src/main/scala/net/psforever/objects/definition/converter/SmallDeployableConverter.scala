@@ -16,10 +16,7 @@ object SmallDeployableConverter extends ObjectCreateConverter[Deployable] {
         CommonFieldData(obj.Faction, bops = false, alternate = obj.Destroyed, v1 = false, None, jammered = obj match {
             case o: JammableUnit => o.Jammed
             case _               => false
-          }, None, obj.OwnerGuid match {
-            case Some(owner) => owner
-            case None        => Default.GUID0
-          })
+          }, None, GetOwner(obj))
       ))
     )
   }

@@ -9,8 +9,7 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.{BoomerDeployable, Default, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
-import net.psforever.packet.game.packets.{ChatMsg, GenericObjectActionMessage, GenericObjectStateMsg, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
-import net.psforever.packet.game.packets
+import net.psforever.packet.game.packets.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.local.LocalAction
@@ -52,7 +51,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
 
     case LocalAction.DeployableMapIcon(behavior, deployInfo)
       if TestFilter(NotSameTargetTest) =>
-      sendResponse(packets.DeployableObjectsInfoMessage(behavior, deployInfo))
+      sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
 
     case LocalAction.DeployableUIFor(item) =>
       sessionLogic.general.updateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
@@ -147,13 +146,13 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
     case LocalAction.HackClear(targetGuid, unk1, unk2) =>
-      sendResponse(packets.HackMessage(HackState1.Unk0, targetGuid, FilterGuid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
+      sendResponse(HackMessage(HackState1.Unk0, targetGuid, FilterGuid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
 
     case LocalAction.HackObject(targetGuid, unk1, unk2) =>
       sessionLogic.general.hackObject(targetGuid, unk1, unk2)
 
     case LocalAction.GenericActionMessage(actionNumber) =>
-      sendResponse(packets.GenericActionMessage(actionNumber))
+      sendResponse(GenericActionMessage(actionNumber))
 
     case LocalAction.LluSpawned(llu) =>
       // Create LLU on client
@@ -210,10 +209,10 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       sessionLogic.general.toggleTeleportSystem(router, systemPlan)
 
     case LocalAction.TriggerEffectAtLocation(targetGuid, effect, effectInfo, triggerLocation) =>
-      sendResponse(packets.TriggerEffectMessage(targetGuid, effect, effectInfo, triggerLocation))
+      sendResponse(TriggerEffectMessage(targetGuid, effect, effectInfo, triggerLocation))
 
     case LocalAction.TriggerSound(sound, pos, unk, volume) =>
-      sendResponse(packets.TriggerSoundMessage(sound, pos, unk, volume))
+      sendResponse(TriggerSoundMessage(sound, pos, unk, volume))
 
     case LocalAction.UpdateForceDomeStatus(buildingGuid, true) =>
       sendResponse(GenericObjectActionMessage(buildingGuid, 11))

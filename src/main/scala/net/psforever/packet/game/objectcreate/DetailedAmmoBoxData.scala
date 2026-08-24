@@ -49,10 +49,10 @@ object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
   implicit val codec: Codec[DetailedAmmoBoxData] = (
     ("data" | CommonFieldData.codec) ::
       ("magazine" | uint16L) ::
-      bool
+      ignore(size = 1)
   ).exmap[DetailedAmmoBoxData](
     {
-      case data :: mag :: false :: HNil =>
+      case data :: mag :: _ :: HNil =>
         Attempt.successful(DetailedAmmoBoxData(data, mag))
 
       case data =>
@@ -60,7 +60,7 @@ object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
     },
     {
       case DetailedAmmoBoxData(data, mag) =>
-        Attempt.successful(data :: mag :: false :: HNil)
+        Attempt.successful(data :: mag :: () :: HNil)
     }
   )
 }

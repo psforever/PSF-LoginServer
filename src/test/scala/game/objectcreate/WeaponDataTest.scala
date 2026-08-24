@@ -29,8 +29,7 @@ class WeaponDataTest extends Specification {
             case WeaponData(
                   CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                   fmode,
-                  List(ammo),
-                  _
+                  List(ammo)
                 ) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
@@ -80,8 +79,7 @@ class WeaponDataTest extends Specification {
             case WeaponData(
                   CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                   fmode,
-                  ammo,
-                  _
+                  ammo
                 ) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
@@ -155,8 +153,7 @@ class WeaponDataTest extends Specification {
             case WeaponData(
                   CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                   fmode,
-                  List(ammo),
-                  _
+                  List(ammo)
                 ) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
@@ -212,8 +209,7 @@ class WeaponDataTest extends Specification {
             case WeaponData(
                   CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                   fmode,
-                  ammo,
-                  _
+                  ammo
                 ) =>
               wfaction mustEqual PlanetSideEmpire.NC
               wbops mustEqual false

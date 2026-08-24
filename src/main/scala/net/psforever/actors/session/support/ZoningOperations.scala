@@ -22,8 +22,7 @@ import net.psforever.objects.vehicles.control.{CargoBehavior, CarrierBehavior}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.packets.GenericAction.FirstPersonViewWithEffect
-import net.psforever.packet.game.packets.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, Friend, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TrainingZoneMessage, TriggeredSound, WeatherMessage}
-import net.psforever.packet.game.packets
+import net.psforever.packet.game.packets.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, CreateShortcutMessage, DeployableInfo, Friend, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TrainingZoneMessage, TriggeredSound, WeatherMessage}
 import net.psforever.services.avatar.support.{CorpseEnvelope, ReleaseEnvelope}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse}
@@ -1971,7 +1970,7 @@ class ZoningOperations(
         if (health != obj.DefaultHealth) {
           sendResponse(PlanetsideAttributeMessage(guid, 0, health))
         }
-        sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, packets.DeployableInfo(
+        sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, DeployableInfo(
           guid,
           Deployable.Icon(obj.Definition.Item),
           obj.Position,
@@ -3566,7 +3565,7 @@ class ZoningOperations(
           //ignored list (no one ever online)
           FriendsResponse.packetSequence(
             MemberAction.InitializeIgnoreList,
-            avatar.people.ignored.map { f => packets.Friend(f.name) }
+            avatar.people.ignored.map { f => Friend(f.name) }
           )
         ).foreach {
         sendResponse
@@ -3586,7 +3585,7 @@ class ZoningOperations(
       shortcuts
         .zipWithIndex
         .collect { case (Some(shortcut), index) =>
-          sendResponse(packets.CreateShortcutMessage(
+          sendResponse(CreateShortcutMessage(
             guid,
             index + 1,
             Some(AvatarShortcut.convert(shortcut))
@@ -3617,7 +3616,7 @@ class ZoningOperations(
      * @param obj a `Deployable` object
      */
     def RedrawDeployableIcons(obj: Deployable): Unit = {
-      val deployInfo = packets.DeployableInfo(
+      val deployInfo = DeployableInfo(
         obj.GUID,
         Deployable.Icon(obj.Definition.Item),
         obj.Position,
