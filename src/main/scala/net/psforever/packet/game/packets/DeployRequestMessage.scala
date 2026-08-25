@@ -31,7 +31,7 @@ import scodec.codecs._
 final case class DeployRequestMessage(
     player_guid: PlanetSideGUID,
     vehicle_guid: PlanetSideGUID,
-    deploy_state: DriveState.Value,
+    deploy_state: DriveState,
     unk2: Int,
     unk3: Boolean,
     pos: Vector3
@@ -42,7 +42,7 @@ final case class DeployRequestMessage(
 }
 
 object DeployRequestMessage extends Marshallable[DeployRequestMessage] {
-  private val driveState3u = uint(3).xmap[DriveState.Value](
+  private val driveState3u = uint(3).xmap[DriveState](
     n => DriveState(n),
     n => {
       if (n.id > 7) {

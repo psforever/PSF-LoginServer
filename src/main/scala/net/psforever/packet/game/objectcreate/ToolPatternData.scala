@@ -19,10 +19,7 @@ case class ToolPatternData(
    * @return the number of bits necessary to measure an object of this class
    */
   override def bitsize: Long = {
-    val u5Size: Long = u5 match {
-      case Some(_) => 10L + u5.foldLeft(0L)(_ + _.bitsize)
-      case None => 0L
-    }
+    val u5Size: Long = u5.map(_.bitsize).getOrElse(0L)
     ToolPatternData.bitsize + u5Size
   }
 }
@@ -30,7 +27,7 @@ case class ToolPatternData(
 object ToolPatternData {
   final val bitsize: Long = 28L
 
-  implicit val codec: Codec[ToolPatternData] = (
+  val codec: Codec[ToolPatternData] = (
     ("u1" | uint8) ::
       ("u2" | uint16) ::
       ("u3" | bool) ::

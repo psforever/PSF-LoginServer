@@ -21,7 +21,7 @@ class AmsControl(vehicle: Vehicle)
     * Announce that this AMS is ready to accept troop deployment.
     * @param state the deployment state
     */
-  override def specificResponseToDeployment(state: DriveState.Value): Unit = {
+  override def specificResponseToDeployment(state: DriveState): Unit = {
     state match {
       case DriveState.Deployed =>
         val zone  = vehicle.Zone
@@ -41,7 +41,7 @@ class AmsControl(vehicle: Vehicle)
     * This AMS is now off the grid.
     * @param state the deployment state
     */
-  override def specificResponseToUndeployment(state: DriveState.Value): Unit = {
+  override def specificResponseToUndeployment(state: DriveState): Unit = {
     state match {
       case DriveState.Undeploying =>
         val zone  = vehicle.Zone

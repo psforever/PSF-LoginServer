@@ -26,11 +26,11 @@ trait VehicleFunctions extends CommonSessionInterfacingFunctionality {
 
   /* messages */
 
-  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit
+  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit
 
-  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit
+  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit
 
-  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState.Value, reason: String): Unit
+  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState, reason: String): Unit
 }
 
 class VehicleOperations(

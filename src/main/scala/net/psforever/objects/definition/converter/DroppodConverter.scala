@@ -20,8 +20,7 @@ object DroppodConverter extends ObjectCreateConverter[Vehicle] {
             CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, v2 = None, jammered = obj.Jammed, v5 = None, GetOwner(obj))
           ),
           health,
-          burn = false,
-          unk = false
+          burn = false
         )
       )
     } else { //destroyed
@@ -32,8 +31,7 @@ object DroppodConverter extends ObjectCreateConverter[Vehicle] {
             CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, Default.GUID0)
           ),
           0,
-          burn = false,
-          unk = false
+          burn = false
         )
       )
     }

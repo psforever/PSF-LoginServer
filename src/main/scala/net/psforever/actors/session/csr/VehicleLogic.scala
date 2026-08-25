@@ -272,19 +272,19 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
 
   /* messages */
 
-  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
+  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit = {
     if (!Deployment.CheckForDeployState(state)) {
       CanNotChangeDeployment(obj, state, "incorrect deploy state")
     }
   }
 
-  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
+  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit = {
     if (!Deployment.CheckForUndeployState(state)) {
       CanNotChangeDeployment(obj, state, "incorrect undeploy state")
     }
   }
 
-  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState.Value, reason: String): Unit = {
+  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState, reason: String): Unit = {
     CanNotChangeDeployment(obj, state, reason)
   }
 
@@ -298,7 +298,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
    */
   private def CanNotChangeDeployment(
                                       obj: PlanetSideServerObject with Deployment,
-                                      state: DriveState.Value,
+                                      state: DriveState,
                                       reason: String
                                     ): Unit = {
     if (obj.DeploymentState != DriveState.Mobile) {

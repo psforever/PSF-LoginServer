@@ -3,7 +3,6 @@ package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
 import net.psforever.types.{DriveState, PlanetSideEmpire, VehicleFormat}
-import scodec.codecs._
 import scodec.{Attempt, Codec, Err}
 import shapeless.{::, HNil}
 
@@ -37,10 +36,10 @@ import shapeless.{::, HNil}
 final case class OrbitalShuttleData(faction: PlanetSideEmpire.Value, pos: Option[PlacementData] = None)
     extends ConstructorData {
   override def bitsize: Long = {
+    //common field data (normal) = 23
+    //vehicle pattern data = 23
     pos match {
       case Some(position) =>
-        //common field data (normal) = 23
-        //vehicle base = 23
         //vehicle variant = 8
         54L + position.bitsize
       case None =>
@@ -50,7 +49,6 @@ final case class OrbitalShuttleData(faction: PlanetSideEmpire.Value, pos: Option
 }
 
 object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
-
   /**
     * Overloaded constructor that requires defining a position.
     * The fields are arranged in the standard order for most vehicles (position data first).
@@ -61,53 +59,66 @@ object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
   def apply(pos: PlacementData, faction: PlanetSideEmpire.Value): OrbitalShuttleData =
     OrbitalShuttleData(faction, Some(pos))
 
- implicit val codec: Codec[OrbitalShuttleData] = (
-    ("faction" | PlanetSideEmpire.codec) ::
-      uintL(bits = 25) ::
-      uint8L :: //255
-      uintL(bits = 5) ::
-      uint4L :: //7
-      uint2L
-  ).exmap[OrbitalShuttleData](
+  private val base: VehiclePatternData = VehiclePatternData(
+    boostMaxHealth = false,
+    health = 31,
+    unk4 = true,
+    no_mount_points = true,
+    DriveState.OrbitalShuttleDocked,
+    unk5 = true,
+    unk6 = true,
+    cloak = false,
+    None,
+    None
+  )(VehicleFormat.Normal)
+
+  private val base_variant: VehiclePatternData = VehiclePatternData(
+    boostMaxHealth = false,
+    health = 255,
+    unk4 = false,
+    no_mount_points = false,
+    DriveState.State127,
+    unk5 = true,
+    unk6 = false,
+    cloak = false,
+    Some(VariantVehicleData(15)),
+    None
+  )(VehicleFormat.Variant)
+
+  private val base_vehicle_codec: Codec[VehiclePatternData] = VehiclePatternData.codec(velocity_data = false, VehicleFormat.Normal)
+
+  implicit val codec: Codec[OrbitalShuttleData] = (
+    CommonFieldData.codec ::
+      base_vehicle_codec
+    ).exmap[OrbitalShuttleData](
     {
-      case faction :: 0 :: 255 :: 0 :: 7 :: 0 :: HNil =>
-        Attempt.successful(OrbitalShuttleData(faction))
+      case data :: _ :: HNil =>
+        Attempt.successful(OrbitalShuttleData(data.faction))
 
       case data =>
         Attempt.failure(Err(s"invalid shuttle data format - $data"))
     },
     {
       case OrbitalShuttleData(faction, _) =>
-        Attempt.successful(faction :: 0 :: 255 :: 0 :: 7 :: 0 :: HNil)
+        Attempt.successful(CommonFieldData(faction) :: base :: HNil)
     }
   )
 
   /**
    * Used when the shuttle is not attached to something else.
    */
-  val codec_pos: Codec[OrbitalShuttleData] = VehicleData.codec(VehicleFormat.Variant).exmap[OrbitalShuttleData](
+  val codec_pos: Codec[OrbitalShuttleData] = (
+    CommonFieldDataWithPlacement.codec >>:~ { data =>
+      VehiclePatternData.codec(data.pos.vel.isDefined, VehicleFormat.Variant).hlist
+    }
+    ).exmap[OrbitalShuttleData](
     {
-      case VehicleData(pos, data, _, _, _, _, _, _, _, _, _, _) =>
-        Attempt.successful(OrbitalShuttleData(data.faction, Some(pos)))
+      case cdata :: _:: HNil =>
+        Attempt.successful(OrbitalShuttleData(cdata.data.faction, Some(cdata.pos)))
     },
     {
       case OrbitalShuttleData(faction, Some(pos)) =>
-        Attempt.successful(
-          VehicleData(
-            pos,
-            CommonFieldData(faction), //pass as expecting codec, parse as codec_extra
-            boostMaxHealth = false,
-            health = 255,
-            unk4 = false,
-            no_mount_points = false,
-            DriveState.State127,
-            unk5 = true,
-            unk6 = false,
-            cloak = false,
-            Some(VariantVehicleData(15)),
-            None
-          )(VehicleFormat.Variant)
-        )
+        Attempt.successful(CommonFieldDataWithPlacement(pos, CommonFieldData(faction)) :: base_variant :: HNil)
     }
   )
 }

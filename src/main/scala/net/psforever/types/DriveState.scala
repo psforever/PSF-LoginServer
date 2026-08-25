@@ -1,4 +1,7 @@
+// Copyright (c) 2026 PSForever
 package net.psforever.types
+
+import enumeratum.values.{IntEnum, IntEnumEntry}
 
 /**
   * An `Enumeration` of the mobility states of vehicles.<br>
@@ -8,21 +11,46 @@ package net.psforever.types
   * For any deployment state other than the defined ones, the vehicle assumes it is in one of the transitional states.
   * If the target vehicle has no deployment behavior, a non-`Mobile` value will not affect it.
   */
-object DriveState extends Enumeration {
-  type Type = Value
+sealed abstract class DriveState(val value: Int) extends IntEnumEntry {
+  /**
+   * This is how classic value enumeration works.
+   * @see `scala.Enumeration`
+   * @return value this state was created with
+   */
+  def id: Int = value
+}
 
-  val Mobile      = Value(0)
-  val Undeploying = Value(1)
-  val Deploying   = Value(2)
-  val Deployed    = Value(3)
-  val UNK4        = Value(4)   // to have decoding tool working
-  val UNK5        = Value(5)   // to have decoding tool working
-  val UNK6        = Value(6)   // to have decoding tool working
-  val State7      = Value(7)   //unknown; not encountered on a vehicle that can deploy; functions like Mobile
-  val State127    = Value(127) //unknown
-  val State255    = Value(255) //special orbital shuttle decode
+object DriveState extends IntEnum[DriveState] {
+  def apply(number: Int): DriveState = {
+    values.find(_.value == number).getOrElse {
+      throw new NoSuchElementException(s"DriveState does not define a $number state")
+    }
+  }
 
-  //the following values should never be encoded
-  val Kneeling    = Value(-1) //flag bfr kneeling state
-  val AutoPilot   = Value(-2) //when emerging from spawn pad, or being kicked from a ferry, during server guidance
+  def values: IndexedSeq[DriveState] = findValues
+
+  /* standard mobility to deployment spectrum */
+  case object Mobile extends DriveState(value = 0)
+  case object Undeploying extends DriveState(value = 1)
+  case object Deploying extends DriveState(value = 2)
+  case object Deployed extends DriveState(value = 3)
+  /** unknown; not encountered on a vehicle that can deploy; functions like Mobile */
+  case object State7 extends DriveState(value = 7)
+  /** falling(?) droppod state */
+  case object Droppod extends DriveState(value = 30)
+  /** unknown but used */
+  case object State127 extends DriveState(value = 127)
+  /** undocked orbital shuttle state */
+  case object OrbitalShuttleDocked extends DriveState(value = 129)
+
+  /* defined to keep decoding tool working */
+  case object UNK4 extends DriveState(value = 4)
+  case object UNK5 extends DriveState(value = 5)
+  case object UNK6 extends DriveState(value = 6)
+
+  /* values denied encoding */
+  /** flag bfr kneeling state */
+  case object Kneeling extends DriveState(value = -1) //flag bfr kneeling state
+  /** when emerging from spawn pad, or being kicked from a ferry, during server guidance */
+  case object AutoPilot extends DriveState(value = -2)
 }

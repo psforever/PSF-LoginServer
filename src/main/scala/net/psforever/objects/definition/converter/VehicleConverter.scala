@@ -15,8 +15,7 @@ trait BasicVehicleConverter extends ObjectCreateConverter[Vehicle] {
 
   override def ConstructorData(obj: Vehicle): Try[VehicleData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
-    val boosted = if (Zones.zones.find(_.Number == 3).exists(_.benefitRecipient == obj.Faction)) true
-                  else false
+    val boosted = Zones.zones.find(_.Number == 3).exists(_.benefitRecipient == obj.Faction)
     if (health > 0) { //active
       Success(
         VehicleData(
@@ -85,7 +84,7 @@ trait BasicVehicleConverter extends ObjectCreateConverter[Vehicle] {
       .toList
   }
 
-  private def SterilizedDeploymentState(obj: Vehicle): DriveState.Value = {
+  private def SterilizedDeploymentState(obj: Vehicle): DriveState = {
     obj.DeploymentState match {
       case state if state.id < 0 => DriveState.Mobile
       case state => state

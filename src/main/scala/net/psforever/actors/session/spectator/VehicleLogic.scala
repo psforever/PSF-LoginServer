@@ -54,11 +54,11 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
 
   /* messages */
 
-  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = { /* intentionally blank */ }
+  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit = { /* intentionally blank */ }
 
-  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = { /* intentionally blank */ }
+  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit = { /* intentionally blank */ }
 
-  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState.Value, reason: String): Unit = {
+  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState, reason: String): Unit = {
     if (Deployment.CheckForDeployState(state) && !Deployment.AngleCheck(obj)) {
       CanNotChangeDeployment(obj, state, reason = "ground too steep")
     } else {
@@ -76,7 +76,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
    */
   private def CanNotChangeDeployment(
                                       obj: PlanetSideServerObject with Deployment,
-                                      state: DriveState.Value,
+                                      state: DriveState,
                                       reason: String
                                     ): Unit = {
     val mobileShift: String = if (obj.DeploymentState != DriveState.Mobile) {

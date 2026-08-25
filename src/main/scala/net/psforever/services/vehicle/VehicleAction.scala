@@ -16,7 +16,7 @@ object VehicleAction {
 
   final case class DeployRequest(
                                   object_guid: PlanetSideGUID,
-                                  state: DriveState.Value,
+                                  state: DriveState,
                                   unk1: Int,
                                   unk2: Boolean,
                                   pos: Vector3

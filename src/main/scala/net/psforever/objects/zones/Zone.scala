@@ -1300,9 +1300,9 @@ object Zone {
 
     final case class CanNotDespawn(zone: Zone, vehicle: Vehicle, reason: String)
 
-    final case class TryDeploymentChange(vehicle: Vehicle, toDeployState: DriveState.Value)
+    final case class TryDeploymentChange(vehicle: Vehicle, toDeployState: DriveState)
 
-    final case class CanNotDeploy(zone: Zone, vehicle: Vehicle, toDeployState: DriveState.Value, reason: String)
+    final case class CanNotDeploy(zone: Zone, vehicle: Vehicle, toDeployState: DriveState, reason: String)
   }
 
   object HotSpot {
