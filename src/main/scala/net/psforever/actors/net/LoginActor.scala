@@ -1,10 +1,10 @@
 package net.psforever.actors.net
 
-import akka.actor.typed.receptionist.Receptionist
+import org.apache.pekko.actor.typed.receptionist.Receptionist
 
 import java.net.{InetAddress, InetSocketAddress}
-import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import com.github.t3hnar.bcrypt._
 import net.psforever.objects.{Account, Default}
 import net.psforever.packet.PlanetSideGamePacket

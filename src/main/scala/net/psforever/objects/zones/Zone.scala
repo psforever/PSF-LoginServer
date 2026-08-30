@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
-import akka.actor.{ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects._
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.{Deployable, DeployableCategory}
@@ -30,7 +30,7 @@ import scalax.collection.GraphPredef._
 import scalax.collection.GraphEdge._
 
 import scala.util.Try
-import akka.actor.typed
+import org.apache.pekko.actor.typed
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.{BuildingActor, ShootingRangeTargetSpawnerActor, ZoneActor}
 import net.psforever.actors.zone.building.WarpGateLogic

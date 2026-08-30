@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.Props
+import org.apache.pekko.actor.Props
 import base.ActorTest
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.affinity.FactionAffinity

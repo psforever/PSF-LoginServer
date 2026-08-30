@@ -1,9 +1,9 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.net
 
-import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.io.Udp
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
+import org.apache.pekko.io.Udp
 import net.psforever.util.Config
 
 import java.util.concurrent.ThreadLocalRandom

@@ -1,9 +1,9 @@
 // Copyright (c) 2020 PSForever
 package actor.objects
 
-import akka.actor.Props
-import akka.testkit.TestProbe
-import base.FreedContextActorTest
+import org.apache.pekko.actor.Props
+import org.apache.pekko.testkit.TestProbe
+import actor.base.FreedContextActorTest
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.avatar.Avatar

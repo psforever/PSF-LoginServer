@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
+import org.apache.pekko.actor.{ActorContext, ActorRef, Cancellable, typed}
 import net.psforever.objects.avatar.AvatarBot
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.doors.Door

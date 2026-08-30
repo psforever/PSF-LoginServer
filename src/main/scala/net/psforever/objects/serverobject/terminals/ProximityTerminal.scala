@@ -40,7 +40,7 @@ object ProximityTerminal {
     new ProximityTerminal(tdef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
 
   /**
     * Instantiate an configure a `Terminal` object
@@ -50,7 +50,7 @@ object ProximityTerminal {
     * @return the `Terminal` object
     */
   def Constructor(tdef: ProximityTerminalDefinition)(id: Int, context: ActorContext): Terminal = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     val obj = ProximityTerminal(tdef)
     obj.Actor = context.actorOf(Props(classOf[ProximityTerminalControl], obj), s"${tdef.Name}_$id")
     obj
@@ -65,7 +65,7 @@ object ProximityTerminal {
     * @return the `Terminal` object
     */
   def Constructor(pos: Vector3, tdef: ProximityTerminalDefinition)(id: Int, context: ActorContext): Terminal = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     val obj = ProximityTerminal(tdef)
     obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[ProximityTerminalControl], obj), s"${tdef.Name}_$id")
@@ -79,7 +79,7 @@ object ProximityTerminal {
     * @param context hook to the local `Actor` system
     */
   def Setup(obj: Amenity, context: ActorContext): Unit = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     if (obj.Actor == Default.Actor) {
       obj.Actor =
         context.actorOf(Props(classOf[ProximityTerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))

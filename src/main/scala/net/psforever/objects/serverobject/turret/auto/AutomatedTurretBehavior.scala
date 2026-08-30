@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.objects.serverobject.turret.auto
 
-import akka.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import net.psforever.objects.avatar.scoring.EquipmentStat
 import net.psforever.objects.equipment.EffectTarget
 import net.psforever.objects.serverobject.PlanetSideServerObject

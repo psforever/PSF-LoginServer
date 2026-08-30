@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.objects.guid.NumberPoolHub
 
 /**

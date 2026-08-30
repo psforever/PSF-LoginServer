@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import akka.actor.{ActorRef, Cancellable}
+import org.apache.pekko.actor.{ActorRef, Cancellable}
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.interaction.DamageResult

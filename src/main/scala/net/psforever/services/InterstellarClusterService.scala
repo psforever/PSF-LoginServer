@@ -1,9 +1,9 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.services
 
-import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior, DispatcherSelector, SupervisorStrategy}
+import org.apache.pekko.actor.typed.receptionist.{Receptionist, ServiceKey}
+import org.apache.pekko.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, DispatcherSelector, SupervisorStrategy}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{SpawnPoint, Vehicle}

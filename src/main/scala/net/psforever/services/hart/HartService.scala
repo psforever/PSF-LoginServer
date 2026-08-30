@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.services.hart
 
-import akka.actor.{Actor, ActorRef, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, Props}
 import net.psforever.util.Config
 
 import scala.collection.concurrent.TrieMap

@@ -1,8 +1,8 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vehicles.control
 
-import akka.actor.ActorRef
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects._

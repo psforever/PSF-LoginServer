@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.doors
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.vital.Vitality
 
 class SpawnTubeDoorControl(door: Door)

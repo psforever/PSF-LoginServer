@@ -1,8 +1,8 @@
 // Copyright (c) 2022 PSForever
 package net.psforever.actors.zone.building
 
-import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.Behavior
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.{BuildingActor, BuildingControlDetails, ZoneActor}
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType}

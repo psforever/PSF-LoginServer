@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.objects.serverobject.terminals.implant
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalDefinition}
 import net.psforever.types.Vector3
 
@@ -15,7 +15,7 @@ object ImplantTerminalInterface {
    * @return the `Terminal` object
    */
   def Constructor(pos: Vector3, pdef: TerminalDefinition)(id: Int, context: ActorContext): Terminal = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
 
     val obj = Terminal(pdef)
     obj.Position = pos

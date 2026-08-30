@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.objects.serverobject.terminals.implant
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.hackable.{GenericHackables, Hackable}
 import net.psforever.objects.serverobject.structures.Amenity

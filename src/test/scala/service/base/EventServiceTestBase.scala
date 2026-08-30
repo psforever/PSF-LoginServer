@@ -1,6 +1,6 @@
 package service.base
 
-import akka.actor.{Actor, ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.Default
 import net.psforever.services.base.message.SelfRespondingEvent
 import net.psforever.services.base.{EventServiceSupport, EventSystemStamp, GenericSupportEnvelope}

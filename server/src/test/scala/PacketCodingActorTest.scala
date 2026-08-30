@@ -2,8 +2,8 @@ package net.psforever.pslogin
 /*
 
 import actor.base.ActorTest
-import akka.actor.{ActorRef, Props}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorRef, Props}
+import org.apache.pekko.testkit.TestProbe
 import net.psforever.actors.net.MiddlewareActor
 import net.psforever.objects.avatar.Certification
 import net.psforever.packet.control.{ControlSync, SlottedMetaPacket}

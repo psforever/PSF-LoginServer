@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad.process
 
-import akka.actor.Cancellable
+import org.apache.pekko.actor.Cancellable
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.services.base.envelope.MessageEnvelope

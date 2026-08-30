@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.{ActorContext, ActorRef, typed}
+import org.apache.pekko.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.Vehicle
 import net.psforever.packet.game.ChatMsg

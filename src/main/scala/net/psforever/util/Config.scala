@@ -122,7 +122,10 @@ case class DatabaseConfig(
     database: String,
     sslmode: String
 ) {
-  def toJdbc = s"jdbc:postgresql://$host:$port/$database"
+  // Pass the configured sslmode through to the JDBC (Flyway) connection so it matches the
+  // jasync runtime path; without this the two connections negotiate TLS differently, which
+  // can diverge across PostgreSQL major versions.
+  def toJdbc = s"jdbc:postgresql://$host:$port/$database?sslmode=$sslmode"
 }
 
 case class AntiCheatConfig(

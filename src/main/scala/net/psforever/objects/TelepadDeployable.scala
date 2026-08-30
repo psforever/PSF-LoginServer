@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.{Actor, ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem, TelepadLike}
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject

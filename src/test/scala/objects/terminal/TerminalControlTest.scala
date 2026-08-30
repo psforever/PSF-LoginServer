@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects.terminal
 
-import akka.actor.{ActorSystem, Props}
+import org.apache.pekko.actor.{ActorSystem, Props}
 import base.ActorTest
 import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}

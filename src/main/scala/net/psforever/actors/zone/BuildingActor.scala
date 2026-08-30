@@ -1,9 +1,9 @@
 package net.psforever.actors.zone
 
-import akka.{actor => classic}
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
-import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
+import org.apache.pekko.{actor => classic}
+import org.apache.pekko.actor.typed.receptionist.Receptionist
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.building._
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}

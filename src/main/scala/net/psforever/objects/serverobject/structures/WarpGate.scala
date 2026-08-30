@@ -1,13 +1,13 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{GlobalDefinitions, NtuContainer, SpawnPoint}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types._
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.BuildingActor
 
 class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildingDefinition: WarpGateDefinition)

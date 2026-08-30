@@ -1,7 +1,7 @@
 // Copyright (c) 2019-2022 PSForever
 package net.psforever.services.teamwork
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import org.log4s.Logger
 import scala.concurrent.duration._
 //

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.resourcesilo
 
-import akka.actor.{ActorContext, Props}
+import org.apache.pekko.actor.{ActorContext, Props}
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.{CommonNtuContainer, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.structures.Amenity

@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vehicles.control
 
-import akka.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.sourcing.VehicleSource

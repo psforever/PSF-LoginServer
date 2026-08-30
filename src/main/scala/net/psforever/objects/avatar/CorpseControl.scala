@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.avatar
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.Player
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}

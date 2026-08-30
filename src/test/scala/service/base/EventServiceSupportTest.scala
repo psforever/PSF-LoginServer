@@ -1,8 +1,8 @@
 // Copyright (c) 2026 PSForever
 package service.base
 
-import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorRef, ActorSystem, Props}
+import org.apache.pekko.testkit.TestProbe
 import base.ActorTest
 import net.psforever.services.Service
 import net.psforever.services.base.{EventServiceSupport, GenericEventServiceWithSupport, GenericSupportEnvelopeOnly}

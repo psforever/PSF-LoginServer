@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.services.account
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable, Props}
 import net.psforever.actors.session.AvatarActor
 
 import scala.collection.mutable

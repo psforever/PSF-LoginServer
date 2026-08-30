@@ -1,8 +1,8 @@
 // Copyright (c) 2021 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorRef, Props}
+import org.apache.pekko.testkit.TestProbe
 import base.FreedContextActorTest
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
@@ -22,7 +22,7 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 class OrbitalShuttlePadControlTest extends FreedContextActorTest {
-  import akka.actor.typed.scaladsl.adapter._
+  import org.apache.pekko.actor.typed.scaladsl.adapter._
   val services: ActorRef = ServiceManager.boot(system)
   services ! ServiceManager.Register(GalaxyService(), "galaxy")
   services ! ServiceManager.Register(Props[HartService](), "hart")
@@ -48,7 +48,7 @@ class OrbitalShuttlePadControlTest extends FreedContextActorTest {
     override def Vehicles:List[Vehicle] = { vehicles.toList }
     override def Buildings: Map[Int, Building] = { buildingMap.toMap }
 
-    import akka.actor.typed.scaladsl.adapter._
+    import org.apache.pekko.actor.typed.scaladsl.adapter._
     this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   val building = new Building(

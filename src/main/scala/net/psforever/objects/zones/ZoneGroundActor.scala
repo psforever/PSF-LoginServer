@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.equipment.Equipment
 import net.psforever.services.avatar.support.{DropItemEnvelope, PickupItemEnvelope}

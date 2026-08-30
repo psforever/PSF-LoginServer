@@ -1,6 +1,6 @@
 package net.psforever.objects.zones
 
-import akka.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.types.Vector3

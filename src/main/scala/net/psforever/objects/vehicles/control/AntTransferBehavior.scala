@@ -1,7 +1,7 @@
 package net.psforever.objects.vehicles.control
 
-import akka.actor.{ActorRef, Cancellable}
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.{ActorRef, Cancellable}
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor

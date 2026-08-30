@@ -1,6 +1,6 @@
 package net.psforever.objects.serverobject.painbox
 
-import akka.actor.{ActorContext, Props}
+import org.apache.pekko.actor.{ActorContext, Props}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.types.Vector3
 

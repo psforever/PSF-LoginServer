@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.shuttle
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition}
 import net.psforever.types.PlanetSideGUID
@@ -44,7 +44,7 @@ object OrbitalShuttlePad {
     new OrbitalShuttlePad(spDef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
   import net.psforever.types.Vector3
 
   /**
@@ -60,7 +60,7 @@ object OrbitalShuttlePad {
     id: Int,
     context: ActorContext
   ): OrbitalShuttlePad = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
 
     val obj = OrbitalShuttlePad(pdef)
     obj.Position = pos

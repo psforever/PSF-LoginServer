@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2026 PSForever
 package net.psforever.services.vehicle
 
-import akka.actor.Props
+import org.apache.pekko.actor.Props
 import net.psforever.services.base.{EventSystemStamp, GenericEventServiceWithCacheAndSupport}
 import net.psforever.services.vehicle.support.TurretUpgradeSupport
 

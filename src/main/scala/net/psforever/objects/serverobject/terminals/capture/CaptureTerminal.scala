@@ -30,9 +30,9 @@ object CaptureTerminal {
     new CaptureTerminal(tdef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
   def Constructor(pos: Vector3, tdef: CaptureTerminalDefinition)(id: Int, context: ActorContext): CaptureTerminal = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     val obj = CaptureTerminal(tdef)
     obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[CaptureTerminalControl], obj), s"${tdef.Name}_$id")

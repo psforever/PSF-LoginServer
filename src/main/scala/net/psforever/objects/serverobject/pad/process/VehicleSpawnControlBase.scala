@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad.process
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.zones.Zone
 import org.log4s.Logger

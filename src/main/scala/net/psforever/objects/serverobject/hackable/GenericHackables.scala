@@ -158,7 +158,7 @@ object GenericHackables {
    */
   //TODO add params here depending on which params in HackMessage are important
   def FinishHacking(target: PlanetSideServerObject with Hackable, user: Player, hackValue: Int, hackClearValue: Int)(): Unit = {
-    import akka.pattern.ask
+    import org.apache.pekko.pattern.ask
     import scala.concurrent.duration._
     // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -189,7 +189,7 @@ object GenericHackables {
   }
 
   def FinishVirusAction(target: PlanetSideServerObject with Hackable, user: Player, hackValue: Int, hackClearValue: Int, virus: Long)(): Unit = {
-    import akka.pattern.ask
+    import org.apache.pekko.pattern.ask
     import scala.concurrent.duration._
     import scala.concurrent.ExecutionContext.Implicits.global
     val tplayer = user

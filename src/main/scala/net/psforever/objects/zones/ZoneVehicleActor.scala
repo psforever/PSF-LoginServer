@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.definition.{ObjectDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.deploy.{Deployment, Interference}

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.hackable
 
-import akka.actor.{Actor, ActorRef}
+import org.apache.pekko.actor.{Actor, ActorRef}
 import net.psforever.objects.{PlanetSideGameObject, Player}
 import net.psforever.objects.serverobject.CommonMessages
 

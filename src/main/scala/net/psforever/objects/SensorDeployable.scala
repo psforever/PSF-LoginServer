@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects
 
-import akka.actor.{Actor, ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.definition.DeployableDefinition

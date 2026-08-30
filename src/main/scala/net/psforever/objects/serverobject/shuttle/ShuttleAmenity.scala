@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.shuttle
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition}
 import net.psforever.types.PlanetSideGUID
 

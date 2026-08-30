@@ -2,8 +2,8 @@ package net.psforever.tools.client
 
 import java.net.{DatagramPacket, DatagramSocket, InetSocketAddress}
 import java.security.{SecureRandom, Security}
-import akka.actor.typed.ActorRef
-import akka.io.Udp
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.io.Udp
 import net.psforever.packet.{
   CryptoPacketOpcode,
   PacketCoding,

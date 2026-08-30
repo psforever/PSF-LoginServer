@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.objects.{Players, TurretDeployable}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}

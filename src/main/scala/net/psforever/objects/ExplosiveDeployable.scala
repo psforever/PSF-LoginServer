@@ -1,7 +1,7 @@
 // Copyright (c) 2018 PSForever
 package net.psforever.objects
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallDeployableConverter

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.vehicle.support
 
-import akka.actor.{ActorContext, ActorRef, Cancellable, Props}
+import org.apache.pekko.actor.{ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.{AmmoBox, Default, PlanetSideGameObject, Tool}
 import net.psforever.objects.guid._

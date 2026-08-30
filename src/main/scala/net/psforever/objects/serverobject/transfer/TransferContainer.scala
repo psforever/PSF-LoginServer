@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.transfer
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.entity.{Identifiable, WorldEntity}
 import net.psforever.objects.serverobject.affinity.FactionAffinity

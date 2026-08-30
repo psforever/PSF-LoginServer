@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local
 
-import akka.actor.Props
+import org.apache.pekko.actor.Props
 import net.psforever.objects.zones.Zone
 import net.psforever.services.local.support._
 import net.psforever.services.base.{EventSystemStamp, GenericEventServiceWithSupport}

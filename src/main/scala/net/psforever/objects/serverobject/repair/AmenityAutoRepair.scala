@@ -1,9 +1,9 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.repair
 
-import akka.actor.{Actor, ActorRef, Cancellable}
-import akka.actor.typed.{ActorRef => TypedActorRef}
-import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
+import org.apache.pekko.actor.typed.{ActorRef => TypedActorRef}
+import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{Default, NtuContainer, NtuStorageBehavior}

@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vehicles.control
 
-import akka.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import net.psforever.objects._
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute

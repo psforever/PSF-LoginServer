@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package objects.terminal
 
-import akka.actor.{ActorSystem, Props}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorSystem, Props}
+import org.apache.pekko.testkit.TestProbe
 import base.ActorTest
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
@@ -158,7 +158,7 @@ class ImplantTerminalMechControl5Test extends ActorTest {
 
 object ImplantTerminalMechTest {
   def SetUpAgents(faction: PlanetSideEmpire.Value)(implicit system: ActorSystem): (Player, ImplantTerminalMech) = {
-    import akka.actor.typed.scaladsl.adapter._
+    import org.apache.pekko.actor.typed.scaladsl.adapter._
 
     val guid = new NumberPoolHub(new MaxNumberSource(10))
     val terminal = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech) //guid=1

@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.generator
 
-import akka.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{Default, PlanetSideGameObject, Player, Tool}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior

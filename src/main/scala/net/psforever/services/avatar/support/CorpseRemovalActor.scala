@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar.support
 
-import akka.actor.{ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.objects.Player
 import net.psforever.types.{ExoSuitType, PlanetSideGUID}

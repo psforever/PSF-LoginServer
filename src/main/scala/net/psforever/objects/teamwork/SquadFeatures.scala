@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.teamwork
 
-import akka.actor.{ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.Default
 import net.psforever.packet.game.WaypointInfo
 import net.psforever.types.{PlanetSideGUID, SquadWaypoint, Vector3}
@@ -87,7 +87,7 @@ class SquadFeatures(val Squad: Squad) {
   }
 
   def Stop: SquadFeatures = {
-    switchboard ! akka.actor.PoisonPill
+    switchboard ! org.apache.pekko.actor.PoisonPill
     switchboard = Default.Actor
     waypoints = Array.empty
     this

@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects
 
-import akka.actor.{Actor, ActorRef}
+import org.apache.pekko.actor.{Actor, ActorRef}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
@@ -90,7 +90,7 @@ trait NtuStorageBehavior extends Actor {
     case Ntu.Request(min, max) => HandleNtuRequest(sender(), min, max)
 
     case NtuCommand.Request(amount, replyTo) =>
-      import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
+      import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
       HandleNtuRequest(new TypedActorRefOps(replyTo).toClassic, amount, amount+1)
 
     case Ntu.Grant(src, amount)        => HandleNtuGrant(sender(), src, amount)

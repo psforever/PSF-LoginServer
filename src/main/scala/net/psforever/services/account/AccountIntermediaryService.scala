@@ -2,7 +2,7 @@
 package net.psforever.services.account
 
 import scala.collection.mutable
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.Account
 
 /**

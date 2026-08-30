@@ -1,6 +1,6 @@
 package net.psforever.login.psadmin
 
-import akka.actor.{Actor, ActorRef}
+import org.apache.pekko.actor.{Actor, ActorRef}
 
 import scala.collection.mutable.Map
 

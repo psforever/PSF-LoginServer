@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vehicles.control
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects._
 import net.psforever.objects.serverobject.deploy.Deployment.DeploymentObject
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}

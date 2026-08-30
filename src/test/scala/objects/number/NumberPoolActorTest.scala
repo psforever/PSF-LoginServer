@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects.number
 
-import akka.actor.Props
+import org.apache.pekko.actor.Props
 import base.ActorTest
 import net.psforever.objects.guid.pool.ExclusivePool
 import net.psforever.objects.guid.selector.RandomSelector

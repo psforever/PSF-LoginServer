@@ -195,7 +195,7 @@ object Terminal {
     new Terminal(tdef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
 
   /**
     * Instantiate and configure a `Terminal` object
@@ -207,7 +207,7 @@ object Terminal {
     * @return the `Terminal` object
     */
   def Constructor(pos: Vector3, tdef: TerminalDefinition)(id: Int, context: ActorContext): Terminal = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
 
     val obj = Terminal(tdef)
     obj.Position = pos

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.actors.zone
 
-import akka.actor.{Actor, Props}
+import org.apache.pekko.actor.{Actor, Props}
 import net.psforever.objects.{Default, GlobalDefinitions, Tool, Vehicle}
 import net.psforever.objects.avatar.{AvatarBot, AvatarBotActor}
 import net.psforever.objects.guid.{GUIDTask, StraightforwardTask, TaskBundle, TaskWorkflow}

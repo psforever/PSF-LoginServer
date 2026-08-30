@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.guid
 
-import akka.util.Timeout
+import org.apache.pekko.util.Timeout
 import net.psforever.objects.avatar.AvatarBot
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}

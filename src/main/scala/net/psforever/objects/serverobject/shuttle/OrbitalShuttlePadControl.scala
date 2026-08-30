@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.shuttle
 
-import akka.actor.{Actor, ActorRef}
+import org.apache.pekko.actor.{Actor, ActorRef}
 import net.psforever.objects.guid._
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject

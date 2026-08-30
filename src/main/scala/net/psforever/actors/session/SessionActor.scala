@@ -1,7 +1,7 @@
 // Copyright (c) 2016, 2020, 2024 PSForever
 package net.psforever.actors.session
 
-import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
 import net.psforever.actors.session.normal.NormalMode
 import net.psforever.actors.session.support.{CommonHandlerFunctions, CommonHandlerLogic, ZoningOperations}
 import net.psforever.objects.TurretDeployable

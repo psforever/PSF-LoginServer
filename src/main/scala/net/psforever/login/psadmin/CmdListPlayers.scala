@@ -1,10 +1,10 @@
 package net.psforever.login.psadmin
 
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.{Actor, ActorRef}
+import org.apache.pekko.actor.typed.receptionist.Receptionist
+import org.apache.pekko.actor.{Actor, ActorRef}
 import net.psforever.services.{InterstellarClusterService, ServiceManager}
 import scala.collection.mutable.Map
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 
 private case class Player(name: String, faction_id: Int)
 

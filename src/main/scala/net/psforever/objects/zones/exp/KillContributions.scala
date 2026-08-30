@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.objects.zones.exp
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.avatar.scoring.{Kill, SupportActivity}
 import net.psforever.objects.sourcing.{BuildingSource, MountableEntry, PlayerSource, SourceEntry, SourceUniqueness, TurretSource, UniquePlayer, VehicleSource}

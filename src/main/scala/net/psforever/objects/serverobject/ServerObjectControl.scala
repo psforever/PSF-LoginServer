@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.types.PlanetSideGUID
 
 abstract class ServerObjectControl

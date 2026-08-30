@@ -1,9 +1,9 @@
 // Copyright (c) 2017-2021 PSForever
 package net.psforever.objects.guid
 
-import akka.actor.{Actor, ActorContext, ActorRef, Props}
-import akka.pattern.{AskTimeoutException, ask}
-import akka.util.Timeout
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Props}
+import org.apache.pekko.pattern.{AskTimeoutException, ask}
+import org.apache.pekko.util.Timeout
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.uns.{
   AlreadyRegisteredEntity,

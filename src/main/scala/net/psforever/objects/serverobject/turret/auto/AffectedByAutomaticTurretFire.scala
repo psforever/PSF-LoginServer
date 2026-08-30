@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.objects.serverobject.turret.auto
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.Tool
 import net.psforever.objects.ballistics.{Projectile, ProjectileQuality}
 import net.psforever.objects.serverobject.damage.Damageable

@@ -7,10 +7,10 @@ import java.util.UUID.randomUUID
 import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.Future
 import scala.concurrent.Await
-import akka.actor.ActorSystem
-import akka.actor.typed.ActorRef
-import akka.actor.typed.scaladsl.Behaviors
-import akka.{actor => classic}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.{actor => classic}
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
 import io.sentry.{Sentry, SentryOptions}
@@ -34,7 +34,7 @@ import org.fusesource.jansi.Ansi.Color._
 import org.fusesource.jansi.Ansi._
 import org.slf4j
 import scopt.OParser
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import kamon.Kamon
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.services.hart.HartService

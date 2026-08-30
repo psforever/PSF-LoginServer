@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.zones.ZoneAware

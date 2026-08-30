@@ -1,10 +1,10 @@
 // Copyright (c) 2020 PSForever
 package objects
 
-import akka.actor.{ActorRef => ClassicActorRef}
-import akka.actor.typed.ActorRef
-import akka.actor.{ActorSystem, Props}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.{ActorSystem, Props}
+import org.apache.pekko.testkit.TestProbe
 import base.ActorTest
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.avatar.{Avatar, Certification, PlayerControl}
@@ -947,7 +947,7 @@ object PlayerControlTest {
     * @return the resulting probe, and it's modified `ActorRef`
     */
   def DummyAvatar(system: ActorSystem): (TestProbe, ActorRef[AvatarActor.Command]) = {
-    import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
+    import org.apache.pekko.actor.typed.scaladsl.adapter.ClassicActorRefOps
     val probe = new TestProbe(system)
     val actor = ClassicActorRefOps(probe.ref).toTyped[AvatarActor.Command]
     (probe, actor)

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad
 
-import akka.actor.{ActorRef, Cancellable, OneForOneStrategy, Props}
+import org.apache.pekko.actor.{ActorRef, Cancellable, OneForOneStrategy, Props}
 import net.psforever.objects.avatar.SpecialCarry
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
@@ -70,7 +70,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
 
   def FactionObject: FactionAffinity = pad
 
-  import akka.actor.SupervisorStrategy._
+  import org.apache.pekko.actor.SupervisorStrategy._
 
   override val supervisorStrategy: OneForOneStrategy = {
     OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 10 seconds) {
@@ -130,7 +130,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
         trackedOrder = None
         handleOrderFunc = NewTasking
         pad.Zone.VehicleEvents ! MessageEnvelope(pad.Zone.id, VehicleSpawnPad.ResetSpawnPad(pad)) //cautious animation reset
-        self ! akka.actor.Kill //should cause the actor to restart, which will abort any trapped messages
+        self ! org.apache.pekko.actor.Kill //should cause the actor to restart, which will abort any trapped messages
 
       case _ => ()
     }

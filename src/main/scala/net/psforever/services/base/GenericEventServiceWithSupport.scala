@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.services.base
 
-import akka.actor.{ActorContext, ActorRef}
+import org.apache.pekko.actor.{ActorContext, ActorRef}
 import net.psforever.objects.Default
 import net.psforever.services.base.envelope.{GenericMessageEnvelope, GenericResponseEnvelope, MessageTransformationBehavior, NoReply, Undelivered}
 import net.psforever.services.base.message.{EventMessage, EventResponse, SelfRespondingEvent}

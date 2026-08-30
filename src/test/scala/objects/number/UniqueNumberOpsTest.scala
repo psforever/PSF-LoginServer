@@ -1,13 +1,13 @@
 // Copyright (c) 2017 PSForever
 package objects.number
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, ActorSystem, Props}
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.{NumberPoolHub, UniqueNumberOps, UniqueNumberSetup}
 import net.psforever.objects.guid.source.MaxNumberSource
 import org.scalatest.flatspec.AsyncFlatSpec
-import akka.pattern.ask
-import akka.util.Timeout
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 
 import scala.concurrent.Promise
 import scala.concurrent.duration._

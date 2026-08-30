@@ -1,12 +1,12 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.Cancellable
-import akka.actor.{ActorRef => ClassicActorRef}
-import akka.actor.typed.ActorRef
-import akka.actor.{ActorContext, typed}
-import akka.pattern.ask
-import akka.util.Timeout
+import org.apache.pekko.actor.Cancellable
+import org.apache.pekko.actor.{ActorRef => ClassicActorRef}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.{ActorContext, typed}
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.zone.ZoneActor
@@ -84,7 +84,7 @@ class ChatOperations(
 
   private[session] var CurrentSpectatorMode: PlayerMode = SpectatorMode
 
-  import akka.actor.typed.scaladsl.adapter._
+  import org.apache.pekko.actor.typed.scaladsl.adapter._
   private val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.self.toTyped[ChatService.MessageResponse]
 
   private implicit lazy val timeout: Timeout = Timeout(2.seconds)
