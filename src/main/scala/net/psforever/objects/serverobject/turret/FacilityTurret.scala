@@ -26,6 +26,17 @@ class FacilityTurret(tDef: FacilityTurretDefinition)
   private var turretUpgradeTime: Long = System.currentTimeMillis()
   private var turretUpgradeTimeSet: Boolean = false
 
+  override def isUpgrading: Boolean = {
+    val baseUpgradingState = super.isUpgrading
+    val upgradingTimeSet = if (turretUpgradeTimeSet) {
+      turretUpgradeTimeSet = System.currentTimeMillis() - turretUpgradeTime < 1500L
+      turretUpgradeTimeSet
+    } else {
+      false
+    }
+    baseUpgradingState || upgradingTimeSet
+  }
+
   def UpdateTurretUpgradeTime(): Long = {
     turretUpgradeTime = System.currentTimeMillis()
     turretUpgradeTimeSet = true

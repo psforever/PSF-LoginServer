@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package service.local
 
-import net.psforever.objects.{ExplosiveDeployable, GlobalDefinitions}
+import net.psforever.objects.{Default, ExplosiveDeployable, GlobalDefinitions}
 import net.psforever.packet.game.{ObjectCreateMessage, TriggeredEffect, TriggeredEffectLocation}
 import net.psforever.services.Service
 import net.psforever.services.base.message.SendResponse
