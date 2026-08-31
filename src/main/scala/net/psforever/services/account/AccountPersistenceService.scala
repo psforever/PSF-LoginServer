@@ -456,7 +456,7 @@ class PersistenceMonitor(
     squadService.tell(Service.Leave(avatar.id.toString), context.parent)
     galaxyService.tell(MessageEnvelope(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     Deployables.Disown(inZone, avatar, context.parent)
-    inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
+    inZone.Population.tell(Zone.Population.Leave(avatar, galaxyService), context.parent)
     TaskWorkflow.execute(GUIDTask.unregisterObject(inZone.GUID, avatar.locker))
     //inZone.tasks.tell(GUIDTask.UnregisterObjectTask(avatar.locker)(inZone.GUID), context.parent)
     log.info(s"Logout of ${avatar.name}")

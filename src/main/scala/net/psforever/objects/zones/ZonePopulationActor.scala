@@ -10,6 +10,7 @@ import net.psforever.objects.{Default, Player}
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.ObjectDelete
+import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.types.Vector3
 
 import scala.collection.concurrent.TrieMap
@@ -36,7 +37,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], b
         zone.StartPlayerManagementSystems()
       }
 
-    case Zone.Population.Leave(avatar) =>
+    case Zone.Population.Leave(avatar, galaxyService) =>
       PopulationLeave(avatar.id, playerMap) match {
         case None => ;
         case player @ Some(tplayer) =>
@@ -51,8 +52,9 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], b
             zone.StopPlayerManagementSystems()
           }
       }
+      galaxyService ! MessageEnvelope("", GalaxyAction.UpdatePopulation(zone))
 
-    case Zone.Population.Spawn(avatar, player, avatarActor) =>
+    case Zone.Population.Spawn(avatar, player, avatarActor, galaxyService) =>
       PopulationSpawn(avatar.id, player, playerMap) match {
         case Some((tplayer, newToZone)) =>
           tplayer.Zone = zone
@@ -68,6 +70,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], b
             if (player.VehicleSeated.isEmpty) {
               zone.actor ! ZoneActor.AddToBlockMap(player, player.Position)
             }
+            galaxyService ! MessageEnvelope("", GalaxyAction.UpdatePopulation(zone))
           }
         case None =>
           sender() ! Zone.Population.PlayerCanNotSpawn(zone, player)

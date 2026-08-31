@@ -35,4 +35,6 @@ object GalaxyAction {
   final case class UnlockedZoneUpdate(zone: Zone) extends SelfRespondingEvent
 
   final case class LogStatusChange(name: String) extends SelfRespondingEvent
+
+  final case class UpdatePopulation(zone: Zone) extends  SelfRespondingEvent
 }

@@ -85,5 +85,11 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
     case GalaxyAction.LogStatusChange(name)
       if TestFilter(() => avatar.people.friend.exists(_.name.equals(name))) =>
       avatarActor ! AvatarActor.MemberListRequest(MemberAction.UpdateFriend, name)
+
+    case GalaxyAction.UpdatePopulation(zone) =>
+      val popTR = zone.Players.count(_.faction == PlanetSideEmpire.TR)
+      val popNC = zone.Players.count(_.faction == PlanetSideEmpire.NC)
+      val popVS = zone.Players.count(_.faction == PlanetSideEmpire.VS)
+      sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, 0))
   }
 }

@@ -905,7 +905,7 @@ class ZoningOperations(
         context.self ! SessionActor.SetZone("tzdrnc", vrDrivingAreaSpawns.toArray.apply(rand.nextInt(vrDrivingAreaSpawns.size)))
       case 22 =>
         context.self ! SessionActor.SetZone("tzdrvs", vrDrivingAreaSpawns.toArray.apply(rand.nextInt(vrDrivingAreaSpawns.size)))
-      case _ => 
+      case _ =>
         log.warn(s"Received TrainingZoneMessage that requests unexpected zone number ${pkt.zone.guid}?")
     }
   }
@@ -1512,7 +1512,7 @@ class ZoningOperations(
         override def description() : String = s"doing ${task.description()} before transferring zones"
 
         def action(): Future[Any] = {
-          localZone.Population ! Zone.Population.Leave(localAvatar)
+          localZone.Population ! Zone.Population.Leave(localAvatar, galaxyService)
           localCluster ! zoneMessage
           Future(true)
         }
@@ -2663,7 +2663,7 @@ class ZoningOperations(
             AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
           )
       }
-      continent.Population ! Zone.Population.Spawn(avatar, player, avatarActor)
+      continent.Population ! Zone.Population.Spawn(avatar, player, avatarActor, galaxyService)
       avatarActor ! AvatarActor.RefreshPurchaseTimes()
       drawDeployableIconsOnMap(
         depictDeployablesUponRevival(
@@ -3263,7 +3263,7 @@ class ZoningOperations(
             sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, pos, player.Faction, unk5=true))
             val toZoneId = continent.id
             player.Die
-            continent.Population ! Zone.Population.Leave(avatar) //does not matter if it doesn't work
+            continent.Population ! Zone.Population.Leave(avatar, galaxyService) //does not matter if it doesn't work
             zoneLoaded = None
             zoneReload = true
             LoadZonePhysicalSpawnPoint(toZoneId, pos, orient, respawnTime = 0 seconds, None)
