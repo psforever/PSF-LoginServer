@@ -76,11 +76,12 @@ object WeaponTurrets {
     progress: Float
   ): Boolean = {
     val (progressState, progressGrade) = if (progress <= 0L) {
+      turret.FinishedTurretUpgradeReset()
       (HackState.Start, 0)
+    } else if (turret.Destroyed || !turret.isUnoccupied) {
+      (HackState.Cancelled, 0)
     } else if (progress >= 100L) {
       (HackState.Finished, 100)
-    } else if (turret.Destroyed) {
-      (HackState.Cancelled, 0)
     } else {
       turret.UpdateTurretUpgradeTime()
       (HackState.Ongoing, progress.toInt)

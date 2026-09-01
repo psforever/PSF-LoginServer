@@ -1340,6 +1340,9 @@ class WeaponAndProjectileOperations(
                                      modifyFunc: (AmmoBox, Int) => Unit
                                    ): Unit = {
     val originalAmmoType = tool.AmmoType
+    var newBoxesForStowing: List[AmmoBox] = Nil
+    val stowFunc: Equipment => Future[Any]   = PutEquipmentInInventoryOrDrop(obj)
+    val stowNewFunc: Equipment => TaskBundle = PutNewEquipmentInInventoryOrDrop(obj)
     do {
       val requestedAmmoType = tool.NextAmmoType
       val fullMagazine      = tool.MaxMagazine
@@ -1347,9 +1350,6 @@ class WeaponAndProjectileOperations(
         FindEquipmentStock(obj, FindAmmoBoxThatUses(requestedAmmoType), fullMagazine, CountAmmunition).reverse match {
           case Nil => ()
           case x :: xs =>
-            val stowNewFunc: Equipment => TaskBundle = PutNewEquipmentInInventoryOrDrop(obj)
-            val stowFunc: Equipment => Future[Any]   = PutEquipmentInInventoryOrDrop(obj)
-
             xs.foreach(item => {
               obj.Inventory -= item.start
               sendResponse(ObjectDeleteMessage(item.obj.GUID, 0))
@@ -1401,13 +1401,10 @@ class WeaponAndProjectileOperations(
               log.trace(
                 s"PerformToolAmmoChange: ${player.Name} takes ${originalBoxCapacity - splitReloadAmmo} from a box of $originalBoxCapacity $requestedAmmoType ammo"
               )
-              val boxForInventory = AmmoBox(box.Definition, splitReloadAmmo)
-              TaskWorkflow.execute(stowNewFunc(boxForInventory))
+              newBoxesForStowing = newBoxesForStowing :+ AmmoBox(box.Definition, splitReloadAmmo)
               fullMagazine
             }
-            sendResponse(
-              InventoryStateMessage(box.GUID, tool.GUID, box.Capacity)
-            ) //should work for both players and vehicles
+            sendResponse(InventoryStateMessage(box.GUID, tool.GUID, box.Capacity)) //should work for both players and vehicles
             log.info(s"${player.Name} loads ${box.Capacity} $requestedAmmoType into the ${tool.Definition.Name}")
             if (previousBox.Capacity > 0) {
               //divide capacity across other existing and not full boxes of that ammo type
@@ -1446,7 +1443,7 @@ class WeaponAndProjectileOperations(
                 case Nil | List(_) => () //done (the former case is technically not possible)
                 case _ :: toUpdate =>
                   modifyFunc(previousBox, 0) //update to changed capacity value
-                  toUpdate.foreach(box => { TaskWorkflow.execute(stowNewFunc(box)) })
+                  newBoxesForStowing = newBoxesForStowing ++ toUpdate
               }
             } else {
               TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, previousBox))
@@ -1454,6 +1451,8 @@ class WeaponAndProjectileOperations(
         }
       }
     } while (tool.AmmoType != originalAmmoType && tool.AmmoType != tool.AmmoSlot.Box.AmmoType)
+    //put new ammo boxes into inventory, or drop if no more space
+    newBoxesForStowing.foreach(box => TaskWorkflow.execute(stowNewFunc(box)))
   }
 
   /**
