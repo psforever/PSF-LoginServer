@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.ChatMsg
 import net.psforever.types.ChatMessageType
 import scodec.bits._
 

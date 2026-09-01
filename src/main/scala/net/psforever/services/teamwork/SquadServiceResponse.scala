@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 import net.psforever.objects.Default
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.teamwork.Squad
-import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
+import net.psforever.packet.game.packets.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
 import net.psforever.services.base.message.EventResponse
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadResponseType, SquadWaypoint}
 import net.psforever.services.base.EventSystemStamp

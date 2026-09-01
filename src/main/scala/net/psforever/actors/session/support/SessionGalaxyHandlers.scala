@@ -2,9 +2,9 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, typed}
-import net.psforever.packet.game.FriendsResponse
 
 import net.psforever.actors.session.AvatarActor
+import net.psforever.packet.game.packets.FriendsResponse
 
 trait GalaxyHandlerFunctions extends CommonSessionInterfacingFunctionality with CommonHandlerFunctions {
   def ops: SessionGalaxyHandlers

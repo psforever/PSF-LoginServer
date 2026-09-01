@@ -13,7 +13,7 @@ import net.psforever.objects.vital.VitalityDefinition
 class AvatarBotDefinition(objectId: Int) extends ObjectDefinition(objectId) with VitalityDefinition {
   Name = "avatar_bot"
   Avatars(objectId) //let throw NoSuchElementException
-  Packet = AvatarBotDefinition.converter
+  Packet = AvatarBotConverter
   Geometry = GeometryForm.representPlayerByCylinder(radius = 1.6f)
   //do NOT attempt to create AvatarBot's outside of the VR Shooting Range zones with this definition, 
   //space will need to be made to add a "bots" pool to the target zone
@@ -21,8 +21,6 @@ class AvatarBotDefinition(objectId: Int) extends ObjectDefinition(objectId) with
 }
 
 object AvatarBotDefinition {
-  private val converter = new AvatarBotConverter()
-
   def apply(objectId: Int): AvatarBotDefinition = {
     new AvatarBotDefinition(objectId)
   }

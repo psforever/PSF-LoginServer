@@ -2,7 +2,8 @@
 package game
 
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{SquadState, SquadStateInfo}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import org.specs2.mutable._
 import scodec.bits._

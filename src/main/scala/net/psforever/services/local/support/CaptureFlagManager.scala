@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets.{CaptureFlagUpdateMessage, ChatMsg, FlagInfo, GenericObjectActionEnum, ObjectAttachMessage, ObjectDetachMessage, TriggeredSound}
 import net.psforever.services.ServiceManager
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
 import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelopeOnly}

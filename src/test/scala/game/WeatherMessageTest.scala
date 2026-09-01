@@ -3,7 +3,7 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.{WeatherMessage, CloudInfo, StormInfo}
+import net.psforever.packet.game.packets.{CloudInfo, StormInfo, WeatherMessage}
 import net.psforever.types.Vector3
 import scodec.bits._
 

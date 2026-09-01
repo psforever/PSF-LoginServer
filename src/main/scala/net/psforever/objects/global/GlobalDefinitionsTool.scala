@@ -838,11 +838,11 @@ object GlobalDefinitionsTool {
     bank.Tile = InventoryTile.Tile33
 
     remote_electronics_kit.Name = "remote_electronics_kit"
-    remote_electronics_kit.Packet = new REKConverter
+    remote_electronics_kit.Packet = REKConverter
     remote_electronics_kit.Tile = InventoryTile.Tile33
 
     boomer_trigger.Name = "boomer_trigger"
-    boomer_trigger.Packet = new BoomerTriggerConverter
+    boomer_trigger.Packet = BoomerTriggerConverter
     boomer_trigger.Tile = InventoryTile.Tile22
 
     trek.Name = "trek"
@@ -860,11 +860,11 @@ object GlobalDefinitionsTool {
     trek.Tile = InventoryTile.Tile33
 
     flail_targeting_laser.Name = "flail_targeting_laser"
-    flail_targeting_laser.Packet = new CommandDetonaterConverter
+    flail_targeting_laser.Packet = CommandDetonaterConverter
     flail_targeting_laser.Tile = InventoryTile.Tile33
 
     command_detonater.Name = "command_detonater"
-    command_detonater.Packet = new CommandDetonaterConverter
+    command_detonater.Packet = CommandDetonaterConverter
     command_detonater.Tile = InventoryTile.Tile33
 
     ace.Name = "ace"
@@ -905,7 +905,7 @@ object GlobalDefinitionsTool {
     router_telepad.Modes += new ConstructionFireMode
     router_telepad.Modes.head.Item(DeployedItem.router_telepad_deployable, Set(Certification.GroundSupport))
     router_telepad.Tile = InventoryTile.Tile33
-    router_telepad.Packet = new TelepadConverter
+    router_telepad.Packet = TelepadConverter
   }
 
   /**
@@ -1511,7 +1511,6 @@ object GlobalDefinitionsTool {
     energy_gun_vs.FireModes.head.AmmoSlotIndex = 0
     energy_gun_vs.FireModes.head.Magazine = 100
 
-    val battleFrameToolConverter = new BattleFrameToolConverter
     aphelion_armor_siphon.Name = "aphelion_armor_siphon"
     aphelion_armor_siphon.Size = EquipmentSize.BFRArmWeapon
     aphelion_armor_siphon.AmmoTypes += armor_siphon_ammo
@@ -1520,7 +1519,7 @@ object GlobalDefinitionsTool {
     aphelion_armor_siphon.FireModes.head.AmmoTypeIndices += 0
     aphelion_armor_siphon.FireModes.head.AmmoSlotIndex = 0
     aphelion_armor_siphon.FireModes.head.Magazine = 100
-    aphelion_armor_siphon.Packet = battleFrameToolConverter
+    aphelion_armor_siphon.Packet = BattleFrameToolConverter
     aphelion_armor_siphon.Tile = InventoryTile.Tile84
 
     aphelion_armor_siphon_left.Name = "aphelion_armor_siphon_left"
@@ -1531,7 +1530,7 @@ object GlobalDefinitionsTool {
     aphelion_armor_siphon_left.FireModes.head.AmmoTypeIndices += 0
     aphelion_armor_siphon_left.FireModes.head.AmmoSlotIndex = 0
     aphelion_armor_siphon_left.FireModes.head.Magazine = 100
-    aphelion_armor_siphon_left.Packet = battleFrameToolConverter
+    aphelion_armor_siphon_left.Packet = BattleFrameToolConverter
     aphelion_armor_siphon_left.Tile = InventoryTile.Tile84
 
     aphelion_armor_siphon_right.Name = "aphelion_armor_siphon_right"
@@ -1542,7 +1541,7 @@ object GlobalDefinitionsTool {
     aphelion_armor_siphon_right.FireModes.head.AmmoTypeIndices += 0
     aphelion_armor_siphon_right.FireModes.head.AmmoSlotIndex = 0
     aphelion_armor_siphon_right.FireModes.head.Magazine = 100
-    aphelion_armor_siphon_right.Packet = battleFrameToolConverter
+    aphelion_armor_siphon_right.Packet = BattleFrameToolConverter
     aphelion_armor_siphon_right.Tile = InventoryTile.Tile84
 
     aphelion_laser.Name = "aphelion_laser"
@@ -1553,7 +1552,7 @@ object GlobalDefinitionsTool {
     aphelion_laser.FireModes.head.AmmoTypeIndices += 0
     aphelion_laser.FireModes.head.AmmoSlotIndex = 0
     aphelion_laser.FireModes.head.Magazine = 350
-    aphelion_laser.Packet = battleFrameToolConverter
+    aphelion_laser.Packet = BattleFrameToolConverter
     aphelion_laser.Tile = InventoryTile.Tile84
 
     aphelion_laser_left.Name = "aphelion_laser_left"
@@ -1564,7 +1563,7 @@ object GlobalDefinitionsTool {
     aphelion_laser_left.FireModes.head.AmmoTypeIndices += 0
     aphelion_laser_left.FireModes.head.AmmoSlotIndex = 0
     aphelion_laser_left.FireModes.head.Magazine = 350
-    aphelion_laser_left.Packet = battleFrameToolConverter
+    aphelion_laser_left.Packet = BattleFrameToolConverter
     aphelion_laser_left.Tile = InventoryTile.Tile84
 
     aphelion_laser_right.Name = "aphelion_laser_right"
@@ -1575,7 +1574,7 @@ object GlobalDefinitionsTool {
     aphelion_laser_right.FireModes.head.AmmoTypeIndices += 0
     aphelion_laser_right.FireModes.head.AmmoSlotIndex = 0
     aphelion_laser_right.FireModes.head.Magazine = 350
-    aphelion_laser_right.Packet = battleFrameToolConverter
+    aphelion_laser_right.Packet = BattleFrameToolConverter
     aphelion_laser_right.Tile = InventoryTile.Tile84
 
     aphelion_ntu_siphon.Name = "aphelion_ntu_siphon"
@@ -1596,7 +1595,7 @@ object GlobalDefinitionsTool {
     aphelion_ntu_siphon.FireModes(1).RoundsPerShot = 30
     aphelion_ntu_siphon.FireModes(1).Magazine = 150
     aphelion_ntu_siphon.FireModes(1).DefaultMagazine = 0
-    aphelion_ntu_siphon.Packet = battleFrameToolConverter
+    aphelion_ntu_siphon.Packet = BattleFrameToolConverter
     aphelion_ntu_siphon.Tile = InventoryTile.Tile84
 
     aphelion_ntu_siphon_left.Name = "aphelion_ntu_siphon_left"
@@ -1617,7 +1616,7 @@ object GlobalDefinitionsTool {
     aphelion_ntu_siphon_left.FireModes(1).RoundsPerShot = 30
     aphelion_ntu_siphon_left.FireModes(1).Magazine = 150
     aphelion_ntu_siphon_left.FireModes(1).DefaultMagazine = 0
-    aphelion_ntu_siphon_left.Packet = battleFrameToolConverter
+    aphelion_ntu_siphon_left.Packet = BattleFrameToolConverter
     aphelion_ntu_siphon_left.Tile = InventoryTile.Tile84
 
     aphelion_ntu_siphon_right.Name = "aphelion_ntu_siphon_right"
@@ -1638,7 +1637,7 @@ object GlobalDefinitionsTool {
     aphelion_ntu_siphon_right.FireModes(1).RoundsPerShot = 30
     aphelion_ntu_siphon_right.FireModes(1).Magazine = 150
     aphelion_ntu_siphon_right.FireModes(1).DefaultMagazine = 0
-    aphelion_ntu_siphon_right.Packet = battleFrameToolConverter
+    aphelion_ntu_siphon_right.Packet = BattleFrameToolConverter
     aphelion_ntu_siphon_right.Tile = InventoryTile.Tile84
 
     aphelion_ppa.Name = "aphelion_ppa"
@@ -1649,7 +1648,7 @@ object GlobalDefinitionsTool {
     aphelion_ppa.FireModes.head.AmmoTypeIndices += 0
     aphelion_ppa.FireModes.head.AmmoSlotIndex = 0
     aphelion_ppa.FireModes.head.Magazine = 25
-    aphelion_ppa.Packet = battleFrameToolConverter
+    aphelion_ppa.Packet = BattleFrameToolConverter
     aphelion_ppa.Tile = InventoryTile.Tile84
 
     aphelion_ppa_left.Name = "aphelion_ppa_left"
@@ -1660,7 +1659,7 @@ object GlobalDefinitionsTool {
     aphelion_ppa_left.FireModes.head.AmmoTypeIndices += 0
     aphelion_ppa_left.FireModes.head.AmmoSlotIndex = 0
     aphelion_ppa_left.FireModes.head.Magazine = 25
-    aphelion_ppa_left.Packet = battleFrameToolConverter
+    aphelion_ppa_left.Packet = BattleFrameToolConverter
     aphelion_ppa_left.Tile = InventoryTile.Tile84
 
     aphelion_ppa_right.Name = "aphelion_ppa_right"
@@ -1671,7 +1670,7 @@ object GlobalDefinitionsTool {
     aphelion_ppa_right.FireModes.head.AmmoTypeIndices += 0
     aphelion_ppa_right.FireModes.head.AmmoSlotIndex = 0
     aphelion_ppa_right.FireModes.head.Magazine = 25
-    aphelion_ppa_right.Packet = battleFrameToolConverter
+    aphelion_ppa_right.Packet = BattleFrameToolConverter
     aphelion_ppa_right.Tile = InventoryTile.Tile84
 
     aphelion_starfire.Name = "aphelion_starfire"
@@ -1682,7 +1681,7 @@ object GlobalDefinitionsTool {
     aphelion_starfire.FireModes.head.AmmoTypeIndices += 0
     aphelion_starfire.FireModes.head.AmmoSlotIndex = 0
     aphelion_starfire.FireModes.head.Magazine = 20
-    aphelion_starfire.Packet = battleFrameToolConverter
+    aphelion_starfire.Packet = BattleFrameToolConverter
     aphelion_starfire.Tile = InventoryTile.Tile84
 
     aphelion_starfire_left.Name = "aphelion_starfire_left"
@@ -1693,7 +1692,7 @@ object GlobalDefinitionsTool {
     aphelion_starfire_left.FireModes.head.AmmoTypeIndices += 0
     aphelion_starfire_left.FireModes.head.AmmoSlotIndex = 0
     aphelion_starfire_left.FireModes.head.Magazine = 20
-    aphelion_starfire_left.Packet = battleFrameToolConverter
+    aphelion_starfire_left.Packet = BattleFrameToolConverter
     aphelion_starfire_left.Tile = InventoryTile.Tile84
 
     aphelion_starfire_right.Name = "aphelion_starfire_right"
@@ -1704,7 +1703,7 @@ object GlobalDefinitionsTool {
     aphelion_starfire_right.FireModes.head.AmmoTypeIndices += 0
     aphelion_starfire_right.FireModes.head.AmmoSlotIndex = 0
     aphelion_starfire_right.FireModes.head.Magazine = 20
-    aphelion_starfire_right.Packet = battleFrameToolConverter
+    aphelion_starfire_right.Packet = BattleFrameToolConverter
     aphelion_starfire_right.Tile = InventoryTile.Tile84
 
     aphelion_plasma_rocket_pod.Name = "aphelion_plasma_rocket_pod"
@@ -1715,7 +1714,7 @@ object GlobalDefinitionsTool {
     aphelion_plasma_rocket_pod.FireModes.head.AmmoTypeIndices += 0
     aphelion_plasma_rocket_pod.FireModes.head.AmmoSlotIndex = 0
     aphelion_plasma_rocket_pod.FireModes.head.Magazine = 40
-    aphelion_plasma_rocket_pod.Packet = battleFrameToolConverter
+    aphelion_plasma_rocket_pod.Packet = BattleFrameToolConverter
     aphelion_plasma_rocket_pod.Tile = InventoryTile.Tile1004
 
     aphelion_immolation_cannon.Name = "aphelion_immolation_cannon"
@@ -1726,7 +1725,7 @@ object GlobalDefinitionsTool {
     aphelion_immolation_cannon.FireModes.head.AmmoTypeIndices += 0
     aphelion_immolation_cannon.FireModes.head.AmmoSlotIndex = 0
     aphelion_immolation_cannon.FireModes.head.Magazine = 25
-    aphelion_immolation_cannon.Packet = battleFrameToolConverter
+    aphelion_immolation_cannon.Packet = BattleFrameToolConverter
     aphelion_immolation_cannon.Tile = InventoryTile.Tile1004
 
     colossus_armor_siphon.Name = "colossus_armor_siphon"
@@ -1737,7 +1736,7 @@ object GlobalDefinitionsTool {
     colossus_armor_siphon.FireModes.head.AmmoTypeIndices += 0
     colossus_armor_siphon.FireModes.head.AmmoSlotIndex = 0
     colossus_armor_siphon.FireModes.head.Magazine = 100
-    colossus_armor_siphon.Packet = battleFrameToolConverter
+    colossus_armor_siphon.Packet = BattleFrameToolConverter
     colossus_armor_siphon.Tile = InventoryTile.Tile84
 
     colossus_armor_siphon_left.Name = "colossus_armor_siphon_left"
@@ -1748,7 +1747,7 @@ object GlobalDefinitionsTool {
     colossus_armor_siphon_left.FireModes.head.AmmoTypeIndices += 0
     colossus_armor_siphon_left.FireModes.head.AmmoSlotIndex = 0
     colossus_armor_siphon_left.FireModes.head.Magazine = 100
-    colossus_armor_siphon_left.Packet = battleFrameToolConverter
+    colossus_armor_siphon_left.Packet = BattleFrameToolConverter
     colossus_armor_siphon_left.Tile = InventoryTile.Tile84
 
     colossus_armor_siphon_right.Name = "colossus_armor_siphon_right"
@@ -1759,7 +1758,7 @@ object GlobalDefinitionsTool {
     colossus_armor_siphon_right.FireModes.head.AmmoTypeIndices += 0
     colossus_armor_siphon_right.FireModes.head.AmmoSlotIndex = 0
     colossus_armor_siphon_right.FireModes.head.Magazine = 100
-    colossus_armor_siphon_right.Packet = battleFrameToolConverter
+    colossus_armor_siphon_right.Packet = BattleFrameToolConverter
     colossus_armor_siphon_right.Tile = InventoryTile.Tile84
 
     colossus_burster.Name = "colossus_burster"
@@ -1770,7 +1769,7 @@ object GlobalDefinitionsTool {
     colossus_burster.FireModes.head.AmmoTypeIndices += 0
     colossus_burster.FireModes.head.AmmoSlotIndex = 0
     colossus_burster.FireModes.head.Magazine = 25
-    colossus_burster.Packet = battleFrameToolConverter
+    colossus_burster.Packet = BattleFrameToolConverter
     colossus_burster.Tile = InventoryTile.Tile84
 
     colossus_burster_left.Name = "colossus_burster_left"
@@ -1781,7 +1780,7 @@ object GlobalDefinitionsTool {
     colossus_burster_left.FireModes.head.AmmoTypeIndices += 0
     colossus_burster_left.FireModes.head.AmmoSlotIndex = 0
     colossus_burster_left.FireModes.head.Magazine = 25
-    colossus_burster_left.Packet = battleFrameToolConverter
+    colossus_burster_left.Packet = BattleFrameToolConverter
     colossus_burster_left.Tile = InventoryTile.Tile84
 
     colossus_burster_right.Name = "colossus_burster_right"
@@ -1792,7 +1791,7 @@ object GlobalDefinitionsTool {
     colossus_burster_right.FireModes.head.AmmoTypeIndices += 0
     colossus_burster_right.FireModes.head.AmmoSlotIndex = 0
     colossus_burster_right.FireModes.head.Magazine = 25
-    colossus_burster_right.Packet = battleFrameToolConverter
+    colossus_burster_right.Packet = BattleFrameToolConverter
     colossus_burster_right.Tile = InventoryTile.Tile84
 
     colossus_chaingun.Name = "colossus_chaingun"
@@ -1803,7 +1802,7 @@ object GlobalDefinitionsTool {
     colossus_chaingun.FireModes.head.AmmoTypeIndices += 0
     colossus_chaingun.FireModes.head.AmmoSlotIndex = 0
     colossus_chaingun.FireModes.head.Magazine = 125
-    colossus_chaingun.Packet = battleFrameToolConverter
+    colossus_chaingun.Packet = BattleFrameToolConverter
     colossus_chaingun.Tile = InventoryTile.Tile84
 
     colossus_chaingun_left.Name = "colossus_chaingun_left"
@@ -1814,7 +1813,7 @@ object GlobalDefinitionsTool {
     colossus_chaingun_left.FireModes.head.AmmoTypeIndices += 0
     colossus_chaingun_left.FireModes.head.AmmoSlotIndex = 0
     colossus_chaingun_left.FireModes.head.Magazine = 125
-    colossus_chaingun_left.Packet = battleFrameToolConverter
+    colossus_chaingun_left.Packet = BattleFrameToolConverter
     colossus_chaingun_left.Tile = InventoryTile.Tile84
 
     colossus_chaingun_right.Name = "colossus_chaingun_right"
@@ -1825,7 +1824,7 @@ object GlobalDefinitionsTool {
     colossus_chaingun_right.FireModes.head.AmmoTypeIndices += 0
     colossus_chaingun_right.FireModes.head.AmmoSlotIndex = 0
     colossus_chaingun_right.FireModes.head.Magazine = 125
-    colossus_chaingun_right.Packet = battleFrameToolConverter
+    colossus_chaingun_right.Packet = BattleFrameToolConverter
     colossus_chaingun_right.Tile = InventoryTile.Tile84
 
     colossus_ntu_siphon.Name = "colossus_ntu_siphon"
@@ -1847,7 +1846,7 @@ object GlobalDefinitionsTool {
     colossus_ntu_siphon.FireModes(1).Magazine = 150
     colossus_ntu_siphon.FireModes(1).DefaultMagazine = 0
     colossus_ntu_siphon.FireModes(1).AmmoSlotIndex = 0
-    colossus_ntu_siphon.Packet = battleFrameToolConverter
+    colossus_ntu_siphon.Packet = BattleFrameToolConverter
     colossus_ntu_siphon.Tile = InventoryTile.Tile84
 
     colossus_ntu_siphon_left.Name = "colossus_ntu_siphon_left"
@@ -1869,7 +1868,7 @@ object GlobalDefinitionsTool {
     colossus_ntu_siphon_left.FireModes(1).Magazine = 150
     colossus_ntu_siphon_left.FireModes(1).DefaultMagazine = 0
     colossus_ntu_siphon_left.FireModes(1).AmmoSlotIndex = 0
-    colossus_ntu_siphon_left.Packet = battleFrameToolConverter
+    colossus_ntu_siphon_left.Packet = BattleFrameToolConverter
     colossus_ntu_siphon_left.Tile = InventoryTile.Tile84
 
     colossus_ntu_siphon_right.Name = "colossus_ntu_siphon_right"
@@ -1891,7 +1890,7 @@ object GlobalDefinitionsTool {
     colossus_ntu_siphon_right.FireModes(1).Magazine = 150
     colossus_ntu_siphon_right.FireModes(1).DefaultMagazine = 0
     colossus_ntu_siphon_right.FireModes(1).AmmoSlotIndex = 0
-    colossus_ntu_siphon_right.Packet = battleFrameToolConverter
+    colossus_ntu_siphon_right.Packet = BattleFrameToolConverter
     colossus_ntu_siphon_right.Tile = InventoryTile.Tile84
 
     colossus_tank_cannon.Name = "colossus_tank_cannon"
@@ -1902,7 +1901,7 @@ object GlobalDefinitionsTool {
     colossus_tank_cannon.FireModes.head.AmmoTypeIndices += 0
     colossus_tank_cannon.FireModes.head.AmmoSlotIndex = 0
     colossus_tank_cannon.FireModes.head.Magazine = 25
-    colossus_tank_cannon.Packet = battleFrameToolConverter
+    colossus_tank_cannon.Packet = BattleFrameToolConverter
     colossus_tank_cannon.Tile = InventoryTile.Tile84
 
     colossus_tank_cannon_left.Name = "colossus_tank_cannon_left"
@@ -1913,7 +1912,7 @@ object GlobalDefinitionsTool {
     colossus_tank_cannon_left.FireModes.head.AmmoTypeIndices += 0
     colossus_tank_cannon_left.FireModes.head.AmmoSlotIndex = 0
     colossus_tank_cannon_left.FireModes.head.Magazine = 25
-    colossus_tank_cannon_left.Packet = battleFrameToolConverter
+    colossus_tank_cannon_left.Packet = BattleFrameToolConverter
     colossus_tank_cannon_left.Tile = InventoryTile.Tile84
 
     colossus_tank_cannon_right.Name = "colossus_tank_cannon_right"
@@ -1924,7 +1923,7 @@ object GlobalDefinitionsTool {
     colossus_tank_cannon_right.FireModes.head.AmmoTypeIndices += 0
     colossus_tank_cannon_right.FireModes.head.AmmoSlotIndex = 0
     colossus_tank_cannon_right.FireModes.head.Magazine = 25
-    colossus_tank_cannon_right.Packet = battleFrameToolConverter
+    colossus_tank_cannon_right.Packet = BattleFrameToolConverter
     colossus_tank_cannon_right.Tile = InventoryTile.Tile84
 
     colossus_dual_100mm_cannons.Name = "colossus_dual_100mm_cannons"
@@ -1935,7 +1934,7 @@ object GlobalDefinitionsTool {
     colossus_dual_100mm_cannons.FireModes.head.AmmoTypeIndices += 0
     colossus_dual_100mm_cannons.FireModes.head.AmmoSlotIndex = 0
     colossus_dual_100mm_cannons.FireModes.head.Magazine = 22
-    colossus_dual_100mm_cannons.Packet = battleFrameToolConverter
+    colossus_dual_100mm_cannons.Packet = BattleFrameToolConverter
     colossus_dual_100mm_cannons.Tile = InventoryTile.Tile1004
 
     colossus_cluster_bomb_pod.Name = "colossus_cluster_bomb_pod"
@@ -1950,7 +1949,7 @@ object GlobalDefinitionsTool {
     colossus_cluster_bomb_pod.FireModes(1).AmmoTypeIndices += 0
     colossus_cluster_bomb_pod.FireModes(1).AmmoSlotIndex = 0
     colossus_cluster_bomb_pod.FireModes(1).Magazine = 125
-    colossus_cluster_bomb_pod.Packet = battleFrameToolConverter
+    colossus_cluster_bomb_pod.Packet = BattleFrameToolConverter
     colossus_cluster_bomb_pod.Tile = InventoryTile.Tile1004
 
     peregrine_armor_siphon.Name = "peregrine_armor_siphon"
@@ -1961,7 +1960,7 @@ object GlobalDefinitionsTool {
     peregrine_armor_siphon.FireModes.head.AmmoTypeIndices += 0
     peregrine_armor_siphon.FireModes.head.AmmoSlotIndex = 0
     peregrine_armor_siphon.FireModes.head.Magazine = 100
-    peregrine_armor_siphon.Packet = battleFrameToolConverter
+    peregrine_armor_siphon.Packet = BattleFrameToolConverter
     peregrine_armor_siphon.Tile = InventoryTile.Tile84
 
     peregrine_armor_siphon_left.Name = "peregrine_armor_siphon_left"
@@ -1972,7 +1971,7 @@ object GlobalDefinitionsTool {
     peregrine_armor_siphon_left.FireModes.head.AmmoTypeIndices += 0
     peregrine_armor_siphon_left.FireModes.head.AmmoSlotIndex = 0
     peregrine_armor_siphon_left.FireModes.head.Magazine = 100
-    peregrine_armor_siphon_left.Packet = battleFrameToolConverter
+    peregrine_armor_siphon_left.Packet = BattleFrameToolConverter
     peregrine_armor_siphon_left.Tile = InventoryTile.Tile84
 
     peregrine_armor_siphon_right.Name = "peregrine_armor_siphon_right"
@@ -1983,7 +1982,7 @@ object GlobalDefinitionsTool {
     peregrine_armor_siphon_right.FireModes.head.AmmoTypeIndices += 0
     peregrine_armor_siphon_right.FireModes.head.AmmoSlotIndex = 0
     peregrine_armor_siphon_right.FireModes.head.Magazine = 100
-    peregrine_armor_siphon_right.Packet = battleFrameToolConverter
+    peregrine_armor_siphon_right.Packet = BattleFrameToolConverter
     peregrine_armor_siphon_right.Tile = InventoryTile.Tile84
 
     peregrine_dual_machine_gun.Name = "peregrine_dual_machine_gun"
@@ -1994,7 +1993,7 @@ object GlobalDefinitionsTool {
     peregrine_dual_machine_gun.FireModes.head.AmmoTypeIndices += 0
     peregrine_dual_machine_gun.FireModes.head.AmmoSlotIndex = 0
     peregrine_dual_machine_gun.FireModes.head.Magazine = 55
-    peregrine_dual_machine_gun.Packet = battleFrameToolConverter
+    peregrine_dual_machine_gun.Packet = BattleFrameToolConverter
     peregrine_dual_machine_gun.Tile = InventoryTile.Tile84
 
     peregrine_dual_machine_gun_left.Name = "peregrine_dual_machine_gun_left"
@@ -2005,7 +2004,7 @@ object GlobalDefinitionsTool {
     peregrine_dual_machine_gun_left.FireModes.head.AmmoTypeIndices += 0
     peregrine_dual_machine_gun_left.FireModes.head.AmmoSlotIndex = 0
     peregrine_dual_machine_gun_left.FireModes.head.Magazine = 55
-    peregrine_dual_machine_gun_left.Packet = battleFrameToolConverter
+    peregrine_dual_machine_gun_left.Packet = BattleFrameToolConverter
     peregrine_dual_machine_gun_left.Tile = InventoryTile.Tile84
 
     peregrine_dual_machine_gun_right.Name = "peregrine_dual_machine_gun_right"
@@ -2016,7 +2015,7 @@ object GlobalDefinitionsTool {
     peregrine_dual_machine_gun_right.FireModes.head.AmmoTypeIndices += 0
     peregrine_dual_machine_gun_right.FireModes.head.AmmoSlotIndex = 0
     peregrine_dual_machine_gun_right.FireModes.head.Magazine = 55
-    peregrine_dual_machine_gun_right.Packet = battleFrameToolConverter
+    peregrine_dual_machine_gun_right.Packet = BattleFrameToolConverter
     peregrine_dual_machine_gun_right.Tile = InventoryTile.Tile84
 
     peregrine_mechhammer.Name = "peregrine_mechhammer"
@@ -2033,7 +2032,7 @@ object GlobalDefinitionsTool {
     peregrine_mechhammer.FireModes(1).AmmoSlotIndex = 0
     peregrine_mechhammer.FireModes(1).Magazine = 30
     peregrine_mechhammer.FireModes(1).Chamber = 12 //30 shells * 12 pellets = 360
-    peregrine_mechhammer.Packet = battleFrameToolConverter
+    peregrine_mechhammer.Packet = BattleFrameToolConverter
     peregrine_mechhammer.Tile = InventoryTile.Tile84
 
     peregrine_mechhammer_left.Name = "peregrine_mechhammer_left"
@@ -2050,7 +2049,7 @@ object GlobalDefinitionsTool {
     peregrine_mechhammer_left.FireModes(1).AmmoSlotIndex = 0
     peregrine_mechhammer_left.FireModes(1).Magazine = 30
     peregrine_mechhammer_left.FireModes(1).Chamber = 12 //30 shells * 12 pellets = 360
-    peregrine_mechhammer_left.Packet = battleFrameToolConverter
+    peregrine_mechhammer_left.Packet = BattleFrameToolConverter
     peregrine_mechhammer_left.Tile = InventoryTile.Tile84
 
     peregrine_mechhammer_right.Name = "peregrine_mechhammer_right"
@@ -2067,7 +2066,7 @@ object GlobalDefinitionsTool {
     peregrine_mechhammer_right.FireModes(1).AmmoSlotIndex = 0
     peregrine_mechhammer_right.FireModes(1).Magazine = 30
     peregrine_mechhammer_right.FireModes(1).Chamber = 12 //30 shells * 12 pellets = 360
-    peregrine_mechhammer_right.Packet = battleFrameToolConverter
+    peregrine_mechhammer_right.Packet = BattleFrameToolConverter
     peregrine_mechhammer_right.Tile = InventoryTile.Tile84
 
     peregrine_ntu_siphon.Name = "peregrine_ntu_siphon"
@@ -2089,7 +2088,7 @@ object GlobalDefinitionsTool {
     peregrine_ntu_siphon.FireModes(1).Magazine = 150
     peregrine_ntu_siphon.FireModes(1).DefaultMagazine = 0
     peregrine_ntu_siphon.FireModes(1).AmmoSlotIndex = 0
-    peregrine_ntu_siphon.Packet = battleFrameToolConverter
+    peregrine_ntu_siphon.Packet = BattleFrameToolConverter
     peregrine_ntu_siphon.Tile = InventoryTile.Tile84
 
     peregrine_ntu_siphon_left.Name = "peregrine_ntu_siphon_left"
@@ -2111,7 +2110,7 @@ object GlobalDefinitionsTool {
     peregrine_ntu_siphon_left.FireModes(1).Magazine = 150
     peregrine_ntu_siphon_left.FireModes(1).DefaultMagazine = 0
     peregrine_ntu_siphon_left.FireModes(1).AmmoSlotIndex = 0
-    peregrine_ntu_siphon_left.Packet = battleFrameToolConverter
+    peregrine_ntu_siphon_left.Packet = BattleFrameToolConverter
     peregrine_ntu_siphon_left.Tile = InventoryTile.Tile84
 
     peregrine_ntu_siphon_right.Name = "peregrine_ntu_siphon_right"
@@ -2133,7 +2132,7 @@ object GlobalDefinitionsTool {
     peregrine_ntu_siphon_right.FireModes(1).Magazine = 150
     peregrine_ntu_siphon_right.FireModes(1).DefaultMagazine = 0
     peregrine_ntu_siphon_right.FireModes(1).AmmoSlotIndex = 0
-    peregrine_ntu_siphon_right.Packet = battleFrameToolConverter
+    peregrine_ntu_siphon_right.Packet = BattleFrameToolConverter
     peregrine_ntu_siphon_right.Tile = InventoryTile.Tile84
 
     peregrine_sparrow.Name = "peregrine_sparrow"
@@ -2144,7 +2143,7 @@ object GlobalDefinitionsTool {
     peregrine_sparrow.FireModes.head.AmmoTypeIndices += 0
     peregrine_sparrow.FireModes.head.AmmoSlotIndex = 0
     peregrine_sparrow.FireModes.head.Magazine = 12
-    peregrine_sparrow.Packet = battleFrameToolConverter
+    peregrine_sparrow.Packet = BattleFrameToolConverter
     peregrine_sparrow.Tile = InventoryTile.Tile84
 
     peregrine_sparrow_left.Name = "peregrine_sparrow_left"
@@ -2155,7 +2154,7 @@ object GlobalDefinitionsTool {
     peregrine_sparrow_left.FireModes.head.AmmoTypeIndices += 0
     peregrine_sparrow_left.FireModes.head.AmmoSlotIndex = 0
     peregrine_sparrow_left.FireModes.head.Magazine = 12
-    peregrine_sparrow_left.Packet = battleFrameToolConverter
+    peregrine_sparrow_left.Packet = BattleFrameToolConverter
     peregrine_sparrow_left.Tile = InventoryTile.Tile84
 
     peregrine_sparrow_right.Name = "peregrine_sparrow_right"
@@ -2166,7 +2165,7 @@ object GlobalDefinitionsTool {
     peregrine_sparrow_right.FireModes.head.AmmoTypeIndices += 0
     peregrine_sparrow_right.FireModes.head.AmmoSlotIndex = 0
     peregrine_sparrow_right.FireModes.head.Magazine = 12
-    peregrine_sparrow_right.Packet = battleFrameToolConverter
+    peregrine_sparrow_right.Packet = BattleFrameToolConverter
     peregrine_sparrow_right.Tile = InventoryTile.Tile84
 
     peregrine_particle_cannon.Name = "peregrine_particle_cannon"
@@ -2177,7 +2176,7 @@ object GlobalDefinitionsTool {
     peregrine_particle_cannon.FireModes.head.AmmoTypeIndices += 0
     peregrine_particle_cannon.FireModes.head.AmmoSlotIndex = 0
     peregrine_particle_cannon.FireModes.head.Magazine = 10
-    peregrine_particle_cannon.Packet = battleFrameToolConverter
+    peregrine_particle_cannon.Packet = BattleFrameToolConverter
     peregrine_particle_cannon.Tile = InventoryTile.Tile1004
 
     peregrine_dual_rocket_pods.Name = "peregrine_dual_rocket_pods"
@@ -2192,7 +2191,7 @@ object GlobalDefinitionsTool {
     peregrine_dual_rocket_pods.FireModes(1).AmmoTypeIndices += 0
     peregrine_dual_rocket_pods.FireModes(1).AmmoSlotIndex = 0
     peregrine_dual_rocket_pods.FireModes(1).Magazine = 24
-    peregrine_dual_rocket_pods.Packet = battleFrameToolConverter
+    peregrine_dual_rocket_pods.Packet = BattleFrameToolConverter
     peregrine_dual_rocket_pods.Tile = InventoryTile.Tile1004
   }
 }

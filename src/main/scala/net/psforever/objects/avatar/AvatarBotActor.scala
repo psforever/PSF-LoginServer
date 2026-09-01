@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, Damageable, DamageableEntity}
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.zones._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.objects.serverobject.environment.interaction.RespondsToZoneEnvironment
@@ -20,6 +20,7 @@ import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.{HealFromEquipment, RepairFromEquipment}
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.packet.game.packets.{AggravatedDamageMessage, DestroyMessage, RepairMessage, TriggerBotAction}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 

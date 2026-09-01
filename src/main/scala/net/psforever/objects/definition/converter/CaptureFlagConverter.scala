@@ -1,27 +1,30 @@
 package net.psforever.objects.definition.converter
 
+import net.psforever.objects.Default
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.packet.game.objectcreate.{CaptureFlagData, PlacementData}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.packet.game.objectcreate.{CaptureFlagData, CommonFieldData, CommonFieldDataWithPlacement, PlacementData}
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.util.{Success, Try}
 
-class CaptureFlagConverter extends ObjectCreateConverter[CaptureFlag]() {
+object CaptureFlagConverter extends ObjectCreateConverter[CaptureFlag] {
   override def ConstructorData(obj : CaptureFlag) : Try[CaptureFlagData] = {
     val hackInfo = obj.Owner.asInstanceOf[Building].CaptureTerminal.get.HackedBy match {
       case Some(hackInfo) => hackInfo
-      case _ => Hackable.HackInfo(PlayerSource("", PlanetSideEmpire.NEUTRAL, Vector3.Zero), PlanetSideGUID(0), 0L, 0L, obj.Faction)
+      case _ => Hackable.HackInfo(PlayerSource("", PlanetSideEmpire.NEUTRAL, Vector3.Zero), Default.GUID0, 0L, 0L, obj.Faction)
     }
 
     val millisecondsRemaining = math.max(0, hackInfo.hackStartTime + hackInfo.hackDuration - System.currentTimeMillis())
 
     Success(
       CaptureFlagData(
-        new PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-        obj.Faction,
+        CommonFieldDataWithPlacement(
+          PlacementData(obj.Position, obj.Orientation, None),
+          CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid = Default.GUID0)
+        ),
         obj.Owner.asInstanceOf[Building].GUID.guid,
         obj.Target.GUID.guid,
         millisecondsRemaining

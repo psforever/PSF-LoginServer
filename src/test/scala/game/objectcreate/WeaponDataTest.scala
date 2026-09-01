@@ -2,7 +2,7 @@
 package game.objectcreate
 
 import net.psforever.packet.PacketCoding
-import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.packets.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import org.specs2.mutable._
@@ -27,10 +27,9 @@ class WeaponDataTest extends Specification {
           parent.get.slot mustEqual 3
           data match {
             case WeaponData(
-                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                   fmode,
-                  List(ammo),
-                  _
+                  List(ammo)
                 ) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
@@ -38,7 +37,6 @@ class WeaponDataTest extends Specification {
               wv1 mustEqual true
               wv2.isEmpty mustEqual true
               wv3 mustEqual false
-              wv4.isEmpty mustEqual true
               wv5.isEmpty mustEqual true
               wfguid mustEqual PlanetSideGUID(0)
 
@@ -48,14 +46,13 @@ class WeaponDataTest extends Specification {
               ammo.guid mustEqual PlanetSideGUID(3548)
               ammo.parentSlot mustEqual 0
               ammo.obj match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.NEUTRAL
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -80,10 +77,9 @@ class WeaponDataTest extends Specification {
           parent.get.slot mustEqual 3
           data match {
             case WeaponData(
-                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                   fmode,
-                  ammo,
-                  _
+                  ammo
                 ) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
@@ -91,7 +87,6 @@ class WeaponDataTest extends Specification {
               wv1 mustEqual true
               wv2.isEmpty mustEqual true
               wv3 mustEqual false
-              wv4.isEmpty mustEqual true
               wv5.isEmpty mustEqual true
               wfguid mustEqual PlanetSideGUID(0)
 
@@ -101,14 +96,13 @@ class WeaponDataTest extends Specification {
               ammo.head.guid mustEqual PlanetSideGUID(3918)
               ammo.head.parentSlot mustEqual 0
               ammo.head.obj match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.NEUTRAL
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -120,14 +114,13 @@ class WeaponDataTest extends Specification {
               ammo(1).guid mustEqual PlanetSideGUID(3941)
               ammo(1).parentSlot mustEqual 1
               ammo(1).obj match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.NEUTRAL
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -158,10 +151,9 @@ class WeaponDataTest extends Specification {
           drop.pos.orient.z mustEqual 0f
           drop.obj match {
             case WeaponData(
-                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                   fmode,
-                  List(ammo),
-                  _
+                  List(ammo)
                 ) =>
               wfaction mustEqual PlanetSideEmpire.VS
               wbops mustEqual false
@@ -169,7 +161,6 @@ class WeaponDataTest extends Specification {
               wv1 mustEqual false
               wv2.isEmpty mustEqual true
               wv3 mustEqual false
-              wv4.isEmpty mustEqual true
               wv5.isEmpty mustEqual true
               wfguid mustEqual PlanetSideGUID(0)
 
@@ -179,14 +170,13 @@ class WeaponDataTest extends Specification {
               ammo.guid mustEqual PlanetSideGUID(3268)
               ammo.parentSlot mustEqual 0
               ammo.obj match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.NEUTRAL
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual false
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -217,10 +207,9 @@ class WeaponDataTest extends Specification {
           drop.pos.orient.z mustEqual 306.5625f
           drop.obj match {
             case WeaponData(
-                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                   fmode,
-                  ammo,
-                  _
+                  ammo
                 ) =>
               wfaction mustEqual PlanetSideEmpire.NC
               wbops mustEqual false
@@ -228,7 +217,6 @@ class WeaponDataTest extends Specification {
               wv1 mustEqual false
               wv2.isEmpty mustEqual true
               wv3 mustEqual false
-              wv4.isEmpty mustEqual true
               wv5.isEmpty mustEqual true
               wfguid mustEqual PlanetSideGUID(0)
 
@@ -238,14 +226,13 @@ class WeaponDataTest extends Specification {
               ammo.head.guid mustEqual PlanetSideGUID(3528)
               ammo.head.parentSlot mustEqual 0
               ammo.head.obj match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.NEUTRAL
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual false
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -257,14 +244,13 @@ class WeaponDataTest extends Specification {
               ammo(1).guid mustEqual PlanetSideGUID(3031)
               ammo(1).parentSlot mustEqual 1
               ammo(1).obj match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.NEUTRAL
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual false
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -280,14 +266,14 @@ class WeaponDataTest extends Specification {
 
     "encode (lasher, held)" in {
       val obj = WeaponData(
-        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
         0,
         List(
           InternalSlot(
             ObjectClass.energy_cell,
             PlanetSideGUID(3548),
             0,
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
           )
         )
       )
@@ -304,20 +290,20 @@ class WeaponDataTest extends Specification {
     "encode (punisher, held)" in {
       val obj =
         WeaponData(
-          CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+          CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0)),
           0,
           List(
             AmmoBoxData(
               ObjectClass.bullet_9mm,
               PlanetSideGUID(3918),
               0,
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
             ),
             AmmoBoxData(
               ObjectClass.rocket,
               PlanetSideGUID(3941),
               1,
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
             )
           )
         )
@@ -335,11 +321,13 @@ class WeaponDataTest extends Specification {
       val obj = DroppedItemData(
         PlacementData(4691.1953f, 5537.039f, 65.484375f, 0.0f, 0.0f, 0.0f),
         WeaponData(
-          CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, None, None, PlanetSideGUID(0)),
+          CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, None, PlanetSideGUID(0)),
           0,
-          List(InternalSlot(ObjectClass.energy_cell, PlanetSideGUID(3268), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 0)(false)))
+          List(InternalSlot(ObjectClass.energy_cell, PlanetSideGUID(3268), 0,
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = false, v5 = None, guid = PlanetSideGUID(0))
+          )
         )
-      )
+      ))
       val msg = ObjectCreateMessage(ObjectClass.lasher, PlanetSideGUID(3074), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
       pkt mustEqual string_lasher_dropped
@@ -349,11 +337,19 @@ class WeaponDataTest extends Specification {
       val obj = DroppedItemData(
         PlacementData(4789.133f, 5522.3125f, 72.3125f, 0f, 0f, 306.5625f),
         WeaponData(
-          CommonFieldData(PlanetSideEmpire.NC, false, false, false, None, false, None, None, PlanetSideGUID(0)),
+          CommonFieldData(PlanetSideEmpire.NC, false, false, false, None, false, None, PlanetSideGUID(0)),
           0,
           List(
-            AmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(3528), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 0)(false)),
-            AmmoBoxData(ObjectClass.rocket, PlanetSideGUID(3031), 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 0)(false))
+            AmmoBoxData(
+              ObjectClass.bullet_9mm,
+              PlanetSideGUID(3528), 0,
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
+            ),
+            AmmoBoxData(
+              ObjectClass.rocket,
+              PlanetSideGUID(3031), 1,
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
+            )
           )
         )
       )

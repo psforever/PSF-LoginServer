@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
-import net.psforever.packet.game.{ChatMsg, ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
+import net.psforever.packet.game.packets.{ChatMsg, ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
 import net.psforever.services.base.CachedEnvelope
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.vehicle.VehicleAction
@@ -276,7 +276,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
 
   /* messages */
 
-  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
+  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit = {
     if (state == DriveState.Deploying) {
       log.trace(s"DeployRequest: $obj transitioning to deploy state")
     } else if (state == DriveState.Deployed) {
@@ -287,7 +287,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     }
   }
 
-  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
+  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit = {
     if (state == DriveState.Undeploying) {
       log.trace(s"DeployRequest: $obj transitioning to undeploy state")
     } else if (state == DriveState.Mobile) {
@@ -298,7 +298,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     }
   }
 
-  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState.Value, reason: String): Unit = {
+  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState, reason: String): Unit = {
     if (Deployment.CheckForDeployState(state) && !Deployment.AngleCheck(obj)) {
       CanNotChangeDeployment(obj, state, reason = "ground too steep")
     } else {
@@ -316,7 +316,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
    */
   private def CanNotChangeDeployment(
                                       obj: PlanetSideServerObject with Deployment,
-                                      state: DriveState.Value,
+                                      state: DriveState,
                                       reason: String
                                     ): Unit = {
     val mobileShift: String = if (obj.DeploymentState != DriveState.Mobile) {

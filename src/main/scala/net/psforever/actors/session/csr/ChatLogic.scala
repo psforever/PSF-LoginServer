@@ -14,7 +14,7 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
+import net.psforever.packet.game.packets.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}

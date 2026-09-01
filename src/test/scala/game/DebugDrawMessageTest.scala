@@ -2,7 +2,7 @@
 package game
 
 import net.psforever.packet.PacketCoding
-import net.psforever.packet.game.DebugDrawMessage
+import net.psforever.packet.game.packets.DebugDrawMessage
 import net.psforever.types.Vector3
 import org.specs2.mutable.Specification
 import scodec.bits._

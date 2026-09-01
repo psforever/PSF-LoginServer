@@ -11,7 +11,6 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.blockmap.BlockMapEntity
-import net.psforever.packet.game.{Additional3, BuildingInfoUpdateMessage, DensityLevelUpdateMessage}
 import net.psforever.types._
 import scalax.collection.{Graph, GraphEdge}
 import akka.actor.typed.scaladsl.adapter._
@@ -19,6 +18,7 @@ import net.psforever.objects.serverobject.dome.ForceDomePhysics
 import net.psforever.objects.serverobject.llu.{CaptureFlag, CaptureFlagSocket}
 import net.psforever.objects.serverobject.structures.participation.{MajorFacilityHackParticipation, NoParticipation, ParticipationLogic, TowerHackParticipation}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
+import net.psforever.packet.game.packets.{Additional3, BuildingInfoUpdateMessage, DensityLevelUpdateMessage}
 import net.psforever.util.Config
 
 class Building(
@@ -433,7 +433,7 @@ object Building {
     new Building(name = "", 0, map_id = 0, Zone.Nowhere, StructureType.Platform, GlobalDefinitions.building) {
       override def Faction_=(faction: PlanetSideEmpire.Value): PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
       override def Amenities_=(obj: Amenity): List[Amenity]                           = Nil
-      GUID = net.psforever.types.PlanetSideGUID(0)
+      GUID = net.psforever.objects.Default.GUID0
     }
 
   def apply(name: String, guid: Int, map_id: Int, zone: Zone, buildingType: StructureType): Building = {

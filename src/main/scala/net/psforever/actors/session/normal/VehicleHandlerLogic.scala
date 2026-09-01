@@ -6,14 +6,14 @@ import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, SessionVehicleHandlers, VehicleHandlerFunctions}
 import net.psforever.objects.avatar.SpecialCarry
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle, Vehicles}
+import net.psforever.objects.{Default, GlobalDefinitions, Player, Vehicle, Vehicles}
 import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.interior.Sidedness.OutsideOf
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.packet.game.packets.{ChatMsg, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ServerVehicleOverrideMsg, VehicleStateMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.packet.game.{ChatMsg, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ServerVehicleOverrideMsg, VehicleStateMessage}
 import net.psforever.services.Service
 import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.services.local.support.CaptureFlagManager
@@ -215,7 +215,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       val resp = GenericResponseEnvelope(
         VehicleStamp,
         "",
-        PlanetSideGUID(0),
+        Default.GUID0,
         VehicleAction.KickCargo(vehicle, speed=0, delay)
       )
       context.system.scheduler.scheduleOnce(delay milliseconds, context.self, resp)

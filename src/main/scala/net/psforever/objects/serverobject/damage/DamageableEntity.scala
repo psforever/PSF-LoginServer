@@ -127,7 +127,7 @@ trait DamageableEntity extends Damageable {
 }
 
 object DamageableEntity {
-  def attributionTo(cause: DamageResult, zone: Zone, default: PlanetSideGUID = PlanetSideGUID(0)): PlanetSideGUID = {
+  def attributionTo(cause: DamageResult, zone: Zone, default: PlanetSideGUID = Default.GUID0): PlanetSideGUID = {
     (cause.adversarial match {
       case Some(adversarial) => zone.LivePlayers.find { p => adversarial.attacker.Name.equals(p.Name) }
       case None              => None

@@ -33,7 +33,7 @@ import net.psforever.objects.vital.{DamagingActivity, DismountingActivity, InGam
 import net.psforever.objects.zones._
 import net.psforever.objects.zones.interaction.IndependentZoneInteraction
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets.{DismountVehicleCargoMsg, HackState1, ItemTransactionMessage, ObjectAttachMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
@@ -683,7 +683,7 @@ class VehicleControl(vehicle: Vehicle)
     val vguid = vehicle.GUID
     val (dname, dguid) = other match {
       case Some(p: Player) => (p.Name, p.GUID)
-      case _               => (vehicle.OwnerName.getOrElse("The driver"), PlanetSideGUID(0))
+      case _               => (vehicle.OwnerName.getOrElse("The driver"), Default.GUID0)
     }
     val zone = vehicle.Zone
     if (9 < attribute && attribute < 14) {

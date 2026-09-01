@@ -12,14 +12,12 @@ import net.psforever.objects.vital.VitalityDefinition
   */
 class AvatarDefinition(objectId: Int) extends ObjectDefinition(objectId) with VitalityDefinition {
   Avatars(objectId) //let throw NoSuchElementException
-  Packet = AvatarDefinition.converter
+  Packet = AvatarConverter
   Geometry = GeometryForm.representPlayerByCylinder(radius = 1.6f)
   registerAs = "players"
 }
 
 object AvatarDefinition {
-  private val converter = new AvatarConverter()
-
   def apply(objectId: Int): AvatarDefinition = {
     new AvatarDefinition(objectId)
   }

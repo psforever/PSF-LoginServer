@@ -21,8 +21,8 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles.control.{CargoBehavior, CarrierBehavior}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
 import net.psforever.objects.zones.blockmap.BlockMapEntity
-import net.psforever.packet.game.GenericAction.FirstPersonViewWithEffect
-import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TrainingZoneMessage, TriggeredSound, WeatherMessage}
+import net.psforever.packet.game.packets.GenericAction.FirstPersonViewWithEffect
+import net.psforever.packet.game.packets.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, CreateShortcutMessage, DeployableInfo, Friend, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TrainingZoneMessage, TriggeredSound, WeatherMessage}
 import net.psforever.services.avatar.support.{CorpseEnvelope, ReleaseEnvelope}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse}
@@ -58,13 +58,10 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.objects._
-import net.psforever.packet.game.{AvatarAwardMessage, AvatarSearchCriteriaMessage, AvatarStatisticsMessage, AwardCompletion, BindPlayerMessage, BindStatus, CargoMountPointStatusMessage, ChangeShortcutBankMessage, ChatChannel, CreateShortcutMessage, DroppodFreefallingMessage, LoadMapMessage, ObjectCreateDetailedMessage, ObjectDeleteMessage, PlayerStateShiftMessage, SetChatFilterMessage, SetCurrentAvatarMessage, ShiftState}
-import net.psforever.packet.game.{AvatarDeadStateMessage, BroadcastWarpgateUpdateMessage, ChatMsg, ContinentalLockUpdateMessage, DeadState, DensityLevelUpdateMessage, DeployRequestMessage, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, ObjectAttachMessage, ObjectCreateMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PropertyOverrideMessage, ReplicationStreamMessage, SetEmpireMessage, TimeOfDayMessage, TriggerEffectMessage, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
-import net.psforever.packet.game.{BeginZoningMessage, DroppodLaunchRequestMessage, ReleaseAvatarRequestMessage, SpawnRequestMessage, WarpgateRequest}
-import net.psforever.packet.game.DeathStatistic
+import net.psforever.packet.game.packets.{AvatarAwardMessage, AvatarDeadStateMessage, AvatarSearchCriteriaMessage, AvatarStatisticsMessage, AwardCompletion, BeginZoningMessage, BindPlayerMessage, BindStatus, BroadcastWarpgateUpdateMessage, CargoMountPointStatusMessage, ChangeShortcutBankMessage, ChatChannel, ChatMsg, ContinentalLockUpdateMessage, DeadState, DeathStatistic, DensityLevelUpdateMessage, DeployRequestMessage, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodFreefallingMessage, DroppodLaunchRequestMessage, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, LoadMapMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PlayerStateShiftMessage, PropertyOverrideMessage, ReleaseAvatarRequestMessage, ReplicationStreamMessage, SetChatFilterMessage, SetCurrentAvatarMessage, SetEmpireMessage, ShiftState, SpawnRequestMessage, TimeOfDayMessage, TriggerEffectMessage, WarpgateRequest, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
 import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.packet.{PlanetSideGamePacket, game}
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.persistence.Savedplayer
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
 import net.psforever.services.account.{AccountPersistenceService, PlayerToken}
@@ -316,7 +313,7 @@ class ZoningOperations(
 
     //custom
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
-    sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
+    sendResponse(PlanetsideAttributeMessage(Default.GUID0, 112, 0)) // disable festive backpacks
 
     val deployables = continent.DeployableList
     reclaimOurDeployables(deployables, name, manageDeployablesWith(player.GUID, avatar.deployables))
@@ -602,7 +599,7 @@ class ZoningOperations(
     galaxyService.tell(MessageEnvelope("", GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     //PropertyOverrideMessage
     ServiceManager.serviceManager ! Lookup("propertyOverrideManager")
-    sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
+    sendResponse(PlanetsideAttributeMessage(Default.GUID0, 112, 0)) // disable festive backpacks
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
     spawn.initializeFriendsAndIgnoredLists()
     //the following subscriptions last until character switch/logout
@@ -1607,7 +1604,7 @@ class ZoningOperations(
     sessionLogic.terminals.CancelAllProximityUnits()
     //droppod action
     val droppod = Vehicle(GlobalDefinitions.droppod)
-    droppod.GUID = PlanetSideGUID(0) //droppod is not registered, we must jury-rig this
+    droppod.GUID = Default.GUID0 //droppod is not registered, we must jury-rig this
     droppod.Faction = player.Faction
     droppod.Position = spawnPosition.xy + Vector3.z(1024)
     droppod.Orientation = Vector3.z(180) //you always seems to land looking south; don't know why
@@ -1615,7 +1612,7 @@ class ZoningOperations(
     droppod.Invalidate() //now, we must short-circuit the jury-rig
     interstellarFerry = Some(droppod) //leverage vehicle gating
     player.Position = droppod.Position
-    player.VehicleSeated = PlanetSideGUID(0)
+    player.VehicleSeated = Default.GUID0
     spawn.LoadZonePhysicalSpawnPoint(zone.id, droppod.Position, Vector3.Zero, 0 seconds, None)
   }
 
@@ -2625,7 +2622,7 @@ class ZoningOperations(
           player.VehicleSeated = vguid
           if (Vehicles.AllGatedOccupantsInSameZone(vehicle)) {
             //do not dispatch delete action if any hierarchical occupant has not gotten this far through the summoning process
-            val vehicleToDelete = interstellarFerryTopLevelGUID.orElse(originalSeated).getOrElse(PlanetSideGUID(0))
+            val vehicleToDelete = interstellarFerryTopLevelGUID.orElse(originalSeated).getOrElse(Default.GUID0)
             val zone            = vehicle.PreviousGatingManifest().get.origin
             zone.VehicleEvents ! MessageEnvelope(
               zone.id,
@@ -2962,7 +2959,7 @@ class ZoningOperations(
         ObjectCreateDetailedMessage(
           ObjectClass.avatar,
           guid,
-          CorpseConverter.converter.DetailedConstructorData(tplayer).get
+          CorpseConverter.DetailedConstructorData(tplayer).get
         )
       )
     }
@@ -3318,7 +3315,7 @@ class ZoningOperations(
       val tavatar = tplayer.avatar
       val guid = tplayer.GUID
       sessionLogic.general.updateDeployableUIElements(Deployables.InitializeDeployableUIElements(tavatar))
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
+      sendResponse(PlanetsideAttributeMessage(Default.GUID0, 75, 0))
       sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, wideContents=true, "", "1 on", None)) //CC on //TODO once per respawn?
       val pos = tplayer.Position = shiftPosition.getOrElse(tplayer.Position)
@@ -3334,7 +3331,7 @@ class ZoningOperations(
       avatarActor ! AvatarActor.SoftResetImplants
       val originalDeadState = deadState
       deadState = DeadState.Alive
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
+      sendResponse(PlanetsideAttributeMessage(Default.GUID0, 82, 0))
       initializeShortcutsAndBank(guid, tavatar.shortcuts)
       //Favorites lists
       avatarActor ! AvatarActor.InitialRefreshLoadouts()
@@ -3562,13 +3559,13 @@ class ZoningOperations(
           MemberAction.InitializeFriendList,
           avatar.people.friend
             .map { f =>
-              game.Friend(f.name, AvatarActor.onlineIfNotIgnoredEitherWay(avatar, f.name))
+              Friend(f.name, AvatarActor.onlineIfNotIgnoredEitherWay(avatar, f.name))
             }
         ) ++
           //ignored list (no one ever online)
           FriendsResponse.packetSequence(
             MemberAction.InitializeIgnoreList,
-            avatar.people.ignored.map { f => game.Friend(f.name) }
+            avatar.people.ignored.map { f => Friend(f.name) }
           )
         ).foreach {
         sendResponse
@@ -3623,7 +3620,7 @@ class ZoningOperations(
         obj.GUID,
         Deployable.Icon(obj.Definition.Item),
         obj.Position,
-        obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
+        obj.OwnerGuid.getOrElse(Default.GUID0)
       )
       sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
     }

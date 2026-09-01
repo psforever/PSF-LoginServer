@@ -276,21 +276,40 @@ object Sector {
   * @param amenityList the structures within the structures
   * @param environmentList fields that represent the game world environment
   */
+/**
+  * The entity lists are declared by-name and retained as `lazy val`s, so each category is
+  * condensed on first access and memoized thereafter.
+  * A sector group frequently spans a great many sectors while callers usually consult only one or
+  * two of the ten categories, and the group is rebuilt on hot paths such as the per-movement-packet
+  * local sector refresh, so condensing a category only when it is read keeps that cost proportional
+  * to what is actually used.
+  */
 class SectorGroup(
                    val rangeX: Float,
                    val rangeY: Float,
-                   val livePlayerList: List[Player],
-                   val botList: List[AvatarBot],
-                   val corpseList: List[Player],
-                   val vehicleList: List[Vehicle],
-                   val equipmentOnGroundList: List[Equipment],
-                   val deployableList: List[Deployable],
-                   val buildingList: List[Building],
-                   val amenityList: List[Amenity],
-                   val environmentList: List[PieceOfEnvironment],
-                   val projectileList: List[Projectile]
+                   livePlayers: => List[Player],
+                   bots: => List[AvatarBot],
+                   corpses: => List[Player],
+                   vehicles: => List[Vehicle],
+                   equipmentOnGround: => List[Equipment],
+                   deployables: => List[Deployable],
+                   buildings: => List[Building],
+                   amenities: => List[Amenity],
+                   environment: => List[PieceOfEnvironment],
+                   projectiles: => List[Projectile]
                  )
-  extends SectorPopulation
+  extends SectorPopulation {
+  lazy val livePlayerList: List[Player] = livePlayers
+  lazy val botList: List[AvatarBot] = bots
+  lazy val corpseList: List[Player] = corpses
+  lazy val vehicleList: List[Vehicle] = vehicles
+  lazy val equipmentOnGroundList: List[Equipment] = equipmentOnGround
+  lazy val deployableList: List[Deployable] = deployables
+  lazy val buildingList: List[Building] = buildings
+  lazy val amenityList: List[Amenity] = amenities
+  lazy val environmentList: List[PieceOfEnvironment] = environment
+  lazy val projectileList: List[Projectile] = projectiles
+}
 
 object SectorGroup {
   /** cached sector of no range and no entity coverage */

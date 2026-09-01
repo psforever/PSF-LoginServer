@@ -2,39 +2,25 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
-import net.psforever.objects.{PlanetSideGameObject, Vehicle}
+import net.psforever.objects.{Default, PlanetSideGameObject, Vehicle}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{DriveState, PlanetSideGUID, VehicleFormat}
+import net.psforever.types.{DriveState, VehicleFormat}
 import net.psforever.zones.Zones
 
 import scala.util.{Failure, Success, Try}
 
-class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
+trait BasicVehicleConverter extends ObjectCreateConverter[Vehicle] {
   override def DetailedConstructorData(obj: Vehicle): Try[VehicleData] =
     Failure(new Exception("VehicleConverter should not be used to generate detailed VehicleData (nothing should)"))
 
   override def ConstructorData(obj: Vehicle): Try[VehicleData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
-    val boosted = if (Zones.zones.find(_.Number == 3).exists(_.benefitRecipient == obj.Faction)) true
-                  else false
+    val boosted = Zones.zones.find(_.Number == 3).exists(_.benefitRecipient == obj.Faction)
     if (health > 0) { //active
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-          CommonFieldData(
-            obj.Faction,
-            bops = false,
-            alternate = false,
-            v1 = false,
-            v2 = None,
-            jammered = obj.Jammed,
-            v4 = Some(false),
-            v5 = None,
-            obj.OwnerGuid match {
-              case Some(owner) => owner
-              case None        => PlanetSideGUID(0)
-            }
-          ),
+          CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = GetOwner(obj)),
           boostMaxHealth = boosted,
           health,
           unk4 = false,
@@ -51,17 +37,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
       Success(
         VehicleData(
           PlacementData(obj.Position, obj.Orientation),
-          CommonFieldData(
-            obj.Faction,
-            bops = false,
-            alternate = true,
-            v1 = false,
-            v2 = None,
-            jammered = obj.Jammed,
-            v4 = Some(false),
-            v5 = None,
-            guid = PlanetSideGUID(0)
-          ),
+          CommonFieldData(obj.Faction, bops = false, alternate = true, v1 = false, v2 = Some(CommonFieldDataExtra.Default), jammered = false, v5 = None, guid = Default.GUID0),
           boostMaxHealth = boosted,
           health = 0,
           unk4 = false,
@@ -108,7 +84,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
       .toList
   }
 
-  private def SterilizedDeploymentState(obj: Vehicle): DriveState.Value = {
+  private def SterilizedDeploymentState(obj: Vehicle): DriveState = {
     obj.DeploymentState match {
       case state if state.id < 0 => DriveState.Mobile
       case state => state
@@ -119,3 +95,5 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
 
   protected def SpecificFormatData(obj: Vehicle): Option[SpecificVehicleData] = None
 }
+
+object VehicleConverter extends BasicVehicleConverter

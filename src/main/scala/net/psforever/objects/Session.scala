@@ -2,7 +2,7 @@ package net.psforever.objects
 
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.zones.{Zone, Zoning}
-import net.psforever.packet.game.DeadState
+import net.psforever.packet.game.packets.DeadState
 
 case class Session(
     id: Long = 0,

@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects._
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets.{DeployableInfo, DeploymentAction}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SetEmpire
 import net.psforever.services.local.LocalAction

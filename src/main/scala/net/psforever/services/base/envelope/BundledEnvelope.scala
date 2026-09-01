@@ -35,7 +35,7 @@ case object NoResponse extends GenericResponseEnvelope {
  */
 final case class BundledEnvelope(msgs: Iterable[GenericMessageEnvelope])
   extends GenericMessageEnvelope {
-  assert(msgs.size == BundledEnvelope.unwind(msgs).size, "do not nest bundled event system envelopes")
+  assert(!msgs.exists(_.isInstanceOf[BundledEnvelope]), "do not nest bundled event system envelopes")
 
   override def msg: EventMessage = NoMessage
   override def response(stamp: EventSystemStamp): GenericResponseEnvelope = NoResponse
@@ -69,13 +69,13 @@ object BundledEnvelope {
   @tailrec
   private def unwind(in: Iterable[GenericMessageEnvelope], out: List[GenericMessageEnvelope] = Nil): List[GenericMessageEnvelope] = {
     if (in.isEmpty) {
-      out
+      out.reverse
     } else {
       in.head match {
         case bundle: BundledEnvelope =>
           unwind(bundle.msgs ++ in.tail, out)
         case first =>
-          unwind(in.tail, out :+ first)
+          unwind(in.tail, first :: out)
       }
     }
   }

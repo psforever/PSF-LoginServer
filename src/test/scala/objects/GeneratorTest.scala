@@ -21,7 +21,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.packet.game.{InventoryStateMessage, RepairMessage, TriggerEffectMessage}
+import net.psforever.packet.game.packets.{InventoryStateMessage, RepairMessage, TriggerEffectMessage}
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.services.avatar.AvatarAction

@@ -5,7 +5,7 @@ import akka.actor.Actor
 import net.psforever.objects.Player
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
-import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
+import net.psforever.packet.game.packets.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.services.base.envelope.MessageEnvelope

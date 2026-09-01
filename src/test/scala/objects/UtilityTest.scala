@@ -8,7 +8,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vehicles._
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 import net.psforever.types._
 import org.specs2.mutable._
 

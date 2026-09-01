@@ -8,9 +8,9 @@ import net.psforever.packet.game.objectcreate._
 object SeatConverter {
   def MakeSeat(player: Player, offset: Long): PlayerData = {
     MountableInventory.PlayerData(
-      AvatarConverter.MakeAppearanceData(player),
-      AvatarConverter.MakeCharacterData(player),
-      AvatarConverter.MakeInventoryData(player),
+      CharacterConverter.MakeAppearanceData(player),
+      CharacterConverter.MakeCharacterData(player),
+      CharacterConverter.MakeInventoryData(player),
       DrawnSlot.None,
       offset
     )

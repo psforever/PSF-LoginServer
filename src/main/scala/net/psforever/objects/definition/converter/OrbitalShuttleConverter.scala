@@ -6,7 +6,7 @@ import net.psforever.packet.game.objectcreate._
 
 import scala.util.{Failure, Success, Try}
 
-class OrbitalShuttleConverter extends ObjectCreateConverter[Vehicle]() {
+object OrbitalShuttleConverter extends ObjectCreateConverter[Vehicle] {
   override def ConstructorData(obj: Vehicle): Try[OrbitalShuttleData] = {
     Success(OrbitalShuttleData(obj.Faction, Some(PlacementData(obj.Position, obj.Orientation))))
   }

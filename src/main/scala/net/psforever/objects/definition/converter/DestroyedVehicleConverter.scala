@@ -6,7 +6,7 @@ import net.psforever.packet.game.objectcreate.{DestroyedVehicleData, PlacementDa
 
 import scala.util.{Failure, Success, Try}
 
-class DestroyedVehicleConverter extends ObjectCreateConverter[Vehicle]() {
+object DestroyedVehicleConverter extends ObjectCreateConverter[Vehicle]() {
   override def DetailedConstructorData(obj: Vehicle): Try[DestroyedVehicleData] =
     Failure(
       new Exception(
@@ -21,8 +21,4 @@ class DestroyedVehicleConverter extends ObjectCreateConverter[Vehicle]() {
       Success(DestroyedVehicleData(PlacementData(obj.Position, obj.Orientation)))
     }
   }
-}
-
-object DestroyedVehicleConverter {
-  final val converter = new DestroyedVehicleConverter
 }

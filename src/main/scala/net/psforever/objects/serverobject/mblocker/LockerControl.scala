@@ -6,10 +6,11 @@ import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
-import net.psforever.packet.game.HackState1
+import net.psforever.packet.game.packets.HackState1
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Locker`.
+ *
   * @param locker the `Locker` object being governed
   */
 class LockerControl(locker: Locker)

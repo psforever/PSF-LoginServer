@@ -5,7 +5,7 @@ import akka.actor.{ActorRef, Cancellable}
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.packet.game.HackState1
+import net.psforever.packet.game.packets.HackState1
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope}
@@ -26,7 +26,7 @@ import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableA
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.objects.vital.{HealFromTerminal, RepairFromTerminal, Vitality}
 import net.psforever.objects.zones.ZoneAware
-import net.psforever.packet.game.InventoryStateMessage
+import net.psforever.packet.game.packets.InventoryStateMessage
 import net.psforever.services.local.LocalAction
 
 /**

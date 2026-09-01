@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.{InGameActivity, InGameHistory}
 import net.psforever.objects.zones.exp.{ExperienceCalculator, SupportExperienceCalculator}
-import net.psforever.packet.game.{BuildingInfoUpdateMessage, PlanetsideAttributeMessage}
+import net.psforever.packet.game.packets.{BuildingInfoUpdateMessage, PlanetsideAttributeMessage}
 import net.psforever.util.Database._
 import net.psforever.persistence
 import net.psforever.services.base.envelope.MessageEnvelope

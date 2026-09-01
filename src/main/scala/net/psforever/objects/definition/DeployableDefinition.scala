@@ -10,6 +10,7 @@ import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.objects.vital.{CollisionXYData, NoResistanceSelection, VitalityDefinition}
 
+import scala.annotation.unused
 import scala.concurrent.duration._
 
 object DeployAnimation extends Enumeration {
@@ -43,7 +44,7 @@ trait BaseDeployableDefinition {
 
   def Initialize(obj: Deployable, context: ActorContext): Unit = {}
 
-  def Uninitialize(obj: Deployable, context: ActorContext): Unit = {
+  def Uninitialize(obj: Deployable, @unused context: ActorContext): Unit = {
     obj.Actor ! akka.actor.PoisonPill
     obj.Actor = Default.Actor
   }
@@ -58,7 +59,7 @@ abstract class DeployableDefinition(objectId: Int)
   private val item = DeployedItem(objectId) //let throw NoSuchElementException
   DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = NoResistanceSelection
-  Packet = new SmallDeployableConverter
+  Packet = SmallDeployableConverter
   registerAs = "deployables"
   collision.xy = new CollisionXYData(List((0f, 100)))
 

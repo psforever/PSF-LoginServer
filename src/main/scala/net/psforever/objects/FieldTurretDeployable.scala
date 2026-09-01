@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.turret.{MountableTurret, WeaponTurrets
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, TurretSource}
 import net.psforever.objects.vital.{DismountingActivity, InGameActivity, MountingActivity, ShieldCharge}
-import net.psforever.packet.game.HackState1
+import net.psforever.packet.game.packets.HackState1
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
 

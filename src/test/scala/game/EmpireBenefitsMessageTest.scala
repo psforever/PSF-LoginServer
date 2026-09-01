@@ -2,8 +2,8 @@
 package game
 
 import net.psforever.packet._
-import net.psforever.packet.game.EmpireBenefitsMessage
-import net.psforever.packet.game.EmpireBenefitsMessage.{ZoneBenefit, ZoneLock, ZoneLockBenefit, ZoneLockZone}
+import net.psforever.packet.game.packets.EmpireBenefitsMessage.{ZoneBenefit, ZoneLock, ZoneLockBenefit, ZoneLockZone}
+import net.psforever.packet.game.packets.EmpireBenefitsMessage
 import net.psforever.types.PlanetSideEmpire
 import org.specs2.mutable._
 import scodec.bits._

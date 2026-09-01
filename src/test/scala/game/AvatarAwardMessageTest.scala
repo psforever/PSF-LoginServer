@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{AvatarAwardMessage, AwardCompletion, AwardProgress, AwardQualificationProgress}
 import net.psforever.types.MeritCommendation
 import scodec.bits._
 

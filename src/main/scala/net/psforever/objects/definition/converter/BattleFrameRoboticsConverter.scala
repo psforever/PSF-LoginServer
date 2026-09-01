@@ -3,13 +3,13 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.vehicles.VehicleSubsystemEntry
-import net.psforever.objects.{PlanetSideGameObject, Vehicle}
-import net.psforever.types.{PlanetSideGUID, VehicleFormat}
+import net.psforever.objects.{Default, PlanetSideGameObject, Vehicle}
+import net.psforever.types.VehicleFormat
 import net.psforever.packet.game.objectcreate._
 
 import scala.util.{Failure, Success, Try}
 
-class BattleFrameRoboticsConverter extends ObjectCreateConverter[Vehicle]() {
+object BattleFrameRoboticsConverter extends ObjectCreateConverter[Vehicle] {
   override def DetailedConstructorData(obj: Vehicle): Try[BattleFrameRoboticsData] =
     Failure(new Exception("BattleFrameRoboticsConverter should not be used to generate detailed BattleFrameRoboticsData (nothing should)"))
 
@@ -19,20 +19,7 @@ class BattleFrameRoboticsConverter extends ObjectCreateConverter[Vehicle]() {
       Success(
         BattleFrameRoboticsData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-          CommonFieldData(
-            obj.Faction,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = obj.Jammed,
-            v4 = None,
-            v5 = None,
-            obj.OwnerGuid match {
-              case Some(owner) => owner
-              case None => PlanetSideGUID(0)
-            }
-          ),
+          CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = obj.Jammed, v5 = None, GetOwner(obj)),
           health,
           StatConverter.Health(obj.Shields, obj.MaxShields),
           unk1 = 0,
@@ -51,17 +38,7 @@ class BattleFrameRoboticsConverter extends ObjectCreateConverter[Vehicle]() {
       Success(
         BattleFrameRoboticsData(
           PlacementData(obj.Position, obj.Orientation),
-          CommonFieldData(
-            obj.Faction,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            guid = PlanetSideGUID(0)
-          ),
+          CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid = Default.GUID0),
           0,
           0,
           unk1 = 0,

@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable.Specification
 import net.psforever.packet.PacketCoding
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.PlanetsideAttributeMessage
 import net.psforever.types.PlanetSideGUID
 import scodec.bits._
 

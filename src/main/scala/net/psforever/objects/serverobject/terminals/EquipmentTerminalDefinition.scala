@@ -5,7 +5,7 @@ import net.psforever.objects._
 import net.psforever.objects.definition._
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.loadouts.Loadout
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 import net.psforever.types.ExoSuitType
 
 import scala.annotation.switch

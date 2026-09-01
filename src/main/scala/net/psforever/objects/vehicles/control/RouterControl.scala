@@ -21,7 +21,7 @@ class RouterControl(vehicle: Vehicle)
     * Activate the internal telepad mechanism.
     * @param state the deployment state
     */
-  override def specificResponseToDeployment(state: DriveState.Value): Unit = {
+  override def specificResponseToDeployment(state: DriveState): Unit = {
     state match {
       case DriveState.Deployed =>
         vehicle.Utility(UtilityType.internal_router_telepad_deployable).collect {
@@ -36,7 +36,7 @@ class RouterControl(vehicle: Vehicle)
     * Deactivate the internal telepad mechanism.
     * @param state the deployment state
     */
-  override def specificResponseToUndeployment(state: DriveState.Value): Unit = {
+  override def specificResponseToUndeployment(state: DriveState): Unit = {
     state match {
       case DriveState.Undeploying =>
         vehicle.Utility(UtilityType.internal_router_telepad_deployable).collect {

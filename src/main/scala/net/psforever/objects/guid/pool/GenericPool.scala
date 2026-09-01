@@ -82,7 +82,11 @@ object GenericPool {
     */
   def first(list: List[Long], domainSize: Int): Int = {
     if (list.size < domainSize) {
-      val sortedList: List[Long] = 0L +: list.sorted :+ domainSize
+      /* An Array, because the loop below indexes it by position and Array.apply is constant
+         time. That matters here more than elsewhere: this pool is the fallback for any
+         exhausted pool and receives every number in the hub, on the order of tens of
+         thousands, and the scan runs on the pool actor's thread while its mailbox waits. */
+      val sortedList: Array[Long] = (0L +: list.sorted :+ domainSize.toLong).toArray
       var index: Int = 0
       val listLen = sortedList.length - 1
       while(index < listLen && index < domainSize) {
@@ -112,7 +116,8 @@ object GenericPool {
   def rand(list: List[Long], domainSize: Int): Int = {
     if (list.size < domainSize) {
       //get a list of all assigned numbers with an appended min and max
-      val sortedList: List[Long] = -1L +: list.sorted :+ domainSize.toLong
+      //an Array for the same reason as in `first`: the loop below indexes it by position
+      val sortedList: Array[Long] = (-1L +: list.sorted :+ domainSize.toLong).toArray
       //compare the delta between every two entries and find the start of that greatest delta comparison
       var maxDelta: Long = -1
       var maxDeltaIndex  = -1

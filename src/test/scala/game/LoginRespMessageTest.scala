@@ -3,8 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
-import net.psforever.packet.game.LoginRespMessage._
+import net.psforever.packet.game.packets.LoginRespMessage._
+import net.psforever.packet.game.packets.LoginRespMessage
 import scodec.bits._
 
 class LoginRespMessageTest extends Specification {

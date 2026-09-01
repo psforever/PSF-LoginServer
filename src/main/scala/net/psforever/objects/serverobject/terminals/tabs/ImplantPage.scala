@@ -5,12 +5,13 @@ import akka.actor.ActorRef
 import net.psforever.objects.Player
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 
 /**
   * The tab used to select an implant to be utilized by the player.
   * A maximum of three implants can be obtained by any player at a time depending on the player's battle rank.
   * Only implants may be returned to the interface defined by this page.
+ *
   * @see `ImplantDefinition`
   * @param stock the key is always a `String` value as defined from `ItemTransationMessage` data;
   *              the value is a `CertificationType` value

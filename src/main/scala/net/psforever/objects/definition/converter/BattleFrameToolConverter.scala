@@ -1,13 +1,12 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.Tool
-import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedWeaponData, InternalSlot, WeaponData}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.objects.{Default, Tool}
+import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedWeaponData, InternalSlot, WeaponData}
 
 import scala.util.{Failure, Success, Try}
 
-class BattleFrameToolConverter extends ObjectCreateConverter[Tool]() {
+object BattleFrameToolConverter extends ObjectCreateConverter[Tool] {
   override def ConstructorData(obj: Tool): Try[WeaponData] = {
     val slots: List[InternalSlot] = (0 until obj.MaxAmmoSlot).map(index => {
       val box = obj.AmmoSlots(index).Box
@@ -15,17 +14,7 @@ class BattleFrameToolConverter extends ObjectCreateConverter[Tool]() {
     }).toList
     Success(
       WeaponData(
-        CommonFieldData(
-          obj.Faction,
-          bops = false,
-          alternate = false,
-          true,
-          None,
-          obj.Jammed,
-          Some(false),
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = obj.Jammed, v5 = None, guid = Default.GUID0),
         obj.FireModeIndex,
         slots
       )

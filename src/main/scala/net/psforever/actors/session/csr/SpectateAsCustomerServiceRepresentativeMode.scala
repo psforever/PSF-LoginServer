@@ -15,7 +15,7 @@ import net.psforever.services.teamwork.{SquadAction, SquadServiceMessage}
 import net.psforever.types.{ChatMessageType, SquadRequestType}
 //
 import net.psforever.actors.session.support.{ModeLogic, PlayerMode, SessionData}
-import net.psforever.packet.game.ChatMsg
+import net.psforever.packet.game.packets.ChatMsg
 
 class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
   val avatarResponse: AvatarHandlerFunctions = AvatarHandlerLogic(data.avatarResponse)

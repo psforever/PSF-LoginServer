@@ -6,7 +6,7 @@ import net.psforever.actors.session.SessionActor
 import net.psforever.actors.session.normal.NormalMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
-import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
+import net.psforever.packet.game.packets.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.chat.SpectatorChannel
 import net.psforever.types.ChatMessageType
 import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}

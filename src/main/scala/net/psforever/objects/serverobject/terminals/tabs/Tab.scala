@@ -4,10 +4,11 @@ package net.psforever.objects.serverobject.terminals.tabs
 import akka.actor.ActorRef
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 
 /**
   * A basic tab outlining the specific type of stock available from this part of the terminal's interface.
+ *
   * @see `ItemTransactionMessage`
   */
 trait Tab {

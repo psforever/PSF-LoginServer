@@ -8,7 +8,7 @@ import net.psforever.objects.{PlanetSideGameObject, Tool, Vehicle}
 import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.vehicles.control.CargoBehavior
 import net.psforever.objects.vital.InGameHistory
-import net.psforever.packet.game.{DismountVehicleCargoMsg, GenericObjectActionMessage, InventoryStateMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
+import net.psforever.packet.game.packets.{DismountVehicleCargoMsg, GenericObjectActionMessage, InventoryStateMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.services.base.CachedEnvelope
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
@@ -18,7 +18,7 @@ import net.psforever.types.{BailType, PlanetSideGUID, Vector3}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.packet.game.DismountVehicleMsg
+import net.psforever.packet.game.packets.DismountVehicleMsg
 
 import scala.concurrent.duration._
 

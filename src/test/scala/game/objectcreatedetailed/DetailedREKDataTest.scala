@@ -3,7 +3,7 @@ package game.objectcreatedetailed
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.ObjectCreateDetailedMessage
+import net.psforever.packet.game.packets.ObjectCreateDetailedMessage
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scodec.bits._
@@ -22,15 +22,14 @@ class DetailedREKDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(75)
           parent.get.slot mustEqual 1
           data match {
-            case DetailedREKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), unk) =>
+            case DetailedREKData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, fguid), unk) =>
               faction mustEqual PlanetSideEmpire.NC
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual true
-              v2.isEmpty mustEqual true
+              v2 must beSome(CommonFieldDataExtra.Default)
               v3 mustEqual false
-              v4.contains(false) mustEqual true
-              v5.isEmpty mustEqual true
+              v4.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
               unk mustEqual 0
             case _ =>
@@ -43,7 +42,7 @@ class DetailedREKDataTest extends Specification {
 
     "encode" in {
       val obj = DetailedREKData(
-        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
       )
       val msg = ObjectCreateDetailedMessage(
         ObjectClass.remote_electronics_kit,

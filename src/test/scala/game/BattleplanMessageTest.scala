@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.{packets, _}
+import net.psforever.packet.game.packets.{BattleDiagramAction, BattleplanMessage, DiagramActionCode, DrawString, Style, Vertex}
 import scodec.bits._
 
 class BattleplanMessageTest extends Specification {
@@ -264,7 +265,7 @@ class BattleplanMessageTest extends Specification {
   }
 
   "encode (line)" in {
-    val msg = BattleplanMessage(
+    val msg = packets.BattleplanMessage(
       41378949,
       "Outstabulous",
       10,
@@ -308,7 +309,7 @@ class BattleplanMessageTest extends Specification {
   }
 
   "encode (style)" in {
-    val msg = BattleplanMessage(
+    val msg = packets.BattleplanMessage(
       41378949,
       "Outstabulous",
       10,
