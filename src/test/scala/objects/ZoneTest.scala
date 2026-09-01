@@ -226,7 +226,7 @@ class ZonePopulationTest extends ActorTest {
       assert(zone.Players.isEmpty)
       assert(zone.LivePlayers.isEmpty)
       zone.Population ! Zone.Population.Join(avatar)
-      zone.Population ! Zone.Population.Spawn(avatar, player, null)
+      zone.Population ! Zone.Population.Spawn(avatar, player, null, null)
       expectNoMessage(Duration.create(200, "ms"))
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
@@ -243,12 +243,12 @@ class ZonePopulationTest extends ActorTest {
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       receiveOne(Duration.create(200, "ms")) //consume
       zone.Population ! Zone.Population.Join(avatar)
-      zone.Population ! Zone.Population.Spawn(avatar, player, null)
+      zone.Population ! Zone.Population.Spawn(avatar, player, null, null)
       expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
-      zone.Population ! Zone.Population.Leave(avatar)
+      zone.Population ! Zone.Population.Leave(avatar, _)
       val reply = receiveOne(Duration.create(100, "ms"))
       assert(reply.isInstanceOf[Zone.Population.PlayerHasLeft])
       assert(zone.Players.isEmpty)
@@ -382,7 +382,7 @@ class ZonePopulationTest extends ActorTest {
       zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
       expectNoMessage(200 milliseconds)
       zone.Population ! Zone.Population.Join(avatar)
-      zone.Population ! Zone.Population.Spawn(avatar, player, null)
+      zone.Population ! Zone.Population.Spawn(avatar, player, null, null)
       expectNoMessage(Duration.create(100, "ms"))
 
       assert(zone.Players.size == 1)

@@ -149,8 +149,8 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     */
   private var population: ActorRef = Default.Actor
 
-  /** 
-   * Actor that handles non-player controlled entities, used for VR Shooting Range targets. 
+  /**
+   * Actor that handles non-player controlled entities, used for VR Shooting Range targets.
    */
   private var npcPopulation: ActorRef = Default.Actor
 
@@ -1190,7 +1190,7 @@ object Zone {
       * @see `PlayerHasLeft`
       * @param avatar the `Avatar` object
       */
-    final case class Leave(avatar: Avatar)
+    final case class Leave(avatar: Avatar, galaxyService: ActorRef)
 
     /**
       * Message that instructs the zone to disassociate a `Player` from this `Actor`.
@@ -1200,7 +1200,7 @@ object Zone {
       * @param avatar the `Avatar` object
       * @param player the `Player` object
       */
-    final case class Spawn(avatar: Avatar, player: Player, avatarActor: typed.ActorRef[AvatarActor.Command])
+    final case class Spawn(avatar: Avatar, player: Player, avatarActor: typed.ActorRef[AvatarActor.Command], galaxyService: ActorRef)
 
     /**
       * Message that instructs the zone to disassociate a `Player` from this `Actor`.
@@ -1986,7 +1986,7 @@ object Zone {
     val allAffectedTargets = pssos.filter { target => testTargetsFromZone(source, target, radius) }
     //inform remaining targets that they have suffered damage
     allAffectedTargets
-      .foreach { target => 
+      .foreach { target =>
       if (target.IsInVRZone) {
         //disable all server-side damage in VR zones, unless the target is a bot in the VR Shooting Range
         target match {
