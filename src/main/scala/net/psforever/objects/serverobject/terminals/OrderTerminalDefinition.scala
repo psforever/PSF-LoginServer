@@ -5,8 +5,8 @@ import akka.actor.{ActorContext, ActorRef}
 import net.psforever.objects.{Default, Player}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.ItemTransactionMessage
 import net.psforever.objects.serverobject.terminals.tabs.Tab
+import net.psforever.packet.game.packets.ItemTransactionMessage
 import net.psforever.types.TransactionType
 
 import scala.collection.mutable

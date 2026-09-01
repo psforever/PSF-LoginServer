@@ -933,7 +933,6 @@ object GlobalDefinitionsVehicle {
     magrider.mass = 75.3f
     magrider.MapRevealId = 8
 
-    val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
     ant.MaxHealth = 2000
     ant.Damageable = true
@@ -949,7 +948,7 @@ object GlobalDefinitionsVehicle {
     ant.UndeployTime = 1500
     ant.AutoPilotSpeeds = (18, 6)
     ant.MaxNtuCapacitor = 1500
-    ant.Packet = utilityConverter
+    ant.Packet = UtilityVehicleConverter
     ant.DestroyedModel = Some(DestroyedVehicle.Ant)
     ant.RadiationShielding = 0.5f
     ant.Subtract.Damage1 = 5
@@ -993,7 +992,7 @@ object GlobalDefinitionsVehicle {
     ams.interference = InterferenceRange(main = 125f, sharedGroupId = 3, shared = 30f)
     ams.DeconstructionTime = Some(15 minutes)
     ams.AutoPilotSpeeds = (18, 6)
-    ams.Packet = utilityConverter
+    ams.Packet = UtilityVehicleConverter
     ams.DestroyedModel = Some(DestroyedVehicle.Ams)
     ams.RadiationShielding = 0.5f
     ams.Subtract.Damage1 = 10
@@ -1017,7 +1016,6 @@ object GlobalDefinitionsVehicle {
     ams.mass = 136.8f
     ams.MapRevealId = 2
 
-    val variantConverter = new VariantVehicleConverter
     router.Name = "router"
     router.MaxHealth = 4000
     router.Damageable = true
@@ -1038,7 +1036,7 @@ object GlobalDefinitionsVehicle {
     router.interference = InterferenceRange(main = 20f)
     router.DeconstructionTime = Duration(20, "minutes")
     router.AutoPilotSpeeds = (16, 6)
-    router.Packet = variantConverter
+    router.Packet = VariantVehicleConverter
     router.DestroyedModel = Some(DestroyedVehicle.Router)
     router.RadiationShielding = 0.5f
     router.Subtract.Damage1 = 5
@@ -1081,7 +1079,7 @@ object GlobalDefinitionsVehicle {
     switchblade.DeployTime = 2000
     switchblade.UndeployTime = 2000
     switchblade.AutoPilotSpeeds = (22, 8)
-    switchblade.Packet = variantConverter
+    switchblade.Packet = VariantVehicleConverter
     switchblade.DestroyedModel = Some(DestroyedVehicle.Switchblade)
     switchblade.RadiationShielding = 0.5f
     switchblade.Subtract.Damage0 = 5
@@ -1128,7 +1126,7 @@ object GlobalDefinitionsVehicle {
     flail.DeployTime = 5500
     flail.UndeployTime = 5500
     flail.AutoPilotSpeeds = (14, 6)
-    flail.Packet = variantConverter
+    flail.Packet = VariantVehicleConverter
     flail.DestroyedModel = Some(DestroyedVehicle.Flail)
     flail.RadiationShielding = 0.5f
     flail.Subtract.Damage1 = 7
@@ -1164,7 +1162,6 @@ object GlobalDefinitionsVehicle {
 
     val flightSubsystems: List[VehicleSubsystemEntry] = List(VehicleSubsystemEntry.Controls, VehicleSubsystemEntry.Ejection)
 
-    val variantConverter = new VariantVehicleConverter
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
     mosquito.Damageable = true
@@ -1182,7 +1179,7 @@ object GlobalDefinitionsVehicle {
     mosquito.TrunkOffset = 30
     mosquito.TrunkLocation = Vector3(-4.6f, 0f, 0f)
     mosquito.AutoPilotSpeeds = (0, 6)
-    mosquito.Packet = variantConverter
+    mosquito.Packet = VariantVehicleConverter
     mosquito.DestroyedModel = Some(DestroyedVehicle.Mosquito)
     mosquito.JackingDuration = Array(0, 20, 7, 5)
     mosquito.RadiationShielding = 0.5f
@@ -1222,7 +1219,7 @@ object GlobalDefinitionsVehicle {
     lightgunship.TrunkOffset = 30
     lightgunship.TrunkLocation = Vector3(-5.61f, 0f, 0f)
     lightgunship.AutoPilotSpeeds = (0, 4)
-    lightgunship.Packet = variantConverter
+    lightgunship.Packet = VariantVehicleConverter
     lightgunship.DestroyedModel = Some(DestroyedVehicle.LightGunship)
     lightgunship.RadiationShielding = 0.5f
     lightgunship.Subtract.Damage1 = 3
@@ -1263,7 +1260,7 @@ object GlobalDefinitionsVehicle {
     wasp.TrunkOffset = 30
     wasp.TrunkLocation = Vector3(-4.6f, 0f, 0f)
     wasp.AutoPilotSpeeds = (0, 6)
-    wasp.Packet = variantConverter
+    wasp.Packet = VariantVehicleConverter
     wasp.DestroyedModel = Some(DestroyedVehicle.Mosquito) //set_resource_parent wasp game_objects mosquito
     wasp.JackingDuration = Array(0, 20, 7, 5)
     wasp.DamageUsing = DamageCalculations.AgainstAircraft
@@ -1310,7 +1307,7 @@ object GlobalDefinitionsVehicle {
     liberator.TrunkOffset = 30
     liberator.TrunkLocation = Vector3(-0.76f, -1.88f, 0f)
     liberator.AutoPilotSpeeds = (0, 4)
-    liberator.Packet = variantConverter
+    liberator.Packet = VariantVehicleConverter
     liberator.DestroyedModel = Some(DestroyedVehicle.Liberator)
     liberator.RadiationShielding = 0.5f
     liberator.Subtract.Damage1 = 5
@@ -1359,7 +1356,7 @@ object GlobalDefinitionsVehicle {
     vulture.TrunkOffset = 30
     vulture.TrunkLocation = Vector3(-0.76f, -1.88f, 0f)
     vulture.AutoPilotSpeeds = (0, 4)
-    vulture.Packet = variantConverter
+    vulture.Packet = VariantVehicleConverter
     vulture.DestroyedModel =
       Some(DestroyedVehicle.Liberator) //add_property vulture destroyedphysics liberator_destroyed
     vulture.RadiationShielding = 0.5f
@@ -1437,7 +1434,7 @@ object GlobalDefinitionsVehicle {
     dropship.TrunkOffset = 30
     dropship.TrunkLocation = Vector3(-7.39f, -4.96f, 0f)
     dropship.AutoPilotSpeeds = (0, 4)
-    dropship.Packet = variantConverter
+    dropship.Packet = VariantVehicleConverter
     dropship.DestroyedModel = Some(DestroyedVehicle.Dropship)
     dropship.RadiationShielding = 0.5f
     dropship.Subtract.Damage1 = 7
@@ -1496,7 +1493,7 @@ object GlobalDefinitionsVehicle {
     galaxy_gunship.TrunkOffset = 30
     galaxy_gunship.TrunkLocation = Vector3(-9.85f, 0f, 0f)
     galaxy_gunship.AutoPilotSpeeds = (0, 4)
-    galaxy_gunship.Packet = variantConverter
+    galaxy_gunship.Packet = VariantVehicleConverter
     galaxy_gunship.DestroyedModel =
       Some(DestroyedVehicle.Dropship) //the adb calls out a galaxy_gunship_destroyed but no such asset exists
     galaxy_gunship.RadiationShielding = 0.5f
@@ -1551,7 +1548,7 @@ object GlobalDefinitionsVehicle {
     lodestar.TrunkOffset = 30
     lodestar.TrunkLocation = Vector3(6.85f, -6.8f, 0f)
     lodestar.AutoPilotSpeeds = (0, 4)
-    lodestar.Packet = variantConverter
+    lodestar.Packet = VariantVehicleConverter
     lodestar.DestroyedModel = Some(DestroyedVehicle.Lodestar)
     lodestar.RadiationShielding = 0.5f
     lodestar.Subtract.Damage1 = 7
@@ -1598,7 +1595,7 @@ object GlobalDefinitionsVehicle {
     phantasm.TrunkOffset = 30
     phantasm.TrunkLocation = Vector3(-6.16f, 0f, 0f)
     phantasm.AutoPilotSpeeds = (0, 6)
-    phantasm.Packet = variantConverter
+    phantasm.Packet = VariantVehicleConverter
     phantasm.DestroyedModel = None //the adb calls out a phantasm_destroyed but no such asset exists
     phantasm.JackingDuration = Array(0, 60, 20, 10)
     phantasm.RadiationShielding = 0.5f
@@ -1631,7 +1628,7 @@ object GlobalDefinitionsVehicle {
     }
     droppod.MountPoints += 1 -> MountInfo(0)
     droppod.TrunkSize = InventoryTile.None
-    droppod.Packet = new DroppodConverter()
+    droppod.Packet = DroppodConverter
     droppod.DeconstructionTime = Some(5 seconds)
     droppod.DestroyedModel = None //the adb calls out a droppod; the cyclic nature of this confounds me
     droppod.RadiationShielding = 1.0f
@@ -1665,7 +1662,7 @@ object GlobalDefinitionsVehicle {
     orbital_shuttle.MountPoints += 7 -> MountInfo(0, Vector3(62, 4, -18.2f))
     orbital_shuttle.MountPoints += 8 -> MountInfo(0, Vector3(62, 28, -18.2f))
     orbital_shuttle.TrunkSize = InventoryTile.None
-    orbital_shuttle.Packet = new OrbitalShuttleConverter
+    orbital_shuttle.Packet = OrbitalShuttleConverter
     orbital_shuttle.DeconstructionTime = None
     orbital_shuttle.DestroyedModel = None
     orbital_shuttle.RadiationShielding = 1.0f
@@ -1708,7 +1705,6 @@ object GlobalDefinitionsVehicle {
       VehicleSubsystemEntry.BattleframeFlightPod
     )
 
-    val battleFrameConverter = new BattleFrameRoboticsConverter
     aphelion_gunner.Name = "aphelion_gunner"
     aphelion_gunner.MaxHealth = 4500
     aphelion_gunner.Damageable = true
@@ -1735,7 +1731,7 @@ object GlobalDefinitionsVehicle {
     aphelion_gunner.TrunkOffset = 30
     aphelion_gunner.TrunkLocation = Vector3(0f, -2f, 0f)
     aphelion_gunner.AutoPilotSpeeds = (5, 1)
-    aphelion_gunner.Packet = battleFrameConverter
+    aphelion_gunner.Packet = BattleFrameRoboticsConverter
     aphelion_gunner.DestroyedModel = None
     aphelion_gunner.destructionDelay = Some(4000L)
     aphelion_gunner.JackingDuration = Array(0, 62, 60, 30)
@@ -1787,7 +1783,7 @@ object GlobalDefinitionsVehicle {
     colossus_gunner.TrunkOffset = 30
     colossus_gunner.TrunkLocation = Vector3(0f, -5f, 0f)
     colossus_gunner.AutoPilotSpeeds = (5, 1)
-    colossus_gunner.Packet = battleFrameConverter
+    colossus_gunner.Packet = BattleFrameRoboticsConverter
     colossus_gunner.DestroyedModel = None
     colossus_gunner.destructionDelay = Some(4000L)
     colossus_gunner.JackingDuration = Array(0, 62, 60, 30)
@@ -1839,7 +1835,7 @@ object GlobalDefinitionsVehicle {
     peregrine_gunner.TrunkOffset = 30
     peregrine_gunner.TrunkLocation = Vector3(0f, -5f, 0f)
     peregrine_gunner.AutoPilotSpeeds = (5, 1)
-    peregrine_gunner.Packet = battleFrameConverter
+    peregrine_gunner.Packet = BattleFrameRoboticsConverter
     peregrine_gunner.DestroyedModel = None
     peregrine_gunner.destructionDelay = Some(4000L)
     peregrine_gunner.JackingDuration = Array(0, 62, 60, 30)
@@ -1865,7 +1861,6 @@ object GlobalDefinitionsVehicle {
     peregrine_gunner.mass = 713f
     peregrine_gunner.MapRevealId = 52
 
-    val battleFrameFlightConverter = new BattleFrameFlightConverter
     aphelion_flight.Name = "aphelion_flight"
     aphelion_flight.MaxHealth = 3500
     aphelion_flight.Damageable = true
@@ -1890,7 +1885,7 @@ object GlobalDefinitionsVehicle {
     aphelion_flight.TrunkOffset = 30
     aphelion_flight.TrunkLocation = Vector3(0f, -2f, 0f)
     aphelion_flight.AutoPilotSpeeds = (5, 1)
-    aphelion_flight.Packet = battleFrameFlightConverter
+    aphelion_flight.Packet = BattleFrameFlightConverter
     aphelion_flight.DestroyedModel = None
     aphelion_flight.destructionDelay = Some(4000L)
     aphelion_flight.JackingDuration = Array(0, 62, 60, 30)
@@ -1945,7 +1940,7 @@ object GlobalDefinitionsVehicle {
     colossus_flight.TrunkOffset = 30
     colossus_flight.TrunkLocation = Vector3(0f, -5f, 0f)
     colossus_flight.AutoPilotSpeeds = (5, 1)
-    colossus_flight.Packet = battleFrameFlightConverter
+    colossus_flight.Packet = BattleFrameFlightConverter
     colossus_flight.DestroyedModel = None
     colossus_flight.destructionDelay = Some(4000L)
     colossus_flight.JackingDuration = Array(0, 62, 60, 30)
@@ -2000,7 +1995,7 @@ object GlobalDefinitionsVehicle {
     peregrine_flight.TrunkOffset = 30
     peregrine_flight.TrunkLocation = Vector3(0f, -5f, 0f)
     peregrine_flight.AutoPilotSpeeds = (5, 1)
-    peregrine_flight.Packet = battleFrameFlightConverter
+    peregrine_flight.Packet = BattleFrameFlightConverter
     peregrine_flight.DestroyedModel = None
     peregrine_flight.destructionDelay = Some(4000L)
     peregrine_flight.JackingDuration = Array(0, 62, 60, 30)

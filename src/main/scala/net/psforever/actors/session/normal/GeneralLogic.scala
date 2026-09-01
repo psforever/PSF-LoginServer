@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData, SessionOutfitHandlers}
-import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, GlobalDefinitions, LivePlayerList, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
+import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, Default, GlobalDefinitions, LivePlayerList, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
 import net.psforever.objects.avatar.{Avatar, AvatarBot, PlayerControl, SpecialCarry}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.{Deployable, DeployedItem}
@@ -40,7 +40,7 @@ import net.psforever.objects.vital.etc.{ForceDomeExposure, SuicideReason}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.{ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipRequestAction, OutfitMembershipResponse, OutfitRequest, OutfitRequestAction, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.packets.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipRequestAction, OutfitMembershipResponse, OutfitRequest, OutfitRequestAction, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope
@@ -662,7 +662,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case (None, _, _) =>
         ()
 
-      case (Some(us: PlanetSideServerObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
+      case (Some(us: PlanetSideServerObject with Vitality with FactionAffinity), Default.GUID0, _) =>
         if (updateCollisionHistoryForTarget(us, curr)) {
           if (!bailProtectStatus) {
             sessionLogic.handleDealingDamage(

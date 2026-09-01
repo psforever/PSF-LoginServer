@@ -21,6 +21,14 @@ object MultiPacketEx extends Marshallable[MultiPacketEx] {
     val MaxValue = (1L << 31) - 1
     val MinValue = 0
 
+    /* Shared across calls: sizeCodec runs once per sub-packet of every inbound and outbound
+       bundle, so these are built once here rather than per invocation. scodec codecs are
+       immutable and safe to share. */
+    private val mediumCodec = (constant(hex"ff") :: uint16L).dropUnits
+    private val largeCodec  = (constant(hex"ffffff") :: uint32L).dropUnits
+    private val sizeTypes   = Vector(8, 16, 32)
+    private val guards      = Vector(hex"ff".bits, hex"ffff".bits)
+
     override def encode(i: Long) = {
       if (i > MaxValue) {
         Attempt.failure(Err(s"$i is greater than maximum value $MaxValue for $description"))
@@ -30,17 +38,14 @@ object MultiPacketEx extends Marshallable[MultiPacketEx] {
         if (i < 0xff) {
           uint8L.encode(i.toInt)
         } else if (i < 0xffff) {
-          (constant(hex"ff") :: uint16L).dropUnits.encode(i.toInt :: HNil)
+          mediumCodec.encode(i.toInt :: HNil)
         } else {
-          (constant(hex"ffffff") :: uint32L).dropUnits.encode(i :: HNil)
+          largeCodec.encode(i :: HNil)
         }
       }
     }
 
     override def decode(buffer: BitVector): Attempt[DecodeResult[Long]] = {
-      val sizeTypes = List(8, 16, 32)
-      val guards    = List(hex"ff".bits, hex"ffff".bits)
-
       var buf = buffer
 
       for (i <- sizeTypes.indices) {

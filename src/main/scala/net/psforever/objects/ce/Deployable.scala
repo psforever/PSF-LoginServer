@@ -10,7 +10,7 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.objects.zones.ZoneAware
 import net.psforever.objects.zones.blockmap.BlockMapEntity
-import net.psforever.packet.game.DeployableIcon
+import net.psforever.packet.game.packets.DeployableIcon
 import net.psforever.types.PlanetSideEmpire
 
 trait BaseDeployable

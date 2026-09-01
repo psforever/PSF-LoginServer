@@ -6,7 +6,7 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.packets.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
 import net.psforever.services.base.message.{EventMessage, EventResponse, SelfRespondingEvent}
 import net.psforever.types.{BailType, DriveState, PlanetSideGUID, Vector3}
@@ -16,7 +16,7 @@ object VehicleAction {
 
   final case class DeployRequest(
                                   object_guid: PlanetSideGUID,
-                                  state: DriveState.Value,
+                                  state: DriveState,
                                   unk1: Int,
                                   unk2: Boolean,
                                   pos: Vector3

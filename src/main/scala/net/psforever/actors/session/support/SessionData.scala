@@ -29,7 +29,7 @@ import net.psforever.objects.zones.blockmap.{BlockMap, BlockMapEntity, SectorGro
 import net.psforever.services.ServiceManager
 import net.psforever.services.ServiceManager.Lookup
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets.{ChatMsg, DisconnectMessage, ObjectDeleteMessage}
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.ServiceManager.LookupResult
 import net.psforever.services.vehicle.VehicleAction
@@ -93,7 +93,7 @@ class SessionData(
   private[session] var keepAlivePersistenceFunc: () => Unit = keepAlivePersistence
   private[session] var turnCounterFunc: PlanetSideGUID => Unit = SessionData.NoTurnCounterYet
   private[session] val oldRefsMap: mutable.HashMap[PlanetSideGUID, String] = new mutable.HashMap[PlanetSideGUID, String]()
-  private var contextSafeEntity: PlanetSideGUID = PlanetSideGUID(0)
+  private var contextSafeEntity: PlanetSideGUID = Default.GUID0
 
   val general: GeneralOperations =
     new GeneralOperations(sessionLogic=this, avatarActor, context)
@@ -278,7 +278,7 @@ class SessionData(
             oldRefsMap.put(guid, obj.Definition.Name)
             out
 
-          case None if guid != PlanetSideGUID(0) && guid != player.GUID && !player.VehicleSeated.contains(guid) =>
+          case None if guid != Default.GUID0 && guid != player.GUID && !player.VehicleSeated.contains(guid) =>
             //delete stale entity reference from client
             //deleting guid=0 will cause BAD things to happen
             log.error(s"$elevatedDecorator: ${player.Name} has an invalid reference to $hint with GUID $guid in zone ${continent.id}")
@@ -505,7 +505,7 @@ class SessionData(
         }
       squad.updateSquad()
     } else {
-      turnCounterFunc(PlanetSideGUID(0))
+      turnCounterFunc(Default.GUID0)
     }
   }
 

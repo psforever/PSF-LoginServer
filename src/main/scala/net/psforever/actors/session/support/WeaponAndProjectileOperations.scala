@@ -26,11 +26,11 @@ import net.psforever.objects.vital.etc.OicwLilBuddyReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.exp.ToDatabase
-import net.psforever.packet.game.UplinkRequest
+import net.psforever.packet.game.packets.{AIDamage, AvatarGrenadeStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, Event0, Event1, Event2, HitMessage, LashMessage, LongRangeProjectileInfoMessage, ObjectAttachMessage, ObjectDeleteMessage, OrbitalStrikeWaypointMessage, PlanetsideAttributeMessage, ProjectileStateMessage, QuantityUpdateMessage, ReloadMessage, SplashHitMessage, TriggerEffectMessage, TriggeredEffectLocation, UplinkPositionEvent, UplinkRequest, UplinkRequestType, UplinkResponse, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage}
 import net.psforever.services.base.CachedEnvelope
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ReloadTool, SendResponse, WeaponDryFire}
-import net.psforever.types.{ChatMessageType, PlanetSideEmpire, ValidPlanetSideGUID, Vector3}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 
 import scala.collection.mutable
@@ -46,7 +46,7 @@ import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{ExoSuitType, PlanetSideGUID}
@@ -390,7 +390,7 @@ class WeaponAndProjectileOperations(
         player.Zone.LocalEvents ! MessageEnvelope(
           s"${player.Zone.id}",
           PlanetSideGUID(-1),
-          SendResponse(TriggerEffectMessage(ValidPlanetSideGUID(0), strikeType, None, Some(TriggeredEffectLocation(orbitalStrikePos.get, Vector3(0, 0, 90)))))
+          SendResponse(TriggerEffectMessage(Default.GUID0, strikeType, None, Some(TriggeredEffectLocation(orbitalStrikePos.get, Vector3(0, 0, 90)))))
         )
         player.Zone.LocalEvents ! MessageEnvelope(
           s"$playerFaction",
@@ -1340,6 +1340,9 @@ class WeaponAndProjectileOperations(
                                      modifyFunc: (AmmoBox, Int) => Unit
                                    ): Unit = {
     val originalAmmoType = tool.AmmoType
+    var newBoxesForStowing: List[AmmoBox] = Nil
+    val stowFunc: Equipment => Future[Any]   = PutEquipmentInInventoryOrDrop(obj)
+    val stowNewFunc: Equipment => TaskBundle = PutNewEquipmentInInventoryOrDrop(obj)
     do {
       val requestedAmmoType = tool.NextAmmoType
       val fullMagazine      = tool.MaxMagazine
@@ -1347,9 +1350,6 @@ class WeaponAndProjectileOperations(
         FindEquipmentStock(obj, FindAmmoBoxThatUses(requestedAmmoType), fullMagazine, CountAmmunition).reverse match {
           case Nil => ()
           case x :: xs =>
-            val stowNewFunc: Equipment => TaskBundle = PutNewEquipmentInInventoryOrDrop(obj)
-            val stowFunc: Equipment => Future[Any]   = PutEquipmentInInventoryOrDrop(obj)
-
             xs.foreach(item => {
               obj.Inventory -= item.start
               sendResponse(ObjectDeleteMessage(item.obj.GUID, 0))
@@ -1401,13 +1401,10 @@ class WeaponAndProjectileOperations(
               log.trace(
                 s"PerformToolAmmoChange: ${player.Name} takes ${originalBoxCapacity - splitReloadAmmo} from a box of $originalBoxCapacity $requestedAmmoType ammo"
               )
-              val boxForInventory = AmmoBox(box.Definition, splitReloadAmmo)
-              TaskWorkflow.execute(stowNewFunc(boxForInventory))
+              newBoxesForStowing = newBoxesForStowing :+ AmmoBox(box.Definition, splitReloadAmmo)
               fullMagazine
             }
-            sendResponse(
-              InventoryStateMessage(box.GUID, tool.GUID, box.Capacity)
-            ) //should work for both players and vehicles
+            sendResponse(InventoryStateMessage(box.GUID, tool.GUID, box.Capacity)) //should work for both players and vehicles
             log.info(s"${player.Name} loads ${box.Capacity} $requestedAmmoType into the ${tool.Definition.Name}")
             if (previousBox.Capacity > 0) {
               //divide capacity across other existing and not full boxes of that ammo type
@@ -1446,7 +1443,7 @@ class WeaponAndProjectileOperations(
                 case Nil | List(_) => () //done (the former case is technically not possible)
                 case _ :: toUpdate =>
                   modifyFunc(previousBox, 0) //update to changed capacity value
-                  toUpdate.foreach(box => { TaskWorkflow.execute(stowNewFunc(box)) })
+                  newBoxesForStowing = newBoxesForStowing ++ toUpdate
               }
             } else {
               TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, previousBox))
@@ -1454,6 +1451,8 @@ class WeaponAndProjectileOperations(
         }
       }
     } while (tool.AmmoType != originalAmmoType && tool.AmmoType != tool.AmmoSlot.Box.AmmoType)
+    //put new ammo boxes into inventory, or drop if no more space
+    newBoxesForStowing.foreach(box => TaskWorkflow.execute(stowNewFunc(box)))
   }
 
   /**

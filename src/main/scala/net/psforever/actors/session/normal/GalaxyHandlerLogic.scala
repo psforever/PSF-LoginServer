@@ -5,7 +5,7 @@ import akka.actor.Actor.Receive
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GalaxyHandlerFunctions, SessionData, SessionGalaxyHandlers}
-import net.psforever.packet.game.{BroadcastWarpgateUpdateMessage, FriendsResponse, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
+import net.psforever.packet.game.packets.{BroadcastWarpgateUpdateMessage, FriendsResponse, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.types.{MemberAction, PlanetSideEmpire}
@@ -85,5 +85,11 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
     case GalaxyAction.LogStatusChange(name)
       if TestFilter(() => avatar.people.friend.exists(_.name.equals(name))) =>
       avatarActor ! AvatarActor.MemberListRequest(MemberAction.UpdateFriend, name)
+
+    case GalaxyAction.UpdatePopulation(zone) =>
+      val popTR = zone.Players.count(_.faction == PlanetSideEmpire.TR)
+      val popNC = zone.Players.count(_.faction == PlanetSideEmpire.NC)
+      val popVS = zone.Players.count(_.faction == PlanetSideEmpire.VS)
+      sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, 0))
   }
 }

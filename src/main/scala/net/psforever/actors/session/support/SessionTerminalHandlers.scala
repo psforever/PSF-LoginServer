@@ -6,7 +6,7 @@ import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.TerminalUsedActivity
-import net.psforever.packet.game.{FavoritesAction, FavoritesRequest, ItemTransactionResultMessage, UnuseItemMessage}
+import net.psforever.packet.game.packets.{FavoritesAction, FavoritesRequest, ItemTransactionResultMessage, UnuseItemMessage}
 import net.psforever.types.{TransactionType, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,7 +20,7 @@ import net.psforever.objects.equipment.EffectTarget
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.{ProximityDefinition, ProximityUnit, Terminal}
-import net.psforever.packet.game.{ItemTransactionMessage,ProximityTerminalUseMessage}
+import net.psforever.packet.game.packets.{ItemTransactionMessage, ProximityTerminalUseMessage}
 import net.psforever.types.PlanetSideGUID
 
 trait TerminalHandlerFunctions extends CommonSessionInterfacingFunctionality {

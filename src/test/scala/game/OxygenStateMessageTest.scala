@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.OxygenStateMessage
 import net.psforever.types.{OxygenState, PlanetSideGUID}
 import scodec.bits._
 

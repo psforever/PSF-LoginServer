@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBe
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.packet.game.HackState1
+import net.psforever.packet.game.packets.HackState1
 import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope}
 
 /**

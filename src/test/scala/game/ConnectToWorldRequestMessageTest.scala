@@ -2,7 +2,8 @@
 package game
 
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.ConnectToWorldRequestMessage
 import org.specs2.mutable._
 import scodec.bits._
 

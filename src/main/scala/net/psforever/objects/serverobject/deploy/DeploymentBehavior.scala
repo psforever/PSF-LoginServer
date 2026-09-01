@@ -42,7 +42,7 @@ trait DeploymentBehavior {
       sender() ! TryUndeployStateChange(state, sender())
   }
 
-  def TryDeploymentStateChange(state: DriveState.Value, replyTo: ActorRef): Any = {
+  def TryDeploymentStateChange(state: DriveState, replyTo: ActorRef): Any = {
     val obj       = DeploymentObject
     val prevState = obj.DeploymentState
     if (TryDeploymentChange(obj, state)) {
@@ -58,7 +58,7 @@ trait DeploymentBehavior {
     }
   }
 
-  def TryDeployStateChange(state: DriveState.Value, replyTo: ActorRef): Any = {
+  def TryDeployStateChange(state: DriveState, replyTo: ActorRef): Any = {
     val obj       = DeploymentObject
     val prevState = obj.DeploymentState
     if (Deployment.CheckForDeployState(state) && TryDeploymentChange(obj, state)) {
@@ -69,7 +69,7 @@ trait DeploymentBehavior {
     }
   }
 
-  def TryUndeployStateChange(state: DriveState.Value, replyTo: ActorRef): Any = {
+  def TryUndeployStateChange(state: DriveState, replyTo: ActorRef): Any = {
     val obj       = DeploymentObject
     val prevState = obj.DeploymentState
     if (Deployment.CheckForUndeployState(state) && TryUndeploymentChange(obj, state)) {
@@ -80,20 +80,20 @@ trait DeploymentBehavior {
     }
   }
 
-  def TryDeploymentChange(obj: Deployment.DeploymentObject, state: DriveState.Value): Boolean = {
+  def TryDeploymentChange(obj: Deployment.DeploymentObject, state: DriveState): Boolean = {
     DeploymentBehavior.TryDeploymentChange(obj, state)
   }
 
-  def TryUndeploymentChange(obj: Deployment.DeploymentObject, state: DriveState.Value): Boolean = {
+  def TryUndeploymentChange(obj: Deployment.DeploymentObject, state: DriveState): Boolean = {
     DeploymentBehavior.TryDeploymentChange(obj, state)
   }
 
   def DeploymentAction(
       obj: Deployment.DeploymentObject,
-      state: DriveState.Value,
-      prevState: DriveState.Value,
+      state: DriveState,
+      prevState: DriveState,
       replyTo: ActorRef
-  ): DriveState.Value = {
+  ): DriveState = {
     val guid        = obj.GUID
     val zone        = obj.Zone
     val zoneChannel = zone.id
@@ -126,10 +126,10 @@ trait DeploymentBehavior {
 
   def UndeploymentAction(
       obj: Deployment.DeploymentObject,
-      state: DriveState.Value,
-      prevState: DriveState.Value,
+      state: DriveState,
+      prevState: DriveState,
       replyTo: ActorRef
-  ): DriveState.Value = {
+  ): DriveState = {
     val guid        = obj.GUID
     val zone        = obj.Zone
     val zoneChannel = zone.id
@@ -157,7 +157,7 @@ trait DeploymentBehavior {
 }
 
 object DeploymentBehavior {
-  def TryDeploymentChange(obj: Deployment.DeploymentObject, state: DriveState.Value): Boolean = {
+  def TryDeploymentChange(obj: Deployment.DeploymentObject, state: DriveState): Boolean = {
     Deployment.NextState(obj.DeploymentState) == state && (obj.DeploymentState = state) == state
   }
 }

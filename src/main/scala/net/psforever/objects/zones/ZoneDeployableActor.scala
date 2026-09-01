@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.deploy.Interference
 import net.psforever.objects.sourcing.ObjectSource
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.SpawningActivity
-import net.psforever.packet.game.ChatMsg
+import net.psforever.packet.game.packets.ChatMsg
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.types.ChatMessageType

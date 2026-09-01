@@ -6,7 +6,7 @@ import net.psforever.actors.session.support.{SessionData, SessionTerminalHandler
 import net.psforever.login.WorldSession.SellEquipmentFromInventory
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.packet.game.{FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage}
+import net.psforever.packet.game.packets.{FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage}
 
 object TerminalHandlerLogic {
   def apply(ops: SessionTerminalHandlers): TerminalHandlerLogic = {

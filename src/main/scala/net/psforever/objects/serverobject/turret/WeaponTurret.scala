@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
-import net.psforever.objects.{AmmoBox, PlanetSideGameObject, Tool}
+import net.psforever.objects.{AmmoBox, GlobalDefinitions, PlanetSideGameObject, Tool}
 import net.psforever.objects.definition.{AmmoBoxDefinition, ToolDefinition}
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.inventory.{Container, GridInventory}
@@ -172,4 +172,15 @@ class TurretAmmoBox(private val adef: AmmoBoxDefinition)
   override def Tile: InventoryTile = InventoryTile.Tile11
 
   override def Capacity_=(toCapacity: Int): Int = Capacity
+}
+
+class VariableAmmoBox extends AmmoBox(GlobalDefinitions.bullet_9mm) {
+  private var ammoProfile: AmmoBoxDefinition = GlobalDefinitions.bullet_9mm
+
+  def changeTo(ammo: AmmoBoxDefinition): AmmoBoxDefinition = {
+    ammoProfile = ammo
+    Definition
+  }
+
+  override def Definition: AmmoBoxDefinition = ammoProfile
 }

@@ -15,7 +15,7 @@ import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretControl}
 import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
+import net.psforever.packet.game.packets.{InventoryStateMessage, RepairMessage}
 import net.psforever.types._
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}

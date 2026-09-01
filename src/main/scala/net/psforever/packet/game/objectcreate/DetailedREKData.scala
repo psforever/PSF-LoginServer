@@ -17,28 +17,28 @@ import shapeless.{::, HNil}
 final case class DetailedREKData(data: CommonFieldData, unk: Int = 0) extends ConstructorData {
   override def bitsize: Long = {
     val dataSize = data.bitsize
-    43L + dataSize
+    ToolPatternData.bitsize + dataSize + 15L
   }
 }
 
 object DetailedREKData extends Marshallable[DetailedREKData] {
+  private val base: ToolPatternData = ToolPatternData(u1 = 2, u2 = 0, u3 = true, u4 = false, u5 = None, u6 = false)
+
   implicit val codec: Codec[DetailedREKData] = (
-    ("data" | CommonFieldData.codec2) ::
-      uint8 ::
-      uint16L ::
-      uint4L ::
+    ("data" | CommonFieldData.codec_extra) ::
+      ToolPatternData.codec ::
       ("unk" | uint8) ::
       uint(bits = 7)
   ).exmap[DetailedREKData](
     {
-      case data :: 2 :: 0 :: 8 :: unk :: 0 :: HNil =>
+      case data :: _ :: unk :: 0 :: HNil =>
         Attempt.successful(DetailedREKData(data, unk))
       case data =>
         Attempt.failure(Err(s"invalid detailed rek data format - $data"))
     },
     {
       case DetailedREKData(data, unk) =>
-        Attempt.successful(data :: 2 :: 0 :: 8 :: unk :: 0 :: HNil)
+        Attempt.successful(data :: base :: unk :: 0 :: HNil)
     }
   )
 }

@@ -1,40 +1,33 @@
 // Copyright (c) 2022 PSForever
 package net.psforever.objects.definition.converter
 
+import net.psforever.objects.Default
 import net.psforever.objects.ballistics.Projectile
-import net.psforever.packet.game.objectcreate._
-import net.psforever.types.PlanetSideGUID
+import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataWithPlacement, FlightPhysics, PlacementData, RemoteProjectileData}
 
 import scala.util.{Success, Try}
 
-class LittleBuddyProjectileConverter extends ObjectCreateConverter[Projectile]() {
-  override def ConstructorData(obj: Projectile): Try[LittleBuddyProjectileData] = lilBudData(obj)
+object LittleBuddyProjectileConverter extends ObjectCreateConverter[Projectile] {
+  override def ConstructorData(obj: Projectile): Try[RemoteProjectileData] = lilBudData(obj)
 
-  override def DetailedConstructorData(obj: Projectile): Try[LittleBuddyProjectileData] = lilBudData(obj)
+  override def DetailedConstructorData(obj: Projectile): Try[RemoteProjectileData] = lilBudData(obj)
 
-  private def lilBudData(obj: Projectile): Try[LittleBuddyProjectileData] = {
+  private def lilBudData(obj: Projectile): Try[RemoteProjectileData] = {
     Success(
-      LittleBuddyProjectileData(
+      RemoteProjectileData(
         CommonFieldDataWithPlacement(
           PlacementData(
             obj.Position,
             obj.Orientation,
             obj.Velocity
           ),
-          CommonFieldData(
-            obj.owner.Faction,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            guid = PlanetSideGUID(0)
-          )
+          CommonFieldData(obj.owner.Faction, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, guid = Default.GUID0)
         ),
-        u2 = 0,
-        u4 = true
+        0,
+        0,
+        FlightPhysics.State3,
+        7,
+        2
       )
     )
   }

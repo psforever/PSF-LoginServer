@@ -11,7 +11,7 @@ import scala.collection.mutable.ListBuffer
 class ConstructionItemDefinition(objectId: Int) extends EquipmentDefinition(objectId) {
   CItem(objectId) //let throw NoSuchElementException
   private val modes: ListBuffer[ConstructionFireMode] = ListBuffer()
-  Packet = new ACEConverter
+  Packet = ACEConverter
   registerAs = "items"
 
   def Modes: ListBuffer[ConstructionFireMode] = modes

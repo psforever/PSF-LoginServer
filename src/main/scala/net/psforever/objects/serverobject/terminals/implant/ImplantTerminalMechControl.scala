@@ -15,7 +15,7 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
-import net.psforever.packet.game.HackState1
+import net.psforever.packet.game.packets.HackState1
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SetEmpire
 import net.psforever.services.vehicle.VehicleAction

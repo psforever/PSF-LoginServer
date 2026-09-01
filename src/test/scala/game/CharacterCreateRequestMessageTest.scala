@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.CharacterCreateRequestMessage
 import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
 import scodec.bits._
 

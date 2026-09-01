@@ -2,8 +2,8 @@
 package game.objectcreatevehicle
 
 import net.psforever.packet._
+import net.psforever.packet.game.packets.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate._
-import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.types._
 import org.specs2.mutable._
 import scodec.bits._
@@ -22,7 +22,7 @@ class NonstandardVehiclesTest extends Specification {
           guid mustEqual PlanetSideGUID(3595)
           parent.isDefined mustEqual false
           data match {
-            case DroppodData(basic, health, burn, _) =>
+            case DroppodData(basic, health, burn) =>
               basic.pos.coord mustEqual Vector3(5108.0f, 6164.0f, 1023.9844f)
               basic.pos.orient mustEqual Vector3.z(90.0f)
 
@@ -88,17 +88,7 @@ class NonstandardVehiclesTest extends Specification {
       val obj = DroppodData(
         CommonFieldDataWithPlacement(
           PlacementData(5108.0f, 6164.0f, 1023.9844f, 0f, 0f, 90.0f),
-          CommonFieldData(
-            PlanetSideEmpire.VS,
-            bops = false,
-            alternate = false,
-            v1 = true,
-            v2 = None,
-            jammered = false,
-            v4 = None,
-            v5 = None,
-            PlanetSideGUID(0)
-          )
+          CommonFieldData(PlanetSideEmpire.VS, bops = false, alternate = false, v1 = true, v2 = None, jammered = false, v5 = None, PlanetSideGUID(0))
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.droppod, PlanetSideGUID(3595), obj)
@@ -125,6 +115,7 @@ class NonstandardVehiclesTest extends Specification {
       val msg = ObjectCreateMessage(ObjectClass.orbital_shuttle, PlanetSideGUID(1127), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
+      msg.streamLength mustEqual 195
       pkt mustEqual string_orbital_shuttle_2
     }
   }

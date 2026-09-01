@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.blockmap.BlockMapEntity
-import net.psforever.packet.game.{GenericObjectActionMessage, HackMessage, HackState, HackState1, HackState7, TriggeredSound}
+import net.psforever.packet.game.packets.{GenericObjectActionMessage, HackMessage, HackState, HackState1, HackState7, TriggeredSound}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse

@@ -7,7 +7,7 @@ import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.VehicleLoadout
 import net.psforever.objects.serverobject.terminals.EquipmentTerminalDefinition.BuildSimplifiedPattern
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 
 /**
   * The tab used to select which custom loadout the player's vehicle is using.
@@ -17,6 +17,7 @@ import net.psforever.packet.game.ItemTransactionMessage
   * no extra information specific to this page is necessary.
   * If a vehicle type (by definition) is considered excluded, the whole loadout is blocked.
   * If any of the vehicle's inventory is considered excluded, only those items will be filtered.
+ *
   * @see `Equipment`
   * @see `Loadout`
   * @see `VehicleLoadout`

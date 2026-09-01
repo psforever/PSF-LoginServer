@@ -6,14 +6,8 @@
     "Selector": "specific"
   },
   {
-    "Name": "players",
+    "Name": "vehicles",
     "Start": 3101,
-    "Max": 4600,
-    "Selector": "random"
-  },
-  {
-    "Name": "lockers",
-    "Start": 4601,
     "Max": 5100,
     "Selector": "random"
   },
@@ -45,6 +39,12 @@
     "Name": "rc-projectiles",
     "Start": 64001,
     "Max": 64300,
+    "Selector": "random"
+  },
+  {
+    "Name": "lockers",
+    "Start": 64301,
+    "Max": 64800,
     "Selector": "random"
   }
 ]

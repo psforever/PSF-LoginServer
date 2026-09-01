@@ -26,7 +26,7 @@ class SensorDeployableDefinition(private val objectId: Int) extends DeployableDe
   Name = "sensor_deployable"
   DeployCategory = DeployableCategory.Sensors
   Model = SimpleResolutions.calculate
-  Packet = new SmallDeployableConverter
+  Packet = SmallDeployableConverter
 
   override def Initialize(obj: Deployable, context: ActorContext): Unit = {
     obj.Actor =
@@ -69,7 +69,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
 
   override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
-    SensorDeployableControl.DestructionAwareness(sensor, PlanetSideGUID(0))
+    SensorDeployableControl.DestructionAwareness(sensor, Default.GUID0)
   }
 
   override def StartJammeredSound(target: Any, dur: Int): Unit =

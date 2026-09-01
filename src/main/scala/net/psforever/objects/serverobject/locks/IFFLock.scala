@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.TriggeredSound
+import net.psforever.packet.game.packets.TriggeredSound
 import net.psforever.types.Vector3
 
 /**

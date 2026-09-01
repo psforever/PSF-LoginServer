@@ -6,7 +6,7 @@ import net.psforever.packet.game.objectcreate._
 
 import scala.util.{Failure, Success, Try}
 
-class RadiationCloudConverter extends ObjectCreateConverter[Projectile]() {
+object RadiationCloudConverter extends ObjectCreateConverter[Projectile] {
   override def ConstructorData(obj: Projectile): Try[RadiationCloudData] = {
     Success(RadiationCloudData(PlacementData(obj.Position, obj.Orientation), obj.owner.Faction))
   }

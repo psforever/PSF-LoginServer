@@ -1,19 +1,13 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.definition.converter
 
+import net.psforever.objects.Default
 import net.psforever.objects.ballistics.Projectile
-import net.psforever.packet.game.objectcreate.{
-  CommonFieldData,
-  CommonFieldDataWithPlacement,
-  FlightPhysics,
-  PlacementData,
-  RemoteProjectileData
-}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataWithPlacement, FlightPhysics, PlacementData, RemoteProjectileData}
 
 import scala.util.{Failure, Success, Try}
 
-class ProjectileConverter extends ObjectCreateConverter[Projectile]() {
+object ProjectileConverter extends ObjectCreateConverter[Projectile]() {
   override def ConstructorData(obj: Projectile): Try[RemoteProjectileData] = {
     Success(
       RemoteProjectileData(
@@ -23,23 +17,13 @@ class ProjectileConverter extends ObjectCreateConverter[Projectile]() {
             obj.Orientation,
             obj.Velocity
           ),
-          CommonFieldData(
-            obj.owner.Faction,
-            false,
-            false,
-            true,
-            None,
-            false,
-            None,
-            None,
-            PlanetSideGUID(0)
-          )
+          CommonFieldData(obj.owner.Faction, bops = false, alternate = false, v1 = true, v2= None, jammered = false, v5 = None, guid = Default.GUID0)
         ),
-        obj.profile.RemoteClientData._1,
-        obj.profile.RemoteClientData._2,
+        u1 = obj.profile.RemoteClientData._1,
+        u2 = obj.profile.RemoteClientData._2,
         FlightPhysics.State4,
-        0,
-        0
+        unk4 = 0,
+        unk5 = 0
       )
     )
   }

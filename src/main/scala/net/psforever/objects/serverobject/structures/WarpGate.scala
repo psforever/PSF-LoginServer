@@ -5,10 +5,10 @@ import akka.actor.ActorContext
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{GlobalDefinitions, NtuContainer, SpawnPoint}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.BuildingInfoUpdateMessage
 import net.psforever.types._
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.BuildingActor
+import net.psforever.packet.game.packets.BuildingInfoUpdateMessage
 
 class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildingDefinition: WarpGateDefinition)
     extends Building(name, building_guid, map_id, zone, StructureType.WarpGate, buildingDefinition)

@@ -28,7 +28,7 @@ final case class VehicleSource(
                                 Position: Vector3,
                                 Orientation: Vector3,
                                 Velocity: Option[Vector3],
-                                deployed: DriveState.Value,
+                                deployed: DriveState,
                                 owner: Option[UniquePlayer],
                                 occupants: List[SourceEntry],
                                 Modifiers: ResistanceProfile,

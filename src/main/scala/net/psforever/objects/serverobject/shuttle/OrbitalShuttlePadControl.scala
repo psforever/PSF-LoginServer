@@ -7,7 +7,7 @@ import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.ChatMsg
+import net.psforever.packet.game.packets.ChatMsg
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.base.support.SupportActor
@@ -15,7 +15,7 @@ import net.psforever.services.local.LocalAction
 import net.psforever.services.hart.{HartTimer, HartTimerActions}
 import net.psforever.services.local.support.DoorMessage
 import net.psforever.services.{Service, ServiceManager}
-import net.psforever.types.ChatMessageType
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
 
 import scala.concurrent.Future
 
@@ -121,11 +121,20 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
       val newShuttle = new OrbitalShuttle(orbital_shuttle)
       newShuttle.Position = position + Vector3(0, -8.25f, 0).Rz(pad.Orientation.z) //magic offset number
       newShuttle.Orientation = pad.Orientation
-      newShuttle.Faction = pad.Faction
+      newShuttle.Faction = shuttleZone(zone)
       shuttleRegistration(zone, newShuttle, self)
       context.become(shuttleTime)
 
     case _ => ;
+  }
+
+  def shuttleZone(zone:Zone): PlanetSideEmpire.Value = {
+    zone.id match {
+      case "home1" => PlanetSideEmpire.NC
+      case "home2" => PlanetSideEmpire.TR
+      case "home3" => PlanetSideEmpire.VS
+      case _ => PlanetSideEmpire.NEUTRAL
+    }
   }
 
   /**

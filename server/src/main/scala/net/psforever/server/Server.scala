@@ -115,7 +115,10 @@ object Server {
     val loginPlan = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
       import net.psforever.services.account.IPAddress
       Behaviors.setup[PlanetSidePacket](context => {
-        val actor = context.actorOf(classic.Props(new LoginActor(ref, connectionId, Login.getNewId())), "login")
+        val actor = context.actorOf(
+          classic.Props(new LoginActor(ref, connectionId, Login.getNewId())).withDispatcher("login-session"),
+          "login"
+        )
         actor ! ReceiveIPAddress(new IPAddress(info))
         Behaviors.receiveMessage(message => {
           actor ! message
@@ -127,7 +130,10 @@ object Server {
       Behaviors.setup[PlanetSidePacket](context => {
         val uuid = randomUUID().toString
         val actor =
-          context.actorOf(classic.Props(new SessionActor(ref, connectionId, Session.getNewId())), s"session-$uuid")
+          context.actorOf(
+            classic.Props(new SessionActor(ref, connectionId, Session.getNewId())).withDispatcher("world-session"),
+            s"session-$uuid"
+          )
         Behaviors.receiveMessage(message => {
           actor ! message
           Behaviors.same

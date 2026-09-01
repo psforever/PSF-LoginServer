@@ -83,6 +83,12 @@ trait Mountable {
     }
   }
 
+  def NoDriver: Boolean = Mountable.NoDriver(mountable = this)
+
+  def NoPassengers: Boolean = Mountable.NoOccupants(Seats.iterator.drop(1))
+
+  def isUnoccupied: Boolean = Mountable.NoOccupants(Seats.iterator)
+
   /**
     * A reference to an `Actor` that governs the logic of the object to accept `Mountable` messages.
     * Specifically, the `Actor` should intercept the logic of `MountableControl.`
@@ -158,4 +164,42 @@ object Mountable {
     * @param seat_num the seat index
     */
   final case class CanNotDismount(obj: Mountable, seat_num: Int, bailType: BailType.Value) extends Exchange
+
+  def NoDriver(mountable: Mountable): Boolean = {
+    mountable.Seat(seatNumber = 0).exists(_.isOccupied)
+  }
+
+  def NoOccupants(seatIter: Iterator[(Int, Seat)], seatsToIgnore: Set[Int]): Boolean = {
+    if (seatsToIgnore.isEmpty) {
+      NoOccupants(seatIter)
+    } else {
+      NoOccupantsButSkips(seatIter, seatsToIgnore)
+    }
+  }
+
+  @tailrec def NoOccupants(seatIter: Iterator[(Int, Seat)]): Boolean = {
+    if (!seatIter.hasNext) {
+      true
+    } else {
+      val (_, seat) = seatIter.next()
+      if (seat.isOccupied) {
+        false
+      } else {
+        NoOccupants(seatIter)
+      }
+    }
+  }
+
+  @tailrec def NoOccupantsButSkips(seatIter: Iterator[(Int, Seat)], seatsToIgnore: Set[Int]): Boolean = {
+    if (!seatIter.hasNext) {
+      true
+    } else {
+      val (seatNumber, seat) = seatIter.next()
+      if (seat.isOccupied && !seatsToIgnore.contains(seatNumber)) {
+        false
+      } else {
+        NoOccupantsButSkips(seatIter, seatsToIgnore)
+      }
+    }
+  }
 }

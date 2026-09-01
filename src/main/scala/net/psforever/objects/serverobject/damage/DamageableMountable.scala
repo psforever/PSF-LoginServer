@@ -5,7 +5,7 @@ import net.psforever.objects.{Default, Player}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
-import net.psforever.packet.game.DamageWithPositionMessage
+import net.psforever.packet.game.packets.DamageWithPositionMessage
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{HintsAtAttacker, SendResponse}

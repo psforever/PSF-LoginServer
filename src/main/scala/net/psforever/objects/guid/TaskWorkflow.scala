@@ -145,11 +145,18 @@ object TaskWorkflow {
         //no subtasks; just execute the main task
         promise.completeWith(task.action())
       case list =>
-        var unassignedCompletion: Boolean = true //shared mutex
+        /* A dedicated object, private to this bundle, guards `unassignedCompletion` so that
+           exactly one subtask completion resolves the promise.
+           The monitor must not be the flag itself: synchronising on a Boolean locks the boxed
+           java.lang.Boolean, and valueOf returns the cached TRUE/FALSE singletons, which are
+           shared JVM-wide and whose identity changes when the flag flips -- neither mutual
+           exclusion between threads nor isolation between bundles. */
+        val completionLock = new Object
+        var unassignedCompletion: Boolean = true
         //wait for subtasks to complete
         list.foreach { result =>
           result.onComplete { _ =>
-            unassignedCompletion.synchronized {
+            completionLock.synchronized {
               if (unassignedCompletion && composedSubs.forall(matchOnFutureCompletion)) {
                 unassignedCompletion = false
                 if (composedSubs.forall(matchOnFutureSuccess)) {

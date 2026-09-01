@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTurret}
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.packet.game.PlanetsideAttributeMessage
+import net.psforever.packet.game.packets.PlanetsideAttributeMessage
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 

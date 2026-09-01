@@ -24,7 +24,7 @@ class ShieldGeneratorDeployable(cdef: ShieldGeneratorDefinition)
 
 class ShieldGeneratorDefinition extends DeployableDefinition(objectId = 240)
   with WithShields {
-  Packet = new ShieldGeneratorConverter
+  Packet = ShieldGeneratorConverter
   DeployCategory = DeployableCategory.ShieldGenerators
 
   override def Initialize(obj: Deployable, context: ActorContext): Unit = {
@@ -113,7 +113,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
 
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
-    ShieldGeneratorControl.DestructionAwareness(gen, PlanetSideGUID(0))
+    ShieldGeneratorControl.DestructionAwareness(gen, Default.GUID0)
   }
 
   /*

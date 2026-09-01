@@ -9,8 +9,8 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.{BoomerDeployable, Default, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
-import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
-import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
+import net.psforever.packet.game.packets.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.local.LocalAction
 import net.psforever.types.{ChatMessageType, SpawnGroup}

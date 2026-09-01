@@ -5,7 +5,7 @@ import com.typesafe.config.{Config => TypesafeConfig}
 import enumeratum.{Enum, EnumEntry}
 import enumeratum.values.{IntEnum, IntEnumEntry}
 import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank}
-import net.psforever.packet.game.ServerType
+import net.psforever.packet.game.packets.ServerType
 import net.psforever.types.ChatMessageType
 import pureconfig.ConfigConvert.viaNonEmptyStringOpt
 import pureconfig.{ConfigConvert, ConfigSource}
@@ -138,6 +138,7 @@ case class NetworkConfig(
 case class MiddlewareConfig(
     packetBundlingDelay: FiniteDuration,
     packetBundlingDelayMultiplier: Float,
+    packetBundlingDrainLimit: Int,
     inReorderTimeout: FiniteDuration,
     inSubslotMissingDelay: FiniteDuration,
     inSubslotMissingAttempts: Int,

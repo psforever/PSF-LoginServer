@@ -3,7 +3,7 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.{OutfitRequest, OutfitRequestAction}
+import net.psforever.packet.game.packets.{OutfitRequest, OutfitRequestAction}
 import scodec.bits._
 
 class OutfitRequestTest extends Specification {

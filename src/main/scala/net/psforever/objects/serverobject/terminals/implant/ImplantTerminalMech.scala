@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAware
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.zones.interaction.InteractsWithZone
-import net.psforever.packet.game.TriggeredSound
+import net.psforever.packet.game.packets.TriggeredSound
 import net.psforever.types.Vector3
 
 /**

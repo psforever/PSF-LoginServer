@@ -9,10 +9,7 @@ import net.psforever.objects.equipment.{ArmorSiphonRepairHost, EffectTarget, Tar
 import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage.{RadialDegrade, SameHit, StandardDamageProfile}
-import net.psforever.objects.vital.etc.{
-  ArmorSiphonMaxDistanceCutoff,
-  ExplosionDamagesOnlyAbove
-}
+import net.psforever.objects.vital.etc.{ArmorSiphonMaxDistanceCutoff, ExplosionDamagesOnlyAbove}
 import net.psforever.objects.vital.projectile._
 
 object GlobalDefinitionsProjectile {
@@ -30,9 +27,6 @@ object GlobalDefinitionsProjectile {
     * Initialize `ProjectileDefinition` globals for most projectiles.
     */
   private def init_standard_projectile(): Unit = {
-    val projectileConverter: ProjectileConverter   = new ProjectileConverter
-    val radCloudConverter: RadiationCloudConverter = new RadiationCloudConverter
-
     no_projectile.Name = "no_projectile"
     no_projectile.DamageRadiusMin = 0f
     ProjectileDefinition.CalculateDerivedFields(no_projectile)
@@ -772,7 +766,7 @@ object GlobalDefinitionsProjectile {
     hunter_seeker_missile_projectile.registerAs = "rc-projectiles"
     hunter_seeker_missile_projectile.ExistsOnRemoteClients = true
     hunter_seeker_missile_projectile.RemoteClientData = (39577, 201)
-    hunter_seeker_missile_projectile.Packet = projectileConverter
+    hunter_seeker_missile_projectile.Packet = ProjectileConverter
     ProjectileDefinition.CalculateDerivedFields(hunter_seeker_missile_projectile)
     hunter_seeker_missile_projectile.Modifiers = RadialDegrade
 
@@ -1224,7 +1218,7 @@ object GlobalDefinitionsProjectile {
     oicw_projectile.registerAs = "rc-projectiles"
     oicw_projectile.ExistsOnRemoteClients = true
     oicw_projectile.RemoteClientData = (13107, 195)
-    oicw_projectile.Packet = projectileConverter
+    oicw_projectile.Packet = ProjectileConverter
     ProjectileDefinition.CalculateDerivedFields(oicw_projectile)
     oicw_projectile.Modifiers = List(
       //ExplodingRadialDegrade,
@@ -1240,8 +1234,9 @@ object GlobalDefinitionsProjectile {
     oicw_little_buddy.InitialVelocity = 40
     oicw_little_buddy.Lifespan = 0.5f
     oicw_little_buddy.registerAs = "rc-projectiles"
-    oicw_little_buddy.ExistsOnRemoteClients = true //does not use RemoteClientData
-    oicw_little_buddy.Packet = new LittleBuddyProjectileConverter
+    oicw_little_buddy.ExistsOnRemoteClients = true
+    oicw_little_buddy.RemoteClientData = (0, 0) //explicit restatement
+    oicw_little_buddy.Packet = LittleBuddyProjectileConverter
     //add_property oicw_little_buddy multi_stage_spawn_server_side true ...
     ProjectileDefinition.CalculateDerivedFields(oicw_little_buddy)
     oicw_little_buddy.Modifiers = List(
@@ -1318,7 +1313,7 @@ object GlobalDefinitionsProjectile {
     phoenix_missile_guided_projectile.registerAs = "rc-projectiles"
     phoenix_missile_guided_projectile.ExistsOnRemoteClients = true
     phoenix_missile_guided_projectile.RemoteClientData = (0, 63)
-    phoenix_missile_guided_projectile.Packet = projectileConverter
+    phoenix_missile_guided_projectile.Packet = ProjectileConverter
     //
     ProjectileDefinition.CalculateDerivedFields(phoenix_missile_guided_projectile)
     phoenix_missile_guided_projectile.Modifiers = RadialDegrade
@@ -1550,7 +1545,7 @@ object GlobalDefinitionsProjectile {
     ProjectileDefinition.CalculateDerivedFields(radiator_cloud)
     radiator_cloud.registerAs = "rc-projectiles"
     radiator_cloud.ExistsOnRemoteClients = true
-    radiator_cloud.Packet = radCloudConverter
+    radiator_cloud.Packet = RadiationCloudConverter
     //radiator_cloud.Geometry = GeometryForm.representProjectileBySphere()
     radiator_cloud.Modifiers = MaxDistanceCutoff
 
@@ -1729,7 +1724,7 @@ object GlobalDefinitionsProjectile {
     sparrow_projectile.ExistsOnRemoteClients = true
     sparrow_projectile.RemoteClientData = (13107, 187)
     sparrow_projectile.AutoLock = true
-    sparrow_projectile.Packet = projectileConverter
+    sparrow_projectile.Packet = ProjectileConverter
     ProjectileDefinition.CalculateDerivedFields(sparrow_projectile)
     sparrow_projectile.Modifiers = RadialDegrade
 
@@ -1749,7 +1744,7 @@ object GlobalDefinitionsProjectile {
     sparrow_secondary_projectile.ExistsOnRemoteClients = true
     sparrow_secondary_projectile.RemoteClientData = (13107, 187)
     sparrow_secondary_projectile.AutoLock = true
-    sparrow_secondary_projectile.Packet = projectileConverter
+    sparrow_secondary_projectile.Packet = ProjectileConverter
     ProjectileDefinition.CalculateDerivedFields(sparrow_secondary_projectile)
     sparrow_secondary_projectile.Modifiers = RadialDegrade
 
@@ -1828,7 +1823,7 @@ object GlobalDefinitionsProjectile {
     starfire_projectile.ExistsOnRemoteClients = true
     starfire_projectile.RemoteClientData = (39577, 249)
     starfire_projectile.AutoLock = true
-    starfire_projectile.Packet = projectileConverter
+    starfire_projectile.Packet = ProjectileConverter
     ProjectileDefinition.CalculateDerivedFields(starfire_projectile)
     starfire_projectile.Modifiers = List(
       StarfireAggravatedBurn,
@@ -1869,7 +1864,7 @@ object GlobalDefinitionsProjectile {
     striker_missile_targeting_projectile.ExistsOnRemoteClients = true
     striker_missile_targeting_projectile.RemoteClientData = (26214, 134)
     striker_missile_targeting_projectile.AutoLock = true
-    striker_missile_targeting_projectile.Packet = projectileConverter
+    striker_missile_targeting_projectile.Packet = ProjectileConverter
     ProjectileDefinition.CalculateDerivedFields(striker_missile_targeting_projectile)
     striker_missile_targeting_projectile.Modifiers = RadialDegrade
 
@@ -1967,7 +1962,7 @@ object GlobalDefinitionsProjectile {
     wasp_rocket_projectile.ExistsOnRemoteClients = true
     wasp_rocket_projectile.RemoteClientData = (0, 208)
     wasp_rocket_projectile.AutoLock = true
-    wasp_rocket_projectile.Packet = projectileConverter
+    wasp_rocket_projectile.Packet = ProjectileConverter
     ProjectileDefinition.CalculateDerivedFields(wasp_rocket_projectile)
     wasp_rocket_projectile.Modifiers = RadialDegrade
 
@@ -1988,9 +1983,6 @@ object GlobalDefinitionsProjectile {
     * Initialize `ProjectileDefinition` globals for projectiles utilized by battleframe robotics.
     */
   private def init_bfr_projectile(): Unit = {
-    val projectileConverter: ProjectileConverter   = new ProjectileConverter
-    val radCloudConverter: RadiationCloudConverter = new RadiationCloudConverter
-
     aphelion_immolation_cannon_projectile.Name = "aphelion_immolation_cannon_projectile"
     aphelion_immolation_cannon_projectile.Damage0 = 55
     aphelion_immolation_cannon_projectile.Damage1 = 225
@@ -2039,7 +2031,7 @@ object GlobalDefinitionsProjectile {
     ProjectileDefinition.CalculateDerivedFields(aphelion_plasma_cloud)
     aphelion_plasma_cloud.registerAs = "rc-projectiles"
     aphelion_plasma_cloud.ExistsOnRemoteClients = true
-    aphelion_plasma_cloud.Packet = radCloudConverter
+    aphelion_plasma_cloud.Packet = RadiationCloudConverter
     //aphelion_plasma_cloud.Geometry = GeometryForm.representProjectileBySphere()
     aphelion_plasma_cloud.Modifiers = MaxDistanceCutoff
 
@@ -2105,7 +2097,7 @@ object GlobalDefinitionsProjectile {
     aphelion_starfire_projectile.ExistsOnRemoteClients = true
     aphelion_starfire_projectile.RemoteClientData = (39577, 249) //starfire_projectile data
     aphelion_starfire_projectile.AutoLock = true
-    aphelion_starfire_projectile.Packet = projectileConverter
+    aphelion_starfire_projectile.Packet = ProjectileConverter
     ProjectileDefinition.CalculateDerivedFields(aphelion_starfire_projectile)
     aphelion_starfire_projectile.Modifiers = List(
       StarfireAggravated,
@@ -2243,7 +2235,7 @@ object GlobalDefinitionsProjectile {
     ProjectileDefinition.CalculateDerivedFields(peregrine_particle_cannon_radiation_cloud)
     peregrine_particle_cannon_radiation_cloud.registerAs = "rc-projectiles"
     peregrine_particle_cannon_radiation_cloud.ExistsOnRemoteClients = true
-    peregrine_particle_cannon_radiation_cloud.Packet = radCloudConverter
+    peregrine_particle_cannon_radiation_cloud.Packet = RadiationCloudConverter
     //peregrine_particle_cannon_radiation_cloud.Geometry = GeometryForm.representProjectileBySphere()
     peregrine_particle_cannon_radiation_cloud.Modifiers = MaxDistanceCutoff
 
@@ -2281,7 +2273,7 @@ object GlobalDefinitionsProjectile {
     peregrine_sparrow_projectile.ExistsOnRemoteClients = true
     peregrine_sparrow_projectile.RemoteClientData = (13107, 187) //sparrow_projectile data
     peregrine_sparrow_projectile.AutoLock = true
-    peregrine_sparrow_projectile.Packet = projectileConverter
+    peregrine_sparrow_projectile.Packet = ProjectileConverter
     ProjectileDefinition.CalculateDerivedFields(peregrine_sparrow_projectile)
     peregrine_sparrow_projectile.Modifiers = RadialDegrade
 
