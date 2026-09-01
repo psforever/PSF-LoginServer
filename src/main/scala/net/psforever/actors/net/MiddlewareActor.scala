@@ -275,7 +275,7 @@ class MiddlewareActor(
     MiddlewareActor.propertyOverrideMessageGuard
   )
 
-  private val smpHistoryLength: Int = 100
+  private val smpHistoryLength: Int = Config.app.network.middleware.smpHistoryLength
 
   /** History of created `SlottedMetaPacket`s.
     * In case the client does not register receiving a packet by checking against packet subslot index numbers,
@@ -585,11 +585,15 @@ class MiddlewareActor(
 
           case RelatedA(slot, subslot) =>
             val requestedSubslot = subslot - 1
-            preparedSlottedMetaPackets.find(_.subslot == requestedSubslot) match {
+            //the history ring is pre-sized and holds null slots until it fills, so the predicate must be null-safe
+            preparedSlottedMetaPackets.find(p => p != null && p.subslot == requestedSubslot) match {
               case Some(_packet) =>
                 outQueueBundled.enqueue(_packet)
               case None if requestedSubslot < acceptedSmpSubslot =>
-                log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is no longer logged")
+                log.warn(
+                  s"Client indicated an smp of slot $slot prior to $subslot that is no longer logged " +
+                    s"(retransmit history holds $smpHistoryLength packets; raise network.middleware.smp-history-length if this recurs)"
+                )
               case None =>
                 log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is not found")
             }

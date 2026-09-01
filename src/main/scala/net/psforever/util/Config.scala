@@ -141,7 +141,8 @@ case class MiddlewareConfig(
     packetBundlingDrainLimit: Int,
     inReorderTimeout: FiniteDuration,
     inSubslotMissingDelay: FiniteDuration,
-    inSubslotMissingAttempts: Int
+    inSubslotMissingAttempts: Int,
+    smpHistoryLength: Int
 )
 
 case class SessionConfig(
