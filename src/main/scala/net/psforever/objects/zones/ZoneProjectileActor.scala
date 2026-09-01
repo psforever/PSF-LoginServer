@@ -223,7 +223,7 @@ object ZoneProjectile {
       * @param projectile the projectile being included
       * @return an `Add` message
       */
-    def apply(projectile: Projectile): Add = Add(PlanetSideGUID(0), projectile)
+    def apply(projectile: Projectile): Add = Add(Default.GUID0, projectile)
   }
 
   /**

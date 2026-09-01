@@ -67,35 +67,35 @@ class DeployingVehicleControl(vehicle: Vehicle)
     super.PrepareForDeletion()
   }
 
-  override def TryDeploymentChange(obj: Deployment.DeploymentObject, state: DriveState.Value): Boolean = {
+  override def TryDeploymentChange(obj: Deployment.DeploymentObject, state: DriveState): Boolean = {
     Deployment.AngleCheck(obj) && super.TryDeploymentChange(obj, state)
   }
 
   override def DeploymentAction(
                                  obj: DeploymentObject,
-                                 state: DriveState.Value,
-                                 prevState: DriveState.Value,
+                                 state: DriveState,
+                                 prevState: DriveState,
                                  replyTo: ActorRef
-                               ): DriveState.Value = {
+                               ): DriveState = {
     val out = super.DeploymentAction(obj, state, prevState, replyTo)
     Vehicles.ReloadAccessPermissions(vehicle, vehicle.Faction.toString)
     specificResponseToDeployment(state)
     out
   }
 
-  def specificResponseToDeployment(state: DriveState.Value): Unit = { }
+  def specificResponseToDeployment(state: DriveState): Unit = { }
 
   override def UndeploymentAction(
                                    obj: DeploymentObject,
-                                   state: DriveState.Value,
-                                   prevState: DriveState.Value,
+                                   state: DriveState,
+                                   prevState: DriveState,
                                    replyTo: ActorRef
-                                 ): DriveState.Value = {
+                                 ): DriveState = {
     val out = if (decaying) state else super.UndeploymentAction(obj, state, prevState, replyTo)
     Vehicles.ReloadAccessPermissions(vehicle, vehicle.Faction.toString)
     specificResponseToUndeployment(state)
     out
   }
 
-  def specificResponseToUndeployment(state: DriveState.Value): Unit = { }
+  def specificResponseToUndeployment(state: DriveState): Unit = { }
 }

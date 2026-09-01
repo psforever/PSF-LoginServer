@@ -17,7 +17,8 @@ import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.{InGameActivity, InGameHistory, RevivingActivity}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{ChangeAmmoMessage, GenericObjectActionMessage, ObjectDeployedMessage, RepairMessage}
 import net.psforever.types.{ChatMessageType, ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}

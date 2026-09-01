@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.{SpawnTube, SpawnTubeDefinition}
 import net.psforever.objects.vehicles.Utility.InternalTelepadDefinition
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
 /**
@@ -227,7 +227,7 @@ object Utility {
   class InternalTelepadDefinition
       extends AmenityDefinition(DeployedItem.router_telepad_deployable.id)
       with BaseDeployableDefinition {
-    Packet = new SmallDeployableConverter
+    Packet = SmallDeployableConverter
     registerAs = "terminals"
 
     def Item: DeployedItem.Value = DeployedItem.router_telepad_deployable

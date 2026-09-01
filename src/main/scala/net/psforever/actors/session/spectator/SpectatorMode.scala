@@ -1,25 +1,23 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.spectator
 
-import net.psforever.actors.session.support.{AvatarHandlerFunctions, ChatFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
+import net.psforever.actors.session.AvatarActor
+import net.psforever.actors.session.support.{AvatarHandlerFunctions, ChatFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, ModeLogic, MountHandlerFunctions, PlayerMode, SessionData, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{BattleRank, CommandRank, DeployableToolbox, FirstTimeEvents, Implant, ProgressDecoration, Shortcut => AvatarShortcut}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.ServerObject
+import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Session, SimpleItem, Vehicle}
 import net.psforever.packet.PlanetSidePacket
-import net.psforever.packet.game.{DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, ObjectCreateDetailedMessage, ObjectDeleteMessage}
+import net.psforever.packet.game.packets.{ChatMsg, CreateShortcutMessage, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, ObjectCreateDetailedMessage, ObjectDeleteMessage, UnuseItemMessage}
+import net.psforever.packet.game.packets
 import net.psforever.packet.game.objectcreate.{ObjectClass, ObjectCreateMessageParent, RibbonBars}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.ObjectDelete
 import net.psforever.services.chat.SpectatorChannel
 import net.psforever.services.teamwork.{SquadAction, SquadServiceMessage}
 import net.psforever.types.{CapacitorStateType, ChatMessageType, ExoSuitType, MeritCommendation, SquadRequestType}
-//
-import net.psforever.actors.session.AvatarActor
-import net.psforever.actors.session.support.{ModeLogic, PlayerMode, SessionData}
-import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
-import net.psforever.packet.game.{ChatMsg, CreateShortcutMessage, UnuseItemMessage}
 
 class SpectatorModeLogic(data: SessionData) extends ModeLogic {
   val avatarResponse: AvatarHandlerFunctions = AvatarHandlerLogic(data.avatarResponse)

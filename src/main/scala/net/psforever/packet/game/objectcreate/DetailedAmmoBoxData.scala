@@ -41,7 +41,7 @@ object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
 
   def apply(unk: Int, mag: Int): DetailedAmmoBoxData = {
     DetailedAmmoBoxData(
-      CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = unk > 0, None, jammered = false, None, None, PlanetSideGUID(0)),
+      CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = unk > 0, None, jammered = false, None, PlanetSideGUID(0)),
       mag
     )
   }
@@ -49,10 +49,10 @@ object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
   implicit val codec: Codec[DetailedAmmoBoxData] = (
     ("data" | CommonFieldData.codec) ::
       ("magazine" | uint16L) ::
-      bool
+      ignore(size = 1)
   ).exmap[DetailedAmmoBoxData](
     {
-      case data :: mag :: false :: HNil =>
+      case data :: mag :: _ :: HNil =>
         Attempt.successful(DetailedAmmoBoxData(data, mag))
 
       case data =>
@@ -60,7 +60,7 @@ object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
     },
     {
       case DetailedAmmoBoxData(data, mag) =>
-        Attempt.successful(data :: mag :: false :: HNil)
+        Attempt.successful(data :: mag :: () :: HNil)
     }
   )
 }

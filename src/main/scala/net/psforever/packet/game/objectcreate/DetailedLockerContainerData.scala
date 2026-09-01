@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.PlanetSideGUID
 import scodec.codecs._
 import scodec.{Attempt, Codec, Err}
 import shapeless.{::, HNil}
@@ -20,32 +20,12 @@ import shapeless.{::, HNil}
 final case class DetailedLockerContainerData(data: CommonFieldData, inventory: Option[InventoryData])
     extends ConstructorData {
   override def bitsize: Long = {
-    val base: Long = 40L
-    val invSize: Long = if (inventory.isDefined) { inventory.get.bitsize }
-    else { 0L }
-    base + invSize
+    val invSize: Long = inventory.map(_.bitsize).getOrElse(0L)
+    40L + invSize
   }
 }
 
 object DetailedLockerContainerData extends Marshallable[DetailedLockerContainerData] {
-
-  /**
-    * Overloaded constructor for creating `DetailedLockerContainerData` without a list of contents.
-    * @param unk na
-    * @return a `DetailedLockerContainerData` object
-    */
-  def apply(unk: Int): DetailedLockerContainerData =
-    new DetailedLockerContainerData(CommonFieldData(PlanetSideEmpire.NEUTRAL, unk), None)
-
-  /**
-    * Overloaded constructor for creating `DetailedLockerContainerData` containing known items.
-    * @param unk na
-    * @param inventory the items in the inventory
-    * @return a `DetailedLockerContainerData` object
-    */
-  def apply(unk: Int, inventory: List[InternalSlot]): DetailedLockerContainerData =
-    new DetailedLockerContainerData(CommonFieldData(PlanetSideEmpire.NEUTRAL, unk), Some(InventoryData(inventory)))
-
   /**
     * Overloaded constructor for creating `DetailedLockerContainerData` while masking use of `InternalSlot`.
     * @param cls the code for the type of object being constructed

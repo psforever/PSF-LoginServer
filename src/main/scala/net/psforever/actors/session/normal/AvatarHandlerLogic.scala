@@ -3,37 +3,31 @@ package net.psforever.actors.session.normal
 
 import akka.actor.Actor.Receive
 import akka.actor.{ActorContext, typed}
-import net.psforever.actors.session.support.AvatarHandlerFunctions
+import net.psforever.actors.session.AvatarActor
+import net.psforever.actors.session.support.{AvatarHandlerFunctions, SessionAvatarHandlers, SessionData}
 import net.psforever.actors.zone.ZoneActor
-import net.psforever.objects.inventory.Container
-import net.psforever.objects.{Default, PlanetSideGameObject}
+import net.psforever.login.WorldSession.{DropEquipmentFromInventory, DropLeftovers, HoldNewEquipmentUp}
+import net.psforever.objects.{Default, GlobalDefinitions, PlanetSideGameObject, Player, Tool, Vehicle}
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
+import net.psforever.objects.inventory.{Container, InventoryItem}
+import net.psforever.objects.serverobject.pad.VehicleSpawnPad
+import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
+import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.RevivingActivity
 import net.psforever.objects.vital.interaction.Adversarial
-import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction, PlanetsideStringAttributeMessage}
+import net.psforever.objects.zones.Zoning
+import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.packet.game.packets.{ArmorChangedMessage, AvatarDeadStateMessage, AvatarImplantMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, CreateShortcutMessage, DeadState, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, ImplantAction, PlanetsideStringAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, UseItemMessage, WeaponDryFireMessage}
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ObjectDelete, PlanetsideAttribute, ReloadTool, WeaponDryFire}
-import net.psforever.types.ImplantType
+import net.psforever.types.{ChatMessageType, ImplantType, PlanetSideGUID, TransactionType, Vector3}
+import net.psforever.util.Config
 
 import scala.concurrent.duration._
-//
-import net.psforever.actors.session.AvatarActor
-import net.psforever.actors.session.support.{SessionAvatarHandlers, SessionData}
-import net.psforever.login.WorldSession.{DropEquipmentFromInventory, DropLeftovers, HoldNewEquipmentUp}
-import net.psforever.objects.{GlobalDefinitions, Player, Tool, Vehicle}
-import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
-import net.psforever.objects.inventory.InventoryItem
-import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
-import net.psforever.objects.vital.etc.ExplodingEntityReason
-import net.psforever.objects.zones.Zoning
-import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.packet.game.{ArmorChangedMessage, AvatarDeadStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, DeadState, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, UseItemMessage, WeaponDryFireMessage}
-import net.psforever.types.{ChatMessageType, PlanetSideGUID, TransactionType, Vector3}
-import net.psforever.util.Config
 
 object AvatarHandlerLogic {
   def apply(ops: SessionAvatarHandlers): AvatarHandlerLogic = {
@@ -610,7 +604,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           projectile.Orientation,
           sequence_num=0,
           end=true,
-          hit_target_guid=PlanetSideGUID(0)
+          hit_target_guid=Default.GUID0
         )
       )
       sendResponse(ObjectDeleteMessage(projectileGuid, unk1=2))

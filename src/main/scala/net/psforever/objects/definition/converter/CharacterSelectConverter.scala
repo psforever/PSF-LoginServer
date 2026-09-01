@@ -2,10 +2,10 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.avatar.Certification
-import net.psforever.objects.{Player, Tool}
+import net.psforever.objects.{Default, Player, Tool}
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{PlanetSideGUID, _}
+import net.psforever.types._
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
@@ -15,7 +15,7 @@ import scala.util.{Failure, Success, Try}
   * that is tailored for appearance of the player character on the character selection screen.
   * Details that would not be apparent on that screen such as implants or certifications are ignored.
   */
-class CharacterSelectConverter extends AvatarConverter {
+object CharacterSelectConverter extends ObjectCreateConverter[Player] {
   override def ConstructorData(obj: Player): Try[PlayerData] =
     Failure(new Exception("CharacterSelectConverter should not be used to generate CharacterData"))
 
@@ -26,7 +26,7 @@ class CharacterSelectConverter extends AvatarConverter {
         MakeAppearanceData(obj),
         MakeDetailedCharacterData(obj),
         InventoryData(recursiveMakeHolsters(obj.Holsters().iterator)),
-        AvatarConverter.GetDrawnSlot(obj)
+        CharacterConverter.GetDrawnSlot(obj)
       )
     )
   }
@@ -40,17 +40,7 @@ class CharacterSelectConverter extends AvatarConverter {
   private def MakeAppearanceData(obj: Player): Int => CharacterAppearanceData = {
     val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
       obj.avatar.basic,
-      CommonFieldData(
-        obj.Faction,
-        bops = false,
-        alternate = false,
-        v1 = false,
-        None,
-        jammered = false,
-        None,
-        v5 = None,
-        PlanetSideGUID(0)
-      ),
+      CommonFieldData(obj.Faction, bops = false, alternate = false, v1 = false, None, jammered = false, v5 = None, Default.GUID0),
       obj.ExoSuit,
       0,
       0L,
@@ -149,7 +139,7 @@ class CharacterSelectConverter extends AvatarConverter {
         case Some(equip: Tool) =>
           val jammed = equip.Jammed
           equip.Jammed = false
-          val slot = AvatarConverter.BuildDetailedEquipment(index, equip)
+          val slot = CharacterConverter.BuildDetailedEquipment(index, equip)
           equip.Jammed = jammed
           recursiveMakeHolsters(
             iter,
@@ -159,7 +149,7 @@ class CharacterSelectConverter extends AvatarConverter {
         case Some(equip) =>
           recursiveMakeHolsters(
             iter,
-            list :+ AvatarConverter.BuildDetailedEquipment(index, equip),
+            list :+ CharacterConverter.BuildDetailedEquipment(index, equip),
             index + 1
           )
         case _ =>

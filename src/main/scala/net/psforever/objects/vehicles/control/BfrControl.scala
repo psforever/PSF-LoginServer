@@ -15,7 +15,7 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.ShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets.{ChatMsg, ComponentDamageMessage, GenericObjectActionMessage, ItemTransactionMessage, TriggerEffectMessage, TriggeredEffectLocation}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse}
 import net.psforever.types._
@@ -112,11 +112,10 @@ class BfrControl(vehicle: Vehicle)
         )
       case _ => () //no dimorphic entry; place as-is
     }
-    val guid0 = PlanetSideGUID(0)
     //if the weapon arm is disabled, enable it for later (makes life easy)
-    parseObjectActionForBFRs(guid0, BfrControl.ArmState.Enabled, Some(slot))
+    parseObjectActionForBFRs(Default.GUID0, BfrControl.ArmState.Enabled, Some(slot))
     //enable the other arm weapon regardless
-    parseObjectActionForBFRs(guid0, BfrControl.ArmState.Enabled, Some(
+    parseObjectActionForBFRs(Default.GUID0, BfrControl.ArmState.Enabled, Some(
       //budget logic: the arm weapons are "next to each other" index-wise
       if (vehicle.Weapons.keys.min == slot) { slot + 1 } else { slot - 1 }
     ))
@@ -480,7 +479,7 @@ class BfrControl(vehicle: Vehicle)
       ) {
         //installing a siphon; this siphon can safely be disabled
         //alternately, installing normal equipment, but the other arm weapon is a siphon
-        parseObjectActionForBFRs(PlanetSideGUID(0), BfrControl.ArmState.Enabled, Some(otherArmSlot)) //ensure enabled
+        parseObjectActionForBFRs(Default.GUID0, BfrControl.ArmState.Enabled, Some(otherArmSlot)) //ensure enabled
         parseObjectActionForBFRs(item.GUID, BfrControl.ArmState.Disabled, Some(slot))
       }
     }
@@ -528,7 +527,7 @@ class BfrControl(vehicle: Vehicle)
         thisArmExists && otherArmExists && (thisArmIsSiphon || otherArmIsSiphon)
       }) {
         //both arms weapons are installed and at least one of them is a siphon
-        parseObjectActionForBFRs(PlanetSideGUID(0), BfrControl.ArmState.Disabled, Some(otherSlot), BfrControl.NoArmManagement)
+        parseObjectActionForBFRs(Default.GUID0, BfrControl.ArmState.Disabled, Some(otherSlot), BfrControl.NoArmManagement)
       }
     }
     else {
@@ -537,7 +536,7 @@ class BfrControl(vehicle: Vehicle)
         case Some(item) =>
           parseObjectActionForBFRs(item.GUID, BfrControl.ArmState.Enabled, Some(otherSlot), BfrControl.NoArmManagement) //other arm must be enabled
         case None =>
-          parseObjectActionForBFRs(PlanetSideGUID(0), BfrControl.ArmState.Enabled, Some(thisSlot), BfrControl.NoArmManagement) //must stay enabled
+          parseObjectActionForBFRs(Default.GUID0, BfrControl.ArmState.Enabled, Some(thisSlot), BfrControl.NoArmManagement) //must stay enabled
       }
     }
   }

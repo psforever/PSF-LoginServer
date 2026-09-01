@@ -3,13 +3,13 @@ package net.psforever.services
 
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
+import akka.actor.typed.{ActorRef, Behavior, DispatcherSelector, SupervisorStrategy}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{SpawnPoint, Vehicle}
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.{HotSpotInfo, Zone}
-import net.psforever.packet.game.DroppodError
+import net.psforever.packet.game.packets.DroppodError
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, SpawnGroup, Vector3}
 import net.psforever.util.Config
 import net.psforever.zones.Zones
@@ -46,8 +46,14 @@ object InterstellarClusterService {
 
   final case class ZonesResponse(zoneActor: Iterable[Zone])
 
-  final case class GetInstantActionSpawnPoint(faction: PlanetSideEmpire.Value, replyTo: ActorRef[SpawnPointResponse])
-      extends Command
+  // `token` is an opaque correlation value echoed back verbatim in the SpawnPointResponse.
+  // The requesting session uses it to discard responses that a newer spawn-point request has superseded
+  // (see ZoningOperations.handleSpawnPointResponse). Non-session callers may leave it at the default 0L.
+  final case class GetInstantActionSpawnPoint(
+      faction: PlanetSideEmpire.Value,
+      replyTo: ActorRef[SpawnPointResponse],
+      token: Long = 0L
+  ) extends Command
 
   final case class GetSpawnPoint(
       zoneNumber: Int,
@@ -55,7 +61,8 @@ object InterstellarClusterService {
       target: PlanetSideGUID,
       fromZoneNumber: Int,
       fromGateGuid: PlanetSideGUID,
-      replyTo: ActorRef[SpawnPointResponse]
+      replyTo: ActorRef[SpawnPointResponse],
+      token: Long = 0L
   ) extends Command
 
   final case class GetNearbySpawnPoint(
@@ -63,17 +70,19 @@ object InterstellarClusterService {
       faction: PlanetSideEmpire.Value,
       position: Vector3,
       spawnGroups: Seq[SpawnGroup],
-      replyTo: ActorRef[SpawnPointResponse]
+      replyTo: ActorRef[SpawnPointResponse],
+      token: Long = 0L
   ) extends Command
 
   final case class GetRandomSpawnPoint(
       zoneNumber: Int,
       faction: PlanetSideEmpire.Value,
       spawnGroups: Seq[SpawnGroup],
-      replyTo: ActorRef[SpawnPointResponse]
+      replyTo: ActorRef[SpawnPointResponse],
+      token: Long = 0L
   ) extends Command
 
-  final case class SpawnPointResponse(response: Option[(Zone, SpawnPoint)])
+  final case class SpawnPointResponse(response: Option[(Zone, SpawnPoint)], token: Long = 0L)
 
   final case class GetPlayers(replyTo: ActorRef[PlayersResponse]) extends Command
 
@@ -125,7 +134,22 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
     mutable.Map(
       _zones.map {
         zone =>
-          val zoneActor = context.spawn(ZoneActor(zone), s"zone-${zone.id}")
+          /* Each zone runs on its own pool from dispatchers.conf, so that one busy continent
+             cannot starve the others. The dispatcher is selected here at the spawn site
+             because this is a typed actor, which config-based deployment does not apply to.
+             Not every zone id is guaranteed to have a matching entry -- Zone.Nowhere, the
+             sentinel for an invalid location, has none -- and DispatcherSelector.fromConfig
+             throws on a missing key, so an absent pool falls back to the default rather than
+             preventing the server from starting. */
+          val dispatcherPath = s"${zone.id}-zone-dispatcher"
+          val zoneDispatcher =
+            if (context.system.settings.config.hasPath(dispatcherPath)) {
+              DispatcherSelector.fromConfig(dispatcherPath)
+            } else {
+              context.log.warn(s"no dispatcher configured at $dispatcherPath; zone ${zone.id} shares the default pool")
+              DispatcherSelector.default()
+            }
+          val zoneActor = context.spawn(ZoneActor(zone), s"zone-${zone.id}", zoneDispatcher)
           (zone.id, (zoneActor, zone))
       }.toSeq: _*
     )
@@ -165,7 +189,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
       case FilterZones(predicate, replyTo) =>
         replyTo ! ZonesResponse(zones.filter(predicate))
 
-      case GetInstantActionSpawnPoint(faction, replyTo) =>
+      case GetInstantActionSpawnPoint(faction, replyTo, token) =>
         val spawnTarget: Seq[SpawnGroup] = if (Config.app.game.instantAction.spawnOnAms) {
           Seq(SpawnGroup.Tower, SpawnGroup.Facility, SpawnGroup.AMS)
         } else {
@@ -203,9 +227,9 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
               val spawnPoint = spawns.minBy(point => Vector3.DistanceSquared(point.Position, pos))
               (zone, spawnPoint)
           }
-        replyTo ! SpawnPointResponse(spawnResults)
+        replyTo ! SpawnPointResponse(spawnResults, token)
 
-      case GetRandomSpawnPoint(zoneNumber, faction, spawnGroups, replyTo) =>
+      case GetRandomSpawnPoint(zoneNumber, faction, spawnGroups, replyTo, token) =>
         val response = zones.find(_.Number == zoneNumber) match {
           case Some(zone: Zone) =>
             Random.shuffle(zone.findSpawns(faction, spawnGroups)).headOption match {
@@ -218,9 +242,9 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             log.error(s"no zone $zoneNumber")
             None
         }
-        replyTo ! SpawnPointResponse(response)
+        replyTo ! SpawnPointResponse(response, token)
 
-      case GetSpawnPoint(zoneNumber, faction, target, fromZoneNumber, fromOriginGuid, replyTo) =>
+      case GetSpawnPoint(zoneNumber, faction, target, fromZoneNumber, fromOriginGuid, replyTo, token) =>
         zones.find(_.Number == zoneNumber) match {
           case Some(zone) =>
             //found target zone; find a spawn point in target zone
@@ -233,10 +257,10 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             } match {
               case Some((_, spawnPoints)) =>
                 //spawn point selected
-                replyTo ! SpawnPointResponse(Some(zone, Random.shuffle(spawnPoints.toList).head))
+                replyTo ! SpawnPointResponse(Some(zone, Random.shuffle(spawnPoints.toList).head), token)
               case _ =>
                 //no spawn point found
-                replyTo ! SpawnPointResponse(None)
+                replyTo ! SpawnPointResponse(None, token)
             }
           case None =>
             //target zone not found; find origin and plot next immediate destination
@@ -253,24 +277,24 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             }) match {
               case Some(outputGate: WarpGate) =>
                 //destination (next direct stopping point) found
-                replyTo ! SpawnPointResponse(Some(outputGate.Zone, outputGate))
+                replyTo ! SpawnPointResponse(Some(outputGate.Zone, outputGate), token)
               case _ =>
                 //no destination found
-                replyTo ! SpawnPointResponse(None)
+                replyTo ! SpawnPointResponse(None, token)
             }
         }
 
-      case GetNearbySpawnPoint(zoneNumber, faction, position, spawnGroups, replyTo) =>
+      case GetNearbySpawnPoint(zoneNumber, faction, position, spawnGroups, replyTo, token) =>
         zones.find(_.Number == zoneNumber) match {
           case Some(zone) =>
             zone.findNearestSpawnPoints(faction, position, spawnGroups) match {
               case None | Some(Nil) =>
-                replyTo ! SpawnPointResponse(None)
+                replyTo ! SpawnPointResponse(None, token)
               case Some(spawnPoints) =>
-                replyTo ! SpawnPointResponse(Some(zone, scala.util.Random.shuffle(spawnPoints).head))
+                replyTo ! SpawnPointResponse(Some(zone, scala.util.Random.shuffle(spawnPoints).head), token)
             }
           case None =>
-            replyTo ! SpawnPointResponse(None)
+            replyTo ! SpawnPointResponse(None, token)
         }
 
       case DroppodLaunchRequest(zoneNumber, position, faction, replyTo) =>

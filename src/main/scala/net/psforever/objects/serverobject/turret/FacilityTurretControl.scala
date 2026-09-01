@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, Ca
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
 import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.packet.game.{ChangeFireModeMessage, HackState1}
+import net.psforever.packet.game.packets.{ChangeFireModeMessage, HackState1}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.vehicle.support.TurretUpgrader
@@ -44,7 +44,7 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   private var testToResetToDefaultFireMode: Boolean = false
 
-  AutomaticOperation = true
+  //AutomaticOperation = true
 
   override def postStop(): Unit = {
     super.postStop()
@@ -57,7 +57,7 @@ class FacilityTurretControl(turret: FacilityTurret)
     case CommonMessages.Use(player, Some((item: Tool, upgradeValue: Int)))
       if player.Faction == TurretObject.Faction &&
         item.Definition == GlobalDefinitions.nano_dispenser && item.AmmoType == Ammo.upgrade_canister &&
-        item.Magazine > 0 && TurretObject.Seats.values.forall(!_.isOccupied) =>
+        item.Magazine > 0 && TurretObject.isUnoccupied =>
       TurretUpgrade.values.find(_.id == upgradeValue).foreach {
         case upgrade
           if TurretObject.Upgrade != upgrade && TurretObject.Definition.WeaponPaths.values
@@ -99,8 +99,7 @@ class FacilityTurretControl(turret: FacilityTurret)
                                     obj: PlanetSideServerObject with Mountable,
                                     seatNumber: Int,
                                     player: Player): Boolean = {
-    super.mountTest(obj, seatNumber, player) &&
-      (!TurretObject.isUpgrading || System.currentTimeMillis() - TurretObject.CheckTurretUpgradeTime >= 1500L)
+    super.mountTest(obj, seatNumber, player) && !TurretObject.isUpgrading
   }
 
   override protected def tryMount(obj: PlanetSideServerObject with Mountable, seatNumber: Int, player: Player): Boolean = {

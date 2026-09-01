@@ -1,7 +1,7 @@
 package game
 
 import net.psforever.packet.PacketCoding
-import net.psforever.packet.game.{CaptureFlagUpdateMessage, FlagInfo}
+import net.psforever.packet.game.packets.{CaptureFlagUpdateMessage, FlagInfo}
 import org.specs2.control.Debug
 import org.specs2.mutable.Specification
 import scodec.bits._

@@ -14,11 +14,7 @@ import shapeless.{::, HNil}
   */
 final case class LockerContainerData(inventory: Option[InventoryData]) extends ConstructorData {
   override def bitsize: Long = {
-    val base: Long = 105L
-    (inventory match {
-      case Some(inv) => inv.bitsize
-      case None      => 0L
-    }) + base //81u + 2u + 21u + 1u
+    105L + inventory.map(_.bitsize).getOrElse(0L) //81u + 2u + 21u + 1u
   }
 }
 

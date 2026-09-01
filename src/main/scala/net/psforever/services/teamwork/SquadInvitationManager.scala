@@ -13,7 +13,7 @@ import net.psforever.objects.Player
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.teamwork.{Member, SquadFeatures}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{SquadDetail, SquadPositionDetail, SquadPositionEntry}
+import net.psforever.packet.game.packets.{SquadDetail, SquadPositionDetail, SquadPositionEntry}
 import net.psforever.services.teamwork.invitations.{
   IndirectInvite,
   Invitation,

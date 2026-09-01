@@ -2,19 +2,19 @@
 package net.psforever.actors.session.csr
 
 import net.psforever.actors.session.support.{ChatFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, ModeLogic, MountHandlerFunctions, PlayerMode, SessionData, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
-import net.psforever.objects.{Deployables, PlanetSideGameObject, Player, Session, Vehicle}
+import net.psforever.objects.{Default, Deployables, PlanetSideGameObject, Player, Session, Vehicle}
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.serverobject.ServerObject
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ChatMsg, ObjectCreateDetailedMessage, PlanetsideAttributeMessage}
+import net.psforever.packet.game.packets.{ChatMsg, ObjectCreateDetailedMessage, PlanetsideAttributeMessage}
 import net.psforever.packet.game.objectcreate.RibbonBars
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.chat.{CustomerServiceChannel, SpectatorChannel}
-import net.psforever.types.{ChatMessageType, MeritCommendation, PlanetSideGUID}
+import net.psforever.types.{ChatMessageType, MeritCommendation}
 
 class CustomerServiceRepresentativeMode(data: SessionData) extends ModeLogic {
   val avatarResponse: AvatarHandlerLogic = AvatarHandlerLogic(data.avatarResponse)
@@ -128,7 +128,7 @@ class CustomerServiceRepresentativeMode(data: SessionData) extends ModeLogic {
         }
       data.squad.updateSquad()
     } else {
-      data.turnCounterFunc(PlanetSideGUID(0))
+      data.turnCounterFunc(Default.GUID0)
     }
   }
 }

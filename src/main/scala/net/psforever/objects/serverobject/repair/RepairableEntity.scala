@@ -6,7 +6,7 @@ import net.psforever.objects.ce.DeployableCategory
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.RepairFromEquipment
 import net.psforever.objects.{Player, Tool}
-import net.psforever.packet.game.{ChatMsg, InventoryStateMessage, RepairMessage}
+import net.psforever.packet.game.packets.{ChatMsg, InventoryStateMessage, RepairMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}

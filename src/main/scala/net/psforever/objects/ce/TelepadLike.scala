@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{GenericObjectActionMessage, ObjectCreateMessage, ObjectDeleteMessage}
+import net.psforever.packet.game.packets.{GenericObjectActionMessage, ObjectCreateMessage, ObjectDeleteMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
@@ -27,7 +27,7 @@ trait TelepadLike {
       case None =>
         router = rguid
       case Some(_) =>
-        if (rguid.isEmpty || rguid.contains(PlanetSideGUID(0))) {
+        if (rguid.isEmpty || rguid.contains(Default.GUID0)) {
           router = None
         }
     }

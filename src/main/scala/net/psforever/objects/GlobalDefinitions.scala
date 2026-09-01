@@ -1338,7 +1338,7 @@ object GlobalDefinitions {
   val llm_socket = new CaptureFlagSocketDefinition()
 
   val capture_flag = new CaptureFlagDefinition()
-  capture_flag.Packet = new CaptureFlagConverter
+  capture_flag.Packet = CaptureFlagConverter
 
   val lodestar_repair_terminal = new MedicalTerminalDefinition(461)
 

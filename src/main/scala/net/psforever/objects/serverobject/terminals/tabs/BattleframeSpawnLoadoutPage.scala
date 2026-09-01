@@ -6,13 +6,14 @@ import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.VehicleLoadout
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.terminals.{EquipmentTerminalDefinition, Terminal}
-import net.psforever.packet.game.ItemTransactionMessage
+import net.psforever.packet.game.packets.ItemTransactionMessage
 
 /**
   * The special page used by the `bfr_terminal` to select a vehicle to be spawned
   * based on the player's previous loadouts for battleframe vehicles.
   * Vehicle loadouts are defined by a superfluous redefinition of the vehicle's mounted weapons
   * and equipment in the trunk.
+ *
   * @see `Equipment`
   * @see `Loadout`
   * @see `Vehicle`

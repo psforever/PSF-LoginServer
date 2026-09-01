@@ -15,7 +15,7 @@ import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.vehicles.AccessPermissionGroup
 import net.psforever.objects.vital.InGameHistory
-import net.psforever.packet.game.{ChatMsg, DelayedPathMountMsg, DismountVehicleCargoMsg, DismountVehicleMsg, GenericObjectActionMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectDetachMessage, PlanetsideAttributeMessage, PlayerStasisMessage, PlayerStateShiftMessage, ShiftState}
+import net.psforever.packet.game.packets.{ChatMsg, DelayedPathMountMsg, DismountVehicleCargoMsg, DismountVehicleMsg, GenericObjectActionMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectDetachMessage, PlanetsideAttributeMessage, PlayerStasisMessage, PlayerStateShiftMessage, ShiftState}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.vehicle.VehicleAction
@@ -197,7 +197,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         ops.MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: FacilityTurret, seatNumber, _)
-        if !obj.isUpgrading || System.currentTimeMillis() - obj.CheckTurretUpgradeTime >= 1500L =>
+        if !obj.isUpgrading =>
         log.info(s"${player.Name} mounts the ${obj.Definition.Name}")
         obj.setMiddleOfUpgrade(false)
         sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")

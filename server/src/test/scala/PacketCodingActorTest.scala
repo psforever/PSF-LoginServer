@@ -8,7 +8,7 @@ import net.psforever.actors.net.MiddlewareActor
 import net.psforever.objects.avatar.Certification
 import net.psforever.packet.control.{ControlSync, SlottedMetaPacket}
 import net.psforever.packet.{GamePacketOpcode, PacketCoding}
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
 import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types._
 import scodec.bits._
@@ -613,7 +613,7 @@ class PacketCodingActorKTest extends ActorTest {
       false,
       None,
       None,
-      PlanetSideGUID(0)
+      Default.GUID0
     ),
     ExoSuitType.Standard,
     0,

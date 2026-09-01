@@ -7,7 +7,7 @@ import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
 import net.psforever.objects.serverobject.interior.Sidedness
-import net.psforever.packet.game.{ChatMsg, ServerType, SetChatFilterMessage}
+import net.psforever.packet.game.packets.{ChatMsg, ServerType, SetChatFilterMessage}
 import net.psforever.services.chat.{DefaultChannel, OutfitChannel, SquadChannel}
 import net.psforever.types.ChatMessageType
 import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}

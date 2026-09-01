@@ -48,8 +48,9 @@ object ControlPacketOpcode extends Enumeration {
   ClientHotStart        // Probably a more lightweight variant of ClientStart, containing only the client nonce
   = Value
 
+  /* see the note on GamePacketOpcode.noDecoder -- Err builds its message eagerly */
   private def noDecoder(opcode: ControlPacketOpcode.Type) =
-    (bits: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet $opcode (${bits.toHex})"))
+    (_: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet $opcode"))
 
   def getPacketDecoder(
       opcode: ControlPacketOpcode.Type

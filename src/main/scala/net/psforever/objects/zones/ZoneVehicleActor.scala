@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.deploy.{Deployment, Interference}
 import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.objects.{Default, GlobalDefinitions, Vehicle}
-import net.psforever.packet.game.ChatMsg
+import net.psforever.packet.game.packets.ChatMsg
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, Vector3}

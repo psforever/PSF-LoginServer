@@ -9,7 +9,7 @@ import net.psforever.actors.zone.building._
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.ContinentalLockUpdateMessage
+import net.psforever.packet.game.packets.ContinentalLockUpdateMessage
 import net.psforever.persistence
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{SendResponse, SetEmpire}

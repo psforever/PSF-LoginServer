@@ -1,27 +1,16 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.SimpleItem
-import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedREKData, REKData}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.objects.{Default, SimpleItem}
+import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedREKData, REKData}
 
 import scala.util.{Success, Try}
 
-class REKConverter extends ObjectCreateConverter[SimpleItem]() {
+object REKConverter extends ObjectCreateConverter[SimpleItem] {
   override def ConstructorData(obj: SimpleItem): Try[REKData] = {
     Success(
       REKData(
-        CommonFieldData(
-          PlanetSideEmpire.NEUTRAL, //TODO faction affinity
-          false,
-          false,
-          true,
-          None,
-          false,
-          Some(false),
-          None,
-          PlanetSideGUID(0)
-        )
+        CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = false, v5 = None, guid = Default.GUID0)
       )
     )
   }
@@ -29,17 +18,7 @@ class REKConverter extends ObjectCreateConverter[SimpleItem]() {
   override def DetailedConstructorData(obj: SimpleItem): Try[DetailedREKData] = {
     Success(
       DetailedREKData(
-        CommonFieldData(
-          PlanetSideEmpire.NEUTRAL, //TODO faction affinity
-          false,
-          false,
-          true,
-          None,
-          false,
-          Some(false),
-          None,
-          PlanetSideGUID(0)
-        )
+        CommonFieldData(faction = obj.Faction, bops = false, alternate = false, v1 = true, v2 = Some(CommonFieldDataExtra.Default), jammered = false, v5 = None, guid = Default.GUID0)
       )
     )
   }

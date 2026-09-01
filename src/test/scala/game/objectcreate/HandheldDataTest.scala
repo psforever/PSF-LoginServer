@@ -2,7 +2,7 @@
 package game.objectcreate
 
 import net.psforever.packet.PacketCoding
-import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.packets.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import org.specs2.mutable._
@@ -23,14 +23,13 @@ class HandheldDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(3336)
           parent.get.slot mustEqual 0
           data match {
-            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk) =>
+            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid), _, _) =>
               faction mustEqual PlanetSideEmpire.NC
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual true
               v2.isEmpty mustEqual true
               v3 mustEqual false
-              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -52,7 +51,7 @@ class HandheldDataTest extends Specification {
           data match {
             case DroppedItemData(
                   pos,
-                  HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk)
+                  HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid), mode, unk)
                 ) =>
               pos.coord mustEqual Vector3(4708.461f, 5547.539f, 72.703125f)
               pos.orient mustEqual Vector3.z(194.0625f)
@@ -63,7 +62,6 @@ class HandheldDataTest extends Specification {
               v1 mustEqual true
               v2.isEmpty mustEqual true
               v3 mustEqual false
-              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -76,7 +74,7 @@ class HandheldDataTest extends Specification {
 
     "encode (held)" in {
       val obj = HandheldData(
-        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0))
       )
       val msg = ObjectCreateMessage(
         ObjectClass.ace,
@@ -92,7 +90,7 @@ class HandheldDataTest extends Specification {
       val obj = DroppedItemData(
         PlacementData(4708.461f, 5547.539f, 72.703125f, 0f, 0f, 194.0625f),
         HandheldData(
-          CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0))
+          CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, PlanetSideGUID(0))
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.ace, PlanetSideGUID(4388), obj)
@@ -114,14 +112,13 @@ class HandheldDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(430)
           parent.get.slot mustEqual 0
           data match {
-            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk) =>
+            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid), mode, unk) =>
               faction mustEqual PlanetSideEmpire.TR
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual false
               v2.isEmpty mustEqual true
               v3 mustEqual false
-              v4.isEmpty mustEqual true
               v5.contains(385) mustEqual true
               fguid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -134,7 +131,7 @@ class HandheldDataTest extends Specification {
 
     "encode" in {
       val obj = HandheldData(
-        CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, Some(385), PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, Some(385), PlanetSideGUID(0))
       )
       val msg = ObjectCreateMessage(
         ObjectClass.router_telepad,
@@ -161,14 +158,13 @@ class HandheldDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(4272)
           parent.get.slot mustEqual 0
           data match {
-            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk) =>
+            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid), mode, unk) =>
               faction mustEqual PlanetSideEmpire.NEUTRAL
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual false
               v2.isEmpty mustEqual true
               v3 mustEqual false
-              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -181,7 +177,7 @@ class HandheldDataTest extends Specification {
 
     "encode" in {
       val obj = HandheldData(
-        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, PlanetSideGUID(0))
       )
       val msg = ObjectCreateMessage(
         ObjectClass.boomer_trigger,
@@ -208,14 +204,13 @@ class HandheldDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(4149)
           parent.get.slot mustEqual 0
           data match {
-            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk) =>
+            case HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid), mode, unk) =>
               faction mustEqual PlanetSideEmpire.NC
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual false
               v2.isEmpty mustEqual true
               v3 mustEqual false
-              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -236,7 +231,7 @@ class HandheldDataTest extends Specification {
           data match {
             case DroppedItemData(
                   pos,
-                  HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid), mode, unk)
+                  HandheldData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid), mode, unk)
                 ) =>
               pos.coord mustEqual Vector3(4777.633f, 5485.4062f, 85.8125f)
               pos.orient mustEqual Vector3.z(14.0625f)
@@ -247,7 +242,6 @@ class HandheldDataTest extends Specification {
               v1 mustEqual false
               v2.isEmpty mustEqual true
               v3 mustEqual false
-              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -260,7 +254,7 @@ class HandheldDataTest extends Specification {
 
     "encode (held)" in {
       val obj = HandheldData(
-        CommonFieldData(PlanetSideEmpire.NC, false, false, false, None, false, None, None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.NC, false, false, false, None, false, None, PlanetSideGUID(0))
       )
       val msg = ObjectCreateMessage(
         ObjectClass.command_detonater,
@@ -276,7 +270,7 @@ class HandheldDataTest extends Specification {
       val obj = DroppedItemData(
         PlacementData(4777.633f, 5485.4062f, 85.8125f, 0f, 0f, 14.0625f),
         HandheldData(
-          CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, None, PlanetSideGUID(0))
+          CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, PlanetSideGUID(0))
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.command_detonater, PlanetSideGUID(3682), obj)

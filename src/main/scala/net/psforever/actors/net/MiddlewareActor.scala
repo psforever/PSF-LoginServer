@@ -4,6 +4,7 @@ import akka.actor.Cancellable
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.io.Udp
+
 import java.net.InetSocketAddress
 import java.security.{SecureRandom, Security}
 import javax.crypto.spec.SecretKeySpec
@@ -21,10 +22,10 @@ import net.psforever.objects.Default
 import net.psforever.packet._
 import net.psforever.packet.control._
 import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
 import net.psforever.packet.crypto._
-import net.psforever.packet.game.{ChangeFireModeMessage, CharacterInfoMessage, KeepAliveMessage, PingMsg}
 import net.psforever.packet.PacketCoding.CryptoCoding
+import net.psforever.packet.game.packets.{ChangeFireModeMessage, CharacterInfoMessage, ChatMsg, KeepAliveMessage, PingMsg, PropertyOverrideMessage, SquadDetailDefinitionUpdateMessage}
 import net.psforever.packet.reset.ResetSequence
 import net.psforever.util.{Config, DiffieHellman, Md5Mac}
 
@@ -274,7 +275,7 @@ class MiddlewareActor(
     MiddlewareActor.propertyOverrideMessageGuard
   )
 
-  private val smpHistoryLength: Int = 100
+  private val smpHistoryLength: Int = Config.app.network.middleware.smpHistoryLength
 
   /** History of created `SlottedMetaPacket`s.
     * In case the client does not register receiving a packet by checking against packet subslot index numbers,
@@ -303,6 +304,10 @@ class MiddlewareActor(
     math.abs(packetOutboundDelay * Config.app.network.middleware.packetBundlingDelayMultiplier).toLong,
     "milliseconds"
   )
+
+  /** How many bundles a single run of the bundling process may dispatch; at least one */
+  private val packetBundlingDrainLimit: Int =
+    math.max(1, Config.app.network.middleware.packetBundlingDrainLimit)
 
   /** Timer that handles the bundling and throttling of outgoing packets and resolves disorganized inbound packets */
   private var packetProcessor: Cancellable = Default.Cancellable
@@ -580,11 +585,15 @@ class MiddlewareActor(
 
           case RelatedA(slot, subslot) =>
             val requestedSubslot = subslot - 1
-            preparedSlottedMetaPackets.find(_.subslot == requestedSubslot) match {
+            //the history ring is pre-sized and holds null slots until it fills, so the predicate must be null-safe
+            preparedSlottedMetaPackets.find(p => p != null && p.subslot == requestedSubslot) match {
               case Some(_packet) =>
                 outQueueBundled.enqueue(_packet)
               case None if requestedSubslot < acceptedSmpSubslot =>
-                log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is no longer logged")
+                log.warn(
+                  s"Client indicated an smp of slot $slot prior to $subslot that is no longer logged " +
+                    s"(retransmit history holds $smpHistoryLength packets; raise network.middleware.smp-history-length if this recurs)"
+                )
               case None =>
                 log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is not found")
             }
@@ -671,7 +680,16 @@ class MiddlewareActor(
     */
   private def processQueue(): Unit = {
     inReorderQueueFunc()
-    processOutQueueBundle()
+    /* Drain up to `packetBundlingDrainLimit` bundles per run. processOutQueueBundle dispatches
+       one bundle per call, so this budget governs how much of a backlog a single run clears,
+       while the bundling delay governs how aggressively packets are coalesced into each
+       bundle. The budget also bounds the loop, which therefore always terminates after a
+       fixed number of iterations even if a queue fails to shrink. */
+    var budget: Int = packetBundlingDrainLimit
+    while (budget > 0 && (outQueueBundled.nonEmpty || outQueue.nonEmpty)) {
+      processOutQueueBundle()
+      budget -= 1
+    }
   }
 
   /**

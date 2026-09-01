@@ -20,28 +20,26 @@ import shapeless.{::, HNil}
   * @see `FireModeSwitch`
   */
 final case class DetailedConstructionToolData(data: CommonFieldData, mode: Int) extends ConstructorData {
-  override def bitsize: Long = 28L + data.bitsize
+  override def bitsize: Long = ToolPatternData.bitsize + data.bitsize
 }
 
 object DetailedConstructionToolData extends Marshallable[DetailedConstructionToolData] {
   def apply(data: CommonFieldData): DetailedConstructionToolData = DetailedConstructionToolData(data, 0)
 
   implicit val codec: Codec[DetailedConstructionToolData] = (
-    ("data" | CommonFieldData.codec(extra = false)) ::
-      uint8 :: //n > 1 produces a stack of construction items (tends to crash the client)
-      ("mode" | uint16) ::
-      uint2 ::
-      uint2
+    ("data" | CommonFieldData.codec) ::
+      ToolPatternData.codec
   ).exmap[DetailedConstructionToolData](
     {
-      case data :: 1 :: mode :: 1 :: _ :: HNil =>
+      case data :: ToolPatternData(_, mode, _, _, _, _) :: HNil =>
         Attempt.successful(DetailedConstructionToolData(data, mode))
       case data =>
         Attempt.failure(Err(s"invalid detailed construction tool data format - $data"))
     },
     {
       case DetailedConstructionToolData(data, mode) =>
-        Attempt.successful(data :: 1 :: mode :: 1 :: 0 :: HNil)
+        // v1 > 1 produces a stack of items (tends to crash the client)
+        Attempt.successful(data :: ToolPatternData(u1 = 1, mode, u3 = false, u4 = true, u5 = None, u6 = false) :: HNil)
     }
   )
 }

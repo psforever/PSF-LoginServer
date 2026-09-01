@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
-import scodec.codecs._
+import net.psforever.types.{DriveState, VehicleFormat}
 import scodec.{Attempt, Codec, Err}
 import shapeless.{::, HNil}
 
@@ -27,11 +27,12 @@ import shapeless.{::, HNil}
   * Does this `basic.player_guid` actually represent the player who is in the pod?
   * @param basic data common to objects
   * @param health the amount of health the object has, as a percentage of a filled bar
-  * @param burn whether the boosters are ignited
+  * @param burn whether the boosters are ignited;
+  *             9 on standby, 0 when burning and the pod is occupied
   * @see `DroppodLaunchRequestMessage`
   * @see `DroppodLaunchResponseMessage`
   */
-final case class DroppodData(basic: CommonFieldDataWithPlacement, health: Int, burn: Boolean, unk: Boolean)
+final case class DroppodData(basic: CommonFieldDataWithPlacement, health: Int, burn: Boolean)
     extends ConstructorData {
   override def bitsize: Long = {
     val basicSize = basic.bitsize
@@ -40,31 +41,39 @@ final case class DroppodData(basic: CommonFieldDataWithPlacement, health: Int, b
 }
 
 object DroppodData extends Marshallable[DroppodData] {
-  def apply(basic: CommonFieldDataWithPlacement): DroppodData = DroppodData(basic, 255, burn = false, unk = false)
+  def apply(basic: CommonFieldDataWithPlacement): DroppodData = DroppodData(basic, 255, burn = false)
 
   implicit val codec: Codec[DroppodData] = (
-    ("basic" | CommonFieldDataWithPlacement.codec) ::
-      bool ::
-      ("health" | uint8L) ::   //health
-      uintL(bits = 5) ::       //0x0
-      uint4L ::                //0xF
-      uintL(bits = 6) ::       //0x0
-      ("boosters" | uint4L) :: //0x9 on standby, 0x0 when burning and occupied (basic.player_guid?)
-      ("unk" | bool)
-  ).exmap[DroppodData](
+    CommonFieldDataWithPlacement.codec >>:~ { data =>
+      VehiclePatternData.codec(data.pos.vel.isDefined, VehicleFormat.Utility).hlist
+    }).exmap[DroppodData](
     {
-      case basic :: false :: health :: 0 :: 0xf :: 0 :: boosters :: unk :: HNil =>
-        val burn: Boolean = boosters == 0
-        Attempt.successful(DroppodData(basic, health, burn, unk))
+      case basic :: VehiclePatternData(_, health, _, _, _, _, _, _, boosters, _) :: HNil =>
+        val burn: Boolean = boosters.contains(UtilityVehicleData(0))
+        Attempt.successful(DroppodData(basic, health, burn))
 
       case data =>
         Attempt.failure(Err(s"invalid droppod data format - $data"))
     },
     {
-      case DroppodData(basic, health, burn, unk) =>
-        val boosters: Int = if (burn) { 0 }
-        else { 9 }
-        Attempt.successful(basic :: false :: health :: 0 :: 0xf :: 0 :: boosters :: unk :: HNil)
+      case DroppodData(basic, health, burn) =>
+        val boosters: Int = if (burn) { 0 } else { 9 }
+        Attempt.successful(
+          basic ::
+            VehiclePatternData(
+              boostMaxHealth = false,
+              health,
+              unk4 = false,
+              no_mount_points = false,
+              DriveState.Droppod,
+              unk5 = false,
+              unk6 = false,
+              cloak = false,
+              Some(UtilityVehicleData(boosters)),
+              None
+            )(VehicleFormat.Utility) ::
+            HNil
+        )
     }
   )
 }

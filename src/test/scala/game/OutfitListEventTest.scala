@@ -2,8 +2,8 @@
 package game
 
 import net.psforever.packet._
-import net.psforever.packet.game.OutfitListEvent
-import net.psforever.packet.game.OutfitListEventAction.ListElementOutfit
+import net.psforever.packet.game.packets.OutfitListEventAction.ListElementOutfit
+import net.psforever.packet.game.packets.OutfitListEvent
 import org.specs2.mutable._
 import scodec.bits.ByteVector
 

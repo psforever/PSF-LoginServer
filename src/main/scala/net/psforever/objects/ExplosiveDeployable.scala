@@ -40,7 +40,7 @@ abstract class ExplosiveDeployableDefinition(private val objectId: Int)
   Name = "explosive_deployable"
   DeployCategory = DeployableCategory.Mines
   Model = SimpleResolutions.calculate
-  Packet = new SmallDeployableConverter
+  Packet = SmallDeployableConverter
 
   private var detonateOnJamming: Boolean = true
 

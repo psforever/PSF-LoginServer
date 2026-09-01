@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.{packets, _}
+import net.psforever.packet.game.packets.{TargetRequest, TargetingImplantRequest}
 import net.psforever.types.PlanetSideGUID
 import scodec.bits._
 
@@ -92,7 +93,7 @@ class TargetingImplantRequestTest extends Specification {
   }
 
   "encode (long)" in {
-    val msg = TargetingImplantRequest(
+    val msg = packets.TargetingImplantRequest(
       TargetRequest(PlanetSideGUID(31355), true) ::
         TargetRequest(PlanetSideGUID(27273), false) ::
         TargetRequest(PlanetSideGUID(40768), false) ::

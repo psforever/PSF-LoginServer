@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.turret
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.{Player, Tool, TurretDeployable}
-import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
+import net.psforever.packet.game.packets.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.local.LocalAction
@@ -76,11 +76,12 @@ object WeaponTurrets {
     progress: Float
   ): Boolean = {
     val (progressState, progressGrade) = if (progress <= 0L) {
+      turret.FinishedTurretUpgradeReset()
       (HackState.Start, 0)
+    } else if (turret.Destroyed || !turret.isUnoccupied) {
+      (HackState.Cancelled, 0)
     } else if (progress >= 100L) {
       (HackState.Finished, 100)
-    } else if (turret.Destroyed) {
-      (HackState.Cancelled, 0)
     } else {
       turret.UpdateTurretUpgradeTime()
       (HackState.Ongoing, progress.toInt)

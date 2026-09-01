@@ -3,7 +3,7 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.{DeployableIcon, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction}
+import net.psforever.packet.game.packets.{DeployableIcon, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import scodec.bits._
 

@@ -4,38 +4,10 @@ import java.net.{DatagramPacket, DatagramSocket, InetSocketAddress}
 import java.security.{SecureRandom, Security}
 import akka.actor.typed.ActorRef
 import akka.io.Udp
-import net.psforever.packet.{
-  CryptoPacketOpcode,
-  PacketCoding,
-  PlanetSideControlPacket,
-  PlanetSideCryptoPacket,
-  PlanetSideGamePacket,
-  PlanetSidePacket
-}
+import net.psforever.packet.{CryptoPacketOpcode, PacketCoding, PlanetSideControlPacket, PlanetSideCryptoPacket, PlanetSideGamePacket, PlanetSidePacket}
 import net.psforever.packet.PacketCoding.CryptoCoding
-import net.psforever.packet.control.{
-  ClientStart,
-  ConnectionClose,
-  HandleGamePacket,
-  MultiPacketEx,
-  ServerStart,
-  SlottedMetaPacket
-}
+import net.psforever.packet.control.{ClientStart, ConnectionClose, HandleGamePacket, MultiPacketEx, ServerStart, SlottedMetaPacket}
 import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
-import net.psforever.packet.game.{
-  BeginZoningMessage,
-  CharacterInfoMessage,
-  CharacterRequestAction,
-  CharacterRequestMessage,
-  ConnectToWorldRequestMessage,
-  KeepAliveMessage,
-  LoadMapMessage,
-  LoginMessage,
-  LoginRespMessage,
-  PlayerStateMessageUpstream,
-  VNLWorldStatusMessage,
-  WorldInformation
-}
 import net.psforever.tools.client.State.Connection
 import net.psforever.util.{DiffieHellman, Md5Mac}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -48,8 +20,10 @@ import scala.collection.mutable
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 import java.util.concurrent.{Executors, TimeUnit}
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{ActionResultMessage, BeginZoningMessage, CharacterCreateRequestMessage, CharacterInfoMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, ConnectToWorldRequestMessage, KeepAliveMessage, LoadMapMessage, LoginMessage, LoginRespMessage, PlayerStateMessageUpstream, VNLWorldStatusMessage, WorldInformation}
 import net.psforever.types._
+
 import scala.concurrent.Future
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

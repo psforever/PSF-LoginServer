@@ -94,7 +94,7 @@ object MountableInventory {
                   inventory: InventoryData,
                   drawn_slot: DrawnSlot.Type,
                   accumulative: Long
-                ): Player_Data = {
+                ): PlayerData = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
     Player_Data(None, appearance, character_data(false, true), Some(inventory), drawn_slot)(position_defined = false)
   }
@@ -116,7 +116,7 @@ object MountableInventory {
                   character_data: (Boolean, Boolean) => CharacterData,
                   drawn_slot: DrawnSlot.Type,
                   accumulative: Long
-                ): Player_Data = {
+                ): PlayerData = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
     Player_Data.apply(None, appearance, character_data(false, true), None, drawn_slot)(position_defined = false)
   }

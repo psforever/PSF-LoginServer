@@ -5,7 +5,7 @@ import akka.actor.{ActorContext, Props}
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.{CommonNtuContainer, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.packet.game.UseItemMessage
+import net.psforever.packet.game.packets.UseItemMessage
 import net.psforever.types.Vector3
 
 import scala.annotation.unused

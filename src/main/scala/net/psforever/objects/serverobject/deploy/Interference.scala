@@ -75,7 +75,7 @@ object Interference {
       val faction = obj.Faction
       val sharedGroupId = objectDefinition.interference.sharedGroupId
       val sector = zone.blockMap.sector(position, Interference.MaxRange)
-      val targets = (sector.deployableList ++ sector.vehicleList.filter(_.DeploymentState >= DriveState.Deploying))
+      val targets = (sector.deployableList ++ sector.vehicleList.filter(_.DeploymentState.id >= DriveState.Deploying.id))
         .collect { case target: PlanetSideGameObject with FactionAffinity
           if target.Faction == faction &&
             (target.Definition.asInstanceOf[ObjectDefinition].interference ne Interference.AllowAll) =>

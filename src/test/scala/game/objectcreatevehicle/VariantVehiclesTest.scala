@@ -2,7 +2,7 @@
 package game.objectcreatevehicle
 
 import net.psforever.packet._
-import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.packets.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 import org.specs2.mutable._
@@ -41,10 +41,9 @@ class VariantVehiclesTest extends Specification {
           weapon.parentSlot mustEqual 1
           weapon.obj match {
             case WeaponData(
-                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                  CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                   fmode,
-                  ammo,
-                  _
+                  ammo
                 ) =>
               wfaction mustEqual PlanetSideEmpire.NEUTRAL
               wbops mustEqual false
@@ -52,7 +51,6 @@ class VariantVehiclesTest extends Specification {
               wv1 mustEqual true
               wv2.isEmpty mustEqual true
               wv3 mustEqual false
-              wv4.isEmpty mustEqual true
               wv5.isEmpty mustEqual true
               wfguid mustEqual PlanetSideGUID(0)
 
@@ -63,14 +61,13 @@ class VariantVehiclesTest extends Specification {
               ammo.head.guid mustEqual PlanetSideGUID(366)
               ammo.head.parentSlot mustEqual 0
               ammo.head.obj match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.NEUTRAL
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -81,14 +78,13 @@ class VariantVehiclesTest extends Specification {
               ammo(1).guid mustEqual PlanetSideGUID(385)
               ammo(1).parentSlot mustEqual 1
               ammo(1).obj match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.NEUTRAL
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -105,7 +101,7 @@ class VariantVehiclesTest extends Specification {
     "encode (switchblade)" in {
       val obj = VehicleData(
         PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
-        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
         false,
         255,
         false,
@@ -123,30 +119,20 @@ class VariantVehiclesTest extends Specification {
                 PlanetSideGUID(355),
                 1,
                 WeaponData(
-                  CommonFieldData(
-                    PlanetSideEmpire.NEUTRAL,
-                    false,
-                    false,
-                    true,
-                    None,
-                    false,
-                    None,
-                    None,
-                    PlanetSideGUID(0)
-                  ),
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                   0,
                   List(
                     InternalSlot(
                       ObjectClass.ancient_ammo_vehicle,
                       PlanetSideGUID(366),
                       0,
-                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
                     ),
                     InternalSlot(
                       ObjectClass.ancient_ammo_vehicle,
                       PlanetSideGUID(385),
                       1,
-                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
                     )
                   )
                 )

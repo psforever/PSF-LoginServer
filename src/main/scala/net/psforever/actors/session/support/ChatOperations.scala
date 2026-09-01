@@ -15,8 +15,8 @@ import net.psforever.objects.serverobject.interior.{InteriorAware, Sidedness}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.{Zone, ZoneInfo}
-import net.psforever.packet.game.TimeOfDayMessage.GetTimeOfDayValue
-import net.psforever.packet.game.{SetChatFilterMessage, TimeOfDayMessage}
+import net.psforever.packet.game.packets.TimeOfDayMessage.GetTimeOfDayValue
+import net.psforever.packet.game.packets.{SetChatFilterMessage, TimeOfDayMessage}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.chat.{DefaultChannel, OutfitChannel, SquadChannel}
@@ -42,8 +42,8 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
+import net.psforever.packet.game.packets.{ChatMsg, CreateShortcutMessage, DeadState, RequestDestroyMessage, Shortcut}
 import net.psforever.packet.game.objectcreate.DrawnSlot
-import net.psforever.packet.game.{ChatMsg, CreateShortcutMessage, DeadState, RequestDestroyMessage, Shortcut}
 import net.psforever.services.{CavernRotationService, InterstellarClusterService}
 import net.psforever.services.chat.ChatService
 import net.psforever.services.chat.ChatChannel
@@ -856,7 +856,7 @@ class ChatOperations(
    * @see `Array::indexWhere`
    * @see `CreateShortcutMessage`
    * @see `net.psforever.objects.avatar.Shortcut`
-   * @see `net.psforever.packet.game.Shortcut.Medkit`
+   * @see `net.psforever.packet.game.packets.Shortcut.Medkit`
    * @see `SessionActor.SendResponse`
    * @param guid current player unique identifier for the target client
    * @param shortcuts list of all existing shortcuts, used for early validation
@@ -926,7 +926,7 @@ class ChatOperations(
    * @see `Array::indexWhere`
    * @see `CreateShortcutMessage`
    * @see `net.psforever.objects.avatar.Shortcut`
-   * @see `net.psforever.packet.game.Shortcut.Macro`
+   * @see `net.psforever.packet.game.packets.Shortcut.Macro`
    * @see `SessionActor.SendResponse`
    * @param guid current player unique identifier for the target client
    * @param acronym three letters emblazoned on the shortcut icon
@@ -1487,5 +1487,7 @@ class ChatOperations(
   override protected[session] def stop(): Unit = {
     silenceTimer.cancel()
     chatService ! ChatService.LeaveAllChannels(chatServiceAdapter)
+    /* the scheduler pool is owned by this session, so it is released with the session */
+    scheduler.shutdown()
   }
 }

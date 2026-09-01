@@ -7,8 +7,6 @@ import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.MapScale
 import net.psforever.types.Vector3
 
-import scala.collection.mutable.ListBuffer
-
 /**
   * A data structure which divides coordinate space into buckets or coordinate spans.
   * The function of the blockmap is to organize the instantiated game objects (entities)
@@ -40,16 +38,14 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
   /** the sectors / blocks / buckets into which entities that submit themselves are divided;
     * while the represented region need not be square, the sectors are defined as squares
     */
-  val blocks: ListBuffer[Sector] = {
+  val blocks: IndexedSeq[Sector] = {
     val horizontal: List[Int] = List.range(0, fullMapWidth, spanSize)
     val vertical: List[Int] = List.range(0, fullMapHeight, spanSize)
-    ListBuffer.newBuilder[Sector].addAll(
-      vertical.flatMap { latitude =>
-        horizontal.map { longitude =>
-          new Sector(longitude, latitude, spanSize)
-        }
+    vertical.flatMap { latitude =>
+      horizontal.map { longitude =>
+        new Sector(longitude, latitude, spanSize)
       }
-    ).result()
+    }.toIndexedSeq
   }
 
   /**
@@ -507,10 +503,10 @@ object BlockMap {
     */
   private def sectorOnlyWithinBlockStructure(
                                               index: Int,
-                                              structure: Iterable[Sector]
+                                              structure: IndexedSeq[Sector]
                                             ): Sector = {
     if (index < structure.size) {
-      structure.toSeq(index)
+      structure(index)
     } else {
       Sector.Empty
     }
@@ -525,11 +521,10 @@ object BlockMap {
     */
   private def sectorsOnlyWithinBlockStructure(
                                                list: Iterable[Int],
-                                               structure: Iterable[Sector]
+                                               structure: IndexedSeq[Sector]
                                              ): Iterable[Sector] = {
     if (list.nonEmpty && list.max < structure.size) {
-      val structureSeq = structure.toSeq
-      list.toSet.map { structureSeq }
+      list.toSet.map(structure.apply)
     } else {
       List[Sector]()
     }

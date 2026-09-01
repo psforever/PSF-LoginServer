@@ -21,8 +21,8 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles.control.{CargoBehavior, CarrierBehavior}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
 import net.psforever.objects.zones.blockmap.BlockMapEntity
-import net.psforever.packet.game.GenericAction.FirstPersonViewWithEffect
-import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TrainingZoneMessage, TriggeredSound, WeatherMessage}
+import net.psforever.packet.game.packets.GenericAction.FirstPersonViewWithEffect
+import net.psforever.packet.game.packets.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, CreateShortcutMessage, DeployableInfo, Friend, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TrainingZoneMessage, TriggeredSound, WeatherMessage}
 import net.psforever.services.avatar.support.{CorpseEnvelope, ReleaseEnvelope}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse}
@@ -58,13 +58,10 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.objects._
-import net.psforever.packet.game.{AvatarAwardMessage, AvatarSearchCriteriaMessage, AvatarStatisticsMessage, AwardCompletion, BindPlayerMessage, BindStatus, CargoMountPointStatusMessage, ChangeShortcutBankMessage, ChatChannel, CreateShortcutMessage, DroppodFreefallingMessage, LoadMapMessage, ObjectCreateDetailedMessage, ObjectDeleteMessage, PlayerStateShiftMessage, SetChatFilterMessage, SetCurrentAvatarMessage, ShiftState}
-import net.psforever.packet.game.{AvatarDeadStateMessage, BroadcastWarpgateUpdateMessage, ChatMsg, ContinentalLockUpdateMessage, DeadState, DensityLevelUpdateMessage, DeployRequestMessage, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, ObjectAttachMessage, ObjectCreateMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PropertyOverrideMessage, ReplicationStreamMessage, SetEmpireMessage, TimeOfDayMessage, TriggerEffectMessage, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
-import net.psforever.packet.game.{BeginZoningMessage, DroppodLaunchRequestMessage, ReleaseAvatarRequestMessage, SpawnRequestMessage, WarpgateRequest}
-import net.psforever.packet.game.DeathStatistic
+import net.psforever.packet.game.packets.{AvatarAwardMessage, AvatarDeadStateMessage, AvatarSearchCriteriaMessage, AvatarStatisticsMessage, AwardCompletion, BeginZoningMessage, BindPlayerMessage, BindStatus, BroadcastWarpgateUpdateMessage, CargoMountPointStatusMessage, ChangeShortcutBankMessage, ChatChannel, ChatMsg, ContinentalLockUpdateMessage, DeadState, DeathStatistic, DensityLevelUpdateMessage, DeployRequestMessage, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodFreefallingMessage, DroppodLaunchRequestMessage, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, LoadMapMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PlayerStateShiftMessage, PropertyOverrideMessage, ReleaseAvatarRequestMessage, ReplicationStreamMessage, SetChatFilterMessage, SetCurrentAvatarMessage, SetEmpireMessage, ShiftState, SpawnRequestMessage, TimeOfDayMessage, TriggerEffectMessage, WarpgateRequest, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
 import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.packet.{PlanetSideGamePacket, game}
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.persistence.Savedplayer
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
 import net.psforever.services.account.{AccountPersistenceService, PlayerToken}
@@ -86,6 +83,37 @@ object ZoningOperations {
                                                               bundle: Iterable[Iterable[PlanetSideGamePacket]],
                                                               delay: Long
                                                             )
+
+  /**
+    * Delivered to the session actor when a zoning countdown timer elapses.
+    * The countdown continuation travels as a message so that the countdown logic runs on the actor
+    * thread, serialized with all other session activity, which is what makes a concurrent transfer's
+    * `zoningTimer.cancel()` effective.
+    * @param runnable the next step of the zoning countdown to perform
+    */
+  private[session] final case class ZoningCountdownTick(runnable: Runnable)
+
+  /**
+    * Delivered to the session actor when a physical spawn-point respawn timer elapses.
+    * The resolved destination travels as a message so that the respawn/zone-load logic runs on the
+    * actor thread, serialized with all other session activity. That is what makes a concurrent
+    * transfer's `respawnTimer.cancel()` effective, and it keeps `session`/`continent`/
+    * `interstellarFerry` from being read in a half-updated state off the global thread pool.
+    * @param zoneId the destination zone designation
+    * @param position where in the destination zone to place the avatar
+    * @param orientation the direction the avatar faces at the destination
+    * @param side the containment side of the destination spawn
+    * @param toZoneNumber the destination zone number, resolved at scheduling time
+    * @param physSpawnPoint the physical spawn point, if any
+    */
+  private[session] final case class ZoningSpawnPointRespawn(
+                                                             zoneId: String,
+                                                             position: Vector3,
+                                                             orientation: Vector3,
+                                                             side: Sidedness,
+                                                             toZoneNumber: Int,
+                                                             physSpawnPoint: Option[SpawnPoint]
+                                                           )
 
   private final val zoningCountdownMessages: Seq[Int] = Seq(5, 10, 20)
 
@@ -218,6 +246,14 @@ class ZoningOperations(
    */
   private[session] var zoneLoaded: Option[Boolean] = None
   /**
+   * a monotonically increasing correlation counter for outgoing spawn-point requests to the cluster service.
+   * Every session-originated `Get*SpawnPoint` request is stamped with a fresh value via `nextSpawnPointToken()`,
+   * and the value is echoed back in the `SpawnPointResponse`.
+   * A response whose token is older than the latest issued token has been superseded by a newer request
+   * (the classic rapid-zoning race) and is discarded rather than force-loaded into a mismatched zone.
+   */
+  private var spawnPointRequestToken: Long = 0L
+  /**
    * used during zone transfers to maintain reference to seated vehicle (which does not yet exist in the new zone)
    * used during intrazone gate transfers, but not in a way distinct from prior zone transfer procedures
    * should only be set during the transient period when moving between one spawn point and the next
@@ -267,7 +303,8 @@ class ZoningOperations(
             destinationBuildingGuid,
             continent.Number,
             building_guid,
-            context.self
+            context.self,
+            token = nextSpawnPointToken()
           )
           log.info(s"${player.Name} wants to use a warp gate")
 
@@ -295,6 +332,15 @@ class ZoningOperations(
 
   def handleBeginZoning(pkt: BeginZoningMessage): Unit = {
     val BeginZoningMessage() = pkt
+    if (zoneLoaded.contains(true)) {
+      //the current zone has already finished loading; this is a duplicate BeginZoningMessage
+      //(e.g. a second one queued behind a rapid transfer). Re-dumping ObjectCreate for entities
+      //the client already holds triggers "object already exists" and crashes it, so ignore it.
+      //A legitimate new zone load always resets zoneLoaded to None first (LoadZoneCommonTransferActivity).
+      log.warn(
+        s"BeginZoningMessage: ${player.Name} sent a duplicate zoning request for an already-loaded ${continent.id}; ignoring"
+      )
+    } else {
     log.trace(s"BeginZoningMessage: ${player.Name} is reticulating ${continent.id}'s splines ...")
     zoneLoaded = None
     val name = avatar.name
@@ -316,7 +362,7 @@ class ZoningOperations(
 
     //custom
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
-    sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
+    sendResponse(PlanetsideAttributeMessage(Default.GUID0, 112, 0)) // disable festive backpacks
 
     val deployables = continent.DeployableList
     reclaimOurDeployables(deployables, name, manageDeployablesWith(player.GUID, avatar.deployables))
@@ -557,6 +603,7 @@ class ZoningOperations(
     )
     spawn.upstreamMessageCount = 0
     zoneLoaded = Some(true)
+    }
   }
 
   /* messages */
@@ -602,7 +649,7 @@ class ZoningOperations(
     galaxyService.tell(MessageEnvelope("", GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     //PropertyOverrideMessage
     ServiceManager.serviceManager ! Lookup("propertyOverrideManager")
-    sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
+    sendResponse(PlanetsideAttributeMessage(Default.GUID0, 112, 0)) // disable festive backpacks
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
     spawn.initializeFriendsAndIgnoredLists()
     //the following subscriptions last until character switch/logout
@@ -640,7 +687,8 @@ class ZoningOperations(
             player.Faction,
             player.Position,
             Seq(SpawnGroup.Facility, SpawnGroup.Tower),
-            context.self
+            context.self,
+            token = nextSpawnPointToken()
           )
         }
     }
@@ -668,14 +716,31 @@ class ZoningOperations(
     }
   }
 
-  def handleSpawnPointResponse(response: Option[(Zone, SpawnPoint)]): Unit = {
+  /**
+   * Produce the next correlation token for a session-originated spawn-point request.
+   * @see `spawnPointRequestToken`
+   * @see `handleSpawnPointResponse`
+   */
+  private[session] def nextSpawnPointToken(): Long = {
+    spawnPointRequestToken += 1
+    spawnPointRequestToken
+  }
+
+  def handleSpawnPointResponse(response: Option[(Zone, SpawnPoint)], token: Long): Unit = {
+    if (token != 0L && token != spawnPointRequestToken) {
+      //a newer spawn-point request has since been issued; this response belongs to a superseded transfer
+      log.debug(
+        s"SpawnPointResponse: ${player.Name} received a superseded spawn-point response " +
+          s"(token $token, current $spawnPointRequestToken); discarding to avoid loading a mismatched zone"
+      )
+    } else {
     zoningType match {
       case Zoning.Method.InstantAction if response.isEmpty =>
         CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
 
       case Zoning.Method.InstantAction if zoningStatus == Zoning.Status.Request =>
         beginZoningCountdown(() => {
-          cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
+          cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self, nextSpawnPointToken())
         })
 
       case Zoning.Method.Reset =>
@@ -712,6 +777,7 @@ class ZoningOperations(
         sessionLogic.general.dropSpecialSlotItem()
         continent.Population ! Zone.Population.Release(avatar)
         spawn.resolveZoningSpawnPointLoad(response, previousZoningType)
+    }
     }
   }
 
@@ -797,7 +863,8 @@ class ZoningOperations(
           Zones.sanctuaryZoneNumber(player.Faction),
           player.Faction,
           Seq(SpawnGroup.Sanctuary),
-          context.self
+          context.self,
+          token = nextSpawnPointToken()
         )
       })
     }
@@ -812,7 +879,7 @@ class ZoningOperations(
       zoningType = Zoning.Method.InstantAction
       zoningChatMessageType = ChatMessageType.CMT_INSTANTACTION
       zoningStatus = Zoning.Status.Request
-      cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
+      cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self, nextSpawnPointToken())
     }
   }
 
@@ -905,7 +972,7 @@ class ZoningOperations(
         context.self ! SessionActor.SetZone("tzdrnc", vrDrivingAreaSpawns.toArray.apply(rand.nextInt(vrDrivingAreaSpawns.size)))
       case 22 =>
         context.self ! SessionActor.SetZone("tzdrvs", vrDrivingAreaSpawns.toArray.apply(rand.nextInt(vrDrivingAreaSpawns.size)))
-      case _ => 
+      case _ =>
         log.warn(s"Received TrainingZoneMessage that requests unexpected zone number ${pkt.zone.guid}?")
     }
   }
@@ -938,9 +1005,11 @@ class ZoningOperations(
       zoningCounter = time
       sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, wideContents=false, "", s"@${descriptor}_$origin", None))
       zoningTimer.cancel()
-      zoningTimer = context.system.scheduler.scheduleOnce(5 seconds) {
-        beginZoningCountdown(runnable)
-      }
+      zoningTimer = context.system.scheduler.scheduleOnce(
+        5 seconds,
+        context.self,
+        ZoningOperations.ZoningCountdownTick(runnable)
+      )
     } else if (zoningStatus == Zoning.Status.Countdown) {
       zoningCounter -= 5
       zoningTimer.cancel()
@@ -948,9 +1017,11 @@ class ZoningOperations(
         if (ZoningOperations.zoningCountdownMessages.contains(zoningCounter)) {
           sendResponse(ChatMsg(zoningChatMessageType, wideContents=false, "", s"@${descriptor}_$zoningCounter", None))
         }
-        zoningTimer = context.system.scheduler.scheduleOnce(5 seconds) {
-          beginZoningCountdown(runnable)
-        }
+        zoningTimer = context.system.scheduler.scheduleOnce(
+          5 seconds,
+          context.self,
+          ZoningOperations.ZoningCountdownTick(runnable)
+        )
       } else {
         zoningCounter = 0
         //zoning deployment
@@ -1512,7 +1583,7 @@ class ZoningOperations(
         override def description() : String = s"doing ${task.description()} before transferring zones"
 
         def action(): Future[Any] = {
-          localZone.Population ! Zone.Population.Leave(localAvatar)
+          localZone.Population ! Zone.Population.Leave(localAvatar, galaxyService)
           localCluster ! zoneMessage
           Future(true)
         }
@@ -1578,14 +1649,16 @@ class ZoningOperations(
             Zones.sanctuaryZoneNumber(player.Faction),
             player.Faction,
             Seq(SpawnGroup.WarpGate),
-            context.self
+            context.self,
+            token = nextSpawnPointToken()
           )
         case _ =>
           cluster ! ICS.GetRandomSpawnPoint(
             Zones.sanctuaryZoneNumber(player.Faction),
             player.Faction,
             Seq(SpawnGroup.Sanctuary),
-            context.self
+            context.self,
+            token = nextSpawnPointToken()
           )
       }
     }
@@ -1607,7 +1680,7 @@ class ZoningOperations(
     sessionLogic.terminals.CancelAllProximityUnits()
     //droppod action
     val droppod = Vehicle(GlobalDefinitions.droppod)
-    droppod.GUID = PlanetSideGUID(0) //droppod is not registered, we must jury-rig this
+    droppod.GUID = Default.GUID0 //droppod is not registered, we must jury-rig this
     droppod.Faction = player.Faction
     droppod.Position = spawnPosition.xy + Vector3.z(1024)
     droppod.Orientation = Vector3.z(180) //you always seems to land looking south; don't know why
@@ -1615,7 +1688,7 @@ class ZoningOperations(
     droppod.Invalidate() //now, we must short-circuit the jury-rig
     interstellarFerry = Some(droppod) //leverage vehicle gating
     player.Position = droppod.Position
-    player.VehicleSeated = PlanetSideGUID(0)
+    player.VehicleSeated = Default.GUID0
     spawn.LoadZonePhysicalSpawnPoint(zone.id, droppod.Position, Vector3.Zero, 0 seconds, None)
   }
 
@@ -2044,7 +2117,8 @@ class ZoningOperations(
           player.Faction,
           shiftPosition.getOrElse(player.Position),
           Seq(spawnGroup),
-          context.self
+          context.self,
+          token = nextSpawnPointToken()
         )
         shiftPosition = None
       } else {
@@ -2271,7 +2345,7 @@ class ZoningOperations(
 
         case Zoning.Method.InstantAction if zoningStatus == Zoning.Status.Request =>
           beginZoningCountdown(() => {
-            cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
+            cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self, nextSpawnPointToken())
           })
 
         case Zoning.Method.Reset =>
@@ -2360,7 +2434,8 @@ class ZoningOperations(
           tplayer.Faction,
           tplayer.Position,
           Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
-          context.self
+          context.self,
+          token = nextSpawnPointToken()
         )
       }
     }
@@ -2396,7 +2471,8 @@ class ZoningOperations(
           tplayer.Faction,
           tplayer.Position,
           Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
-          context.self
+          context.self,
+          token = nextSpawnPointToken()
         )
       }
     }
@@ -2625,7 +2701,7 @@ class ZoningOperations(
           player.VehicleSeated = vguid
           if (Vehicles.AllGatedOccupantsInSameZone(vehicle)) {
             //do not dispatch delete action if any hierarchical occupant has not gotten this far through the summoning process
-            val vehicleToDelete = interstellarFerryTopLevelGUID.orElse(originalSeated).getOrElse(PlanetSideGUID(0))
+            val vehicleToDelete = interstellarFerryTopLevelGUID.orElse(originalSeated).getOrElse(Default.GUID0)
             val zone            = vehicle.PreviousGatingManifest().get.origin
             zone.VehicleEvents ! MessageEnvelope(
               zone.id,
@@ -2663,7 +2739,14 @@ class ZoningOperations(
             AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
           )
       }
-      continent.Population ! Zone.Population.Spawn(avatar, player, avatarActor)
+
+      //The transient inter-zone vehicle reference has served its purpose now that the avatar exists in the new zone.
+      //The vehicle branch clears it above, but the infantry/spectator branches did not, so a stale ferry could survive
+      //(e.g. after a droppod or a vehicle transfer that resolved to an on-foot spawn) and misroute the NEXT transfer
+      //into LoadZoneInVehicle against a vehicle absent from the destination zone, crashing the client.
+      //Drop it unconditionally here so subsequent transfers cannot inherit a stale vehicle association.
+      interstellarFerry = None
+      continent.Population ! Zone.Population.Spawn(avatar, player, avatarActor, galaxyService)
       avatarActor ! AvatarActor.RefreshPurchaseTimes()
       drawDeployableIconsOnMap(
         depictDeployablesUponRevival(
@@ -2962,7 +3045,7 @@ class ZoningOperations(
         ObjectCreateDetailedMessage(
           ObjectClass.avatar,
           guid,
-          CorpseConverter.converter.DetailedConstructorData(tplayer).get
+          CorpseConverter.DetailedConstructorData(tplayer).get
         )
       )
     }
@@ -3157,40 +3240,55 @@ class ZoningOperations(
         case _ =>
           Sidedness.StrictlyBetweenSides //todo needs better determination
       }
+      respawnTimer = context.system.scheduler.scheduleOnce(
+        respawnTime,
+        context.self,
+        ZoningOperations.ZoningSpawnPointRespawn(zoneId, pos, ori, toSide, toZoneNumber, physSpawnPoint)
+      )
+    }
+
+    /**
+     * Perform the deferred respawn / zone-load that was scheduled by `LoadZonePhysicalSpawnPoint`.
+     * This runs on the actor thread (delivered as `ZoningOperations.ZoningSpawnPointRespawn`)
+     * rather than inside a timer closure on the global thread pool,
+     * so that it observes a consistent `session`/`continent`/`interstellarFerry`
+     * and is genuinely cancellable by a superseding transfer.
+     * @see `LoadZonePhysicalSpawnPoint`
+     */
+    def handleZoningSpawnPointRespawn(msg: ZoningOperations.ZoningSpawnPointRespawn): Unit = {
+      val ZoningOperations.ZoningSpawnPointRespawn(zoneId, pos, ori, toSide, toZoneNumber, physSpawnPoint) = msg
       val toSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
-      respawnTimer = context.system.scheduler.scheduleOnce(respawnTime) {
-        if (!player.isAlive && player.History.nonEmpty) { // if the player is dead, handle as dead infantry, even if dead in a vehicle
-          // new player is spawning
-          val newPlayer = RespawnClone(player)
-          newPlayer.LogActivity(SpawningActivity(PlayerSource(newPlayer), toZoneNumber, toSpawnPoint))
-          LoadZoneAsPlayerUsing(newPlayer, pos, ori, toSide, zoneId)
-        } else {
-          avatarActor ! AvatarActor.DeactivateActiveImplants
-          val betterSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity with InGameHistory => o }
-          interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
-            case Some(vehicle: Vehicle) => // driver or passenger in vehicle using a warp gate, or a droppod
-              InGameHistory.SpawnReconstructionActivity(vehicle, toZoneNumber, betterSpawnPoint)
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
-              vehicle.WhichSide = toSide
-              LoadZoneInVehicle(vehicle, pos, ori, zoneId)
+      if (!player.isAlive && player.History.nonEmpty) { // if the player is dead, handle as dead infantry, even if dead in a vehicle
+        // new player is spawning
+        val newPlayer = RespawnClone(player)
+        newPlayer.LogActivity(SpawningActivity(PlayerSource(newPlayer), toZoneNumber, toSpawnPoint))
+        LoadZoneAsPlayerUsing(newPlayer, pos, ori, toSide, zoneId)
+      } else {
+        avatarActor ! AvatarActor.DeactivateActiveImplants
+        val betterSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity with InGameHistory => o }
+        interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
+          case Some(vehicle: Vehicle) => // driver or passenger in vehicle using a warp gate, or a droppod
+            InGameHistory.SpawnReconstructionActivity(vehicle, toZoneNumber, betterSpawnPoint)
+            InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
+            vehicle.WhichSide = toSide
+            LoadZoneInVehicle(vehicle, pos, ori, zoneId)
 
-            case _ if player.HasGUID => // player is deconstructing self or instant action
-              val player_guid = player.GUID
-              // entering or exiting VR zones uses a fade-out effect for the player instead of the usual green cloud deconstruction effect
-              val effect = if (player.IsInVRZone || zoneId.startsWith("tz")) 2 else 1
-              sendResponse(ObjectDeleteMessage(player_guid, unk1=effect))
-              continent.AvatarEvents ! MessageEnvelope(
-                continent.id,
-                player_guid,
-                ObjectDelete(player_guid, unk=effect)
-              )
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
-              LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
+          case _ if player.HasGUID => // player is deconstructing self or instant action
+            val player_guid = player.GUID
+            // entering or exiting VR zones uses a fade-out effect for the player instead of the usual green cloud deconstruction effect
+            val effect = if (player.IsInVRZone || zoneId.startsWith("tz")) 2 else 1
+            sendResponse(ObjectDeleteMessage(player_guid, unk1=effect))
+            continent.AvatarEvents ! MessageEnvelope(
+              continent.id,
+              player_guid,
+              ObjectDelete(player_guid, unk=effect)
+            )
+            InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
+            LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
 
-            case _ => //player is logging in
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
-              LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
-          }
+          case _ => //player is logging in
+            InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
+            LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
         }
       }
     }
@@ -3263,7 +3361,7 @@ class ZoningOperations(
             sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, pos, player.Faction, unk5=true))
             val toZoneId = continent.id
             player.Die
-            continent.Population ! Zone.Population.Leave(avatar) //does not matter if it doesn't work
+            continent.Population ! Zone.Population.Leave(avatar, galaxyService) //does not matter if it doesn't work
             zoneLoaded = None
             zoneReload = true
             LoadZonePhysicalSpawnPoint(toZoneId, pos, orient, respawnTime = 0 seconds, None)
@@ -3318,7 +3416,7 @@ class ZoningOperations(
       val tavatar = tplayer.avatar
       val guid = tplayer.GUID
       sessionLogic.general.updateDeployableUIElements(Deployables.InitializeDeployableUIElements(tavatar))
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
+      sendResponse(PlanetsideAttributeMessage(Default.GUID0, 75, 0))
       sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, wideContents=true, "", "1 on", None)) //CC on //TODO once per respawn?
       val pos = tplayer.Position = shiftPosition.getOrElse(tplayer.Position)
@@ -3334,7 +3432,7 @@ class ZoningOperations(
       avatarActor ! AvatarActor.SoftResetImplants
       val originalDeadState = deadState
       deadState = DeadState.Alive
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
+      sendResponse(PlanetsideAttributeMessage(Default.GUID0, 82, 0))
       initializeShortcutsAndBank(guid, tavatar.shortcuts)
       //Favorites lists
       avatarActor ! AvatarActor.InitialRefreshLoadouts()
@@ -3562,13 +3660,13 @@ class ZoningOperations(
           MemberAction.InitializeFriendList,
           avatar.people.friend
             .map { f =>
-              game.Friend(f.name, AvatarActor.onlineIfNotIgnoredEitherWay(avatar, f.name))
+              Friend(f.name, AvatarActor.onlineIfNotIgnoredEitherWay(avatar, f.name))
             }
         ) ++
           //ignored list (no one ever online)
           FriendsResponse.packetSequence(
             MemberAction.InitializeIgnoreList,
-            avatar.people.ignored.map { f => game.Friend(f.name) }
+            avatar.people.ignored.map { f => Friend(f.name) }
           )
         ).foreach {
         sendResponse
@@ -3623,7 +3721,7 @@ class ZoningOperations(
         obj.GUID,
         Deployable.Icon(obj.Definition.Item),
         obj.Position,
-        obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
+        obj.OwnerGuid.getOrElse(Default.GUID0)
       )
       sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
     }
@@ -4039,7 +4137,8 @@ class ZoningOperations(
           Zones.sanctuaryZoneNumber(faction),
           faction,
           Seq(SpawnGroup.Sanctuary),
-          context.self
+          context.self,
+          token = nextSpawnPointToken()
         )
       }
     }

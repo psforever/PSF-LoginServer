@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.structures.AmenityDefinition
   */
 abstract class TerminalDefinition(objectId: Int) extends AmenityDefinition(objectId) {
   Name = "terminal"
-  Packet = new TerminalConverter
+  Packet = TerminalConverter
   registerAs = "terminals"
 
   /**

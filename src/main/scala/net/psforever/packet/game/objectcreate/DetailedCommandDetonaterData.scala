@@ -12,19 +12,20 @@ import shapeless.{::, HNil}
 final case class DetailedCommandDetonaterData(data: CommonFieldData) extends ConstructorData {
   override def bitsize: Long = {
     val dataSize = data.bitsize
-    28L + dataSize
+    DetailedCommandDetonaterData.baseSize + dataSize
   }
 }
 
 object DetailedCommandDetonaterData extends Marshallable[DetailedCommandDetonaterData] {
+  private val base: ToolPatternData = ToolPatternData(u1 = 1, u2 = 0, u3 = false, u4 = true, u5 = None, u6 = false)
+  private val baseSize: Long = base.bitsize
+
   implicit val codec: Codec[DetailedCommandDetonaterData] = (
     ("data" | CommonFieldData.codec) ::
-      uint8 ::
-      uint16 ::
-      uint4
+      ToolPatternData.codec
   ).exmap[DetailedCommandDetonaterData](
     {
-      case data :: 1 :: 0 :: 4 :: HNil =>
+      case data :: _ :: HNil =>
         Attempt.successful(DetailedCommandDetonaterData(data))
 
       case data =>
@@ -32,7 +33,7 @@ object DetailedCommandDetonaterData extends Marshallable[DetailedCommandDetonate
     },
     {
       case DetailedCommandDetonaterData(data) =>
-        Attempt.successful(data :: 1 :: 0 :: 4 :: HNil)
+        Attempt.successful(data :: base :: HNil)
     }
   )
 }

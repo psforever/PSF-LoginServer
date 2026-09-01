@@ -11,7 +11,7 @@ class AmmoBox(private val ammoDef: AmmoBoxDefinition, private val cap: Option[In
     case _ => FullCapacity
   }
 
-  def AmmoType: Ammo.Value = ammoDef.AmmoType
+  def AmmoType: Ammo.Value = Definition.AmmoType
 
   def Capacity: Int = capacity
 
@@ -20,7 +20,7 @@ class AmmoBox(private val ammoDef: AmmoBoxDefinition, private val cap: Option[In
     Capacity
   }
 
-  def FullCapacity: Int = ammoDef.Capacity
+  def FullCapacity: Int = Definition.Capacity
 
   def Definition: AmmoBoxDefinition = ammoDef
 

@@ -3,7 +3,6 @@ package net.psforever.objects.vehicles.control
 
 import net.psforever.objects._
 import net.psforever.objects.serverobject.transfer.TransferBehavior
-import net.psforever.objects.vehicles._
 import net.psforever.types.DriveState
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,7 +27,7 @@ class AntControl(vehicle: Vehicle)
     * Make ourselves available to nanite charging or discharging.
     * @param state the deployment state
     */
-  override def specificResponseToDeployment(state: DriveState.Value): Unit = {
+  override def specificResponseToDeployment(state: DriveState): Unit = {
     state match {
       case DriveState.Deployed =>
         // Start ntu regeneration
@@ -47,7 +46,7 @@ class AntControl(vehicle: Vehicle)
     * Stop charging or discharging and tell the partner entity that it is no longer interacting with this vehicle.
     * @param state the undeployment state
     */
-  override def specificResponseToUndeployment(state: DriveState.Value): Unit = {
+  override def specificResponseToUndeployment(state: DriveState): Unit = {
     state match {
       case DriveState.Undeploying =>
         TryStopChargingEvent(vehicle)

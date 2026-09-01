@@ -11,7 +11,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
-import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
+import net.psforever.packet.game.packets.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
 import net.psforever.services.base.CachedEnvelope
 import net.psforever.services.vehicle.VehicleAction
 import net.psforever.services.base.envelope.MessageEnvelope
@@ -272,19 +272,19 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
 
   /* messages */
 
-  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
+  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit = {
     if (!Deployment.CheckForDeployState(state)) {
       CanNotChangeDeployment(obj, state, "incorrect deploy state")
     }
   }
 
-  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
+  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit = {
     if (!Deployment.CheckForUndeployState(state)) {
       CanNotChangeDeployment(obj, state, "incorrect undeploy state")
     }
   }
 
-  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState.Value, reason: String): Unit = {
+  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState, reason: String): Unit = {
     CanNotChangeDeployment(obj, state, reason)
   }
 
@@ -298,7 +298,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
    */
   private def CanNotChangeDeployment(
                                       obj: PlanetSideServerObject with Deployment,
-                                      state: DriveState.Value,
+                                      state: DriveState,
                                       reason: String
                                     ): Unit = {
     if (obj.DeploymentState != DriveState.Mobile) {
