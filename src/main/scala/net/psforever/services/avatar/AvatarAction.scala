@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.environment.interaction.common.Watery.
 import net.psforever.objects.sourcing.{SourceEntry, UniquePlayer}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ImplantAction, ObjectCreateMessage}
+import net.psforever.packet.game.packets.{ImplantAction, ObjectCreateMessage}
 import net.psforever.packet.game.objectcreate.{ConstructorData, DroppedItemData, ObjectCreateMessageParent, PlacementData}
 import net.psforever.services.base.message.{EventMessage, EventResponse, ObjectDelete, SelfRespondingEvent}
 import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideGUID, TransactionType, Vector3}

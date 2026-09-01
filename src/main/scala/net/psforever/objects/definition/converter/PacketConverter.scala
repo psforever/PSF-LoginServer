@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition.converter
 
-import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.{Default, OwnableByPlayer, PlanetSideGameObject}
 import net.psforever.packet.game.objectcreate.ConstructorData
+import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Try}
 
@@ -16,7 +17,7 @@ sealed trait PacketConverter
   * This is the decoded packet form of the game object, as if hexadecimal data from a packet was decoded.
   * @tparam A the type of game object
   */
-abstract class ObjectCreateConverter[A <: PlanetSideGameObject] extends PacketConverter {
+trait ObjectCreateConverter[A <: PlanetSideGameObject] extends PacketConverter {
   /** some objects do not have a detailed constructor data form */
   def noDetailedForm(obj: A): Boolean = DetailedConstructorData(obj).isFailure
 
@@ -36,5 +37,9 @@ abstract class ObjectCreateConverter[A <: PlanetSideGameObject] extends PacketCo
     */
   def DetailedConstructorData(obj: A): Try[ConstructorData] = {
     Failure(new NoSuchMethodException(s"method not defined for object $obj"))
+  }
+
+  def GetOwner(obj: OwnableByPlayer): PlanetSideGUID = {
+    obj.OwnerGuid.getOrElse(Default.GUID0)
   }
 }

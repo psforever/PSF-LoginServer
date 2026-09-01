@@ -3,7 +3,7 @@ package game.objectcreatedetailed
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.ObjectCreateDetailedMessage
+import net.psforever.packet.game.packets.ObjectCreateDetailedMessage
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scodec.bits._
@@ -25,14 +25,13 @@ class DetailedWeaponDataTest extends Specification {
           data match {
             case DetailedWeaponData(cdata, fmode, ammo, _) =>
               cdata match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.NC
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
                   v2.isEmpty mustEqual true
                   v3 mustEqual false
-                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -66,14 +65,13 @@ class DetailedWeaponDataTest extends Specification {
           data match {
             case DetailedWeaponData(cdata, fmode, ammo, _) =>
               cdata match {
-                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                   faction mustEqual PlanetSideEmpire.TR
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
                   v2.isEmpty mustEqual true
                   v3 mustEqual false
-                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -101,7 +99,7 @@ class DetailedWeaponDataTest extends Specification {
 
     "encode (gauss)" in {
       val obj = DetailedWeaponData(
-        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, None, PlanetSideGUID(0)),
         0,
         List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(1286), 0, DetailedAmmoBoxData(8, 30)))
       )
@@ -118,17 +116,7 @@ class DetailedWeaponDataTest extends Specification {
 
     "encode (punisher)" in {
       val obj = DetailedWeaponData(
-        CommonFieldData(
-          PlanetSideEmpire.TR,
-          bops = false,
-          alternate = false,
-          true,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, true, None, false, None, PlanetSideGUID(0)),
         0,
         List(
           DetailedAmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(1693), 0, DetailedAmmoBoxData(8, 30)),

@@ -13,9 +13,8 @@ import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures}
 import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.definition.converter.StatConverter
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.ChatMsg
-import net.psforever.packet.game.SquadAction._
-import net.psforever.packet.game.{PlanetSideZoneID, SquadDetail, SquadInfo, SquadPositionDetail, SquadPositionEntry, SquadAction => SquadRequestAction}
+import net.psforever.packet.game.packets.SquadAction._
+import net.psforever.packet.game.packets.{ChatMsg, PlanetSideZoneID, SquadDetail, SquadInfo, SquadPositionDetail, SquadPositionEntry, SquadAction => SquadRequestAction}
 import net.psforever.services.Service
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, SquadRequestType, SquadResponseType}
 
@@ -997,7 +996,7 @@ class SquadService extends Actor {
     val features                   = squadFeatures(guid)
     val channel                    = s"/${features.ToChannel}/Squad"
     if (features.Listed) {
-      subs.Publish(squad.Leader.CharId, SquadResponse.SetListSquad(PlanetSideGUID(0)))
+      subs.Publish(squad.Leader.CharId, SquadResponse.SetListSquad(Default.GUID0))
     }
     invitations.handleClosingSquad(features)
     updateMembers
@@ -1020,8 +1019,8 @@ class SquadService extends Actor {
               } :+ (charId, index) //we need to be last
             )
           )
-          subs.Publish(charId, SquadResponse.IdentifyAsSquadLeader(PlanetSideGUID(0)))
-          subs.Publish(charId, SquadResponse.Detail(PlanetSideGUID(0), completelyBlankSquadDetail))
+          subs.Publish(charId, SquadResponse.IdentifyAsSquadLeader(Default.GUID0))
+          subs.Publish(charId, SquadResponse.Detail(Default.GUID0, completelyBlankSquadDetail))
       }
     UpdateSquadListWhenListed(features.Stop, None)
     //remove from list of squads

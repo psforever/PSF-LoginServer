@@ -7,7 +7,7 @@ import net.psforever.objects.{Default, GlobalDefinitions}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.HackState7
+import net.psforever.packet.game.packets.HackState7
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope, GenericSupportEnvelopeOnly}
 import net.psforever.services.base.message.GenericObjectAction

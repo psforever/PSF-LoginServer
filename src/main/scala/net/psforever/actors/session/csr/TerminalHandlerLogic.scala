@@ -8,7 +8,7 @@ import net.psforever.login.WorldSession.{BuyNewEquipmentPutInInventory, SellEqui
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.guid.TaskWorkflow
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal}
-import net.psforever.packet.game.{FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage}
+import net.psforever.packet.game.packets.{FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage}
 
 object TerminalHandlerLogic {
   def apply(ops: SessionTerminalHandlers): TerminalHandlerLogic = {

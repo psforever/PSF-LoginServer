@@ -3,7 +3,7 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.{SquadWaypointEvent, WaypointEvent, WaypointEventAction}
+import net.psforever.packet.game.packets.{SquadWaypointEvent, WaypointEvent, WaypointEventAction}
 import net.psforever.types.{SquadWaypoint, Vector3}
 import scodec.bits._
 

@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.turret.{TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.DamageWithPositionMessage
+import net.psforever.packet.game.packets.DamageWithPositionMessage
 import net.psforever.types.Vector3
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}

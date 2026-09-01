@@ -2,7 +2,7 @@
 package game.objectcreate
 
 import net.psforever.packet.PacketCoding
-import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.packets.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import org.specs2.mutable._
@@ -32,9 +32,8 @@ class OneMannedFieldTurretDataTest extends Specification {
               deploy.bops mustEqual false
               deploy.alternate mustEqual false
               deploy.v1 mustEqual true
-              deploy.v2.isEmpty mustEqual true
+              deploy.v2 must beSome(CommonFieldDataExtra.Default)
               deploy.jammered mustEqual false
-              deploy.v4.contains(false) mustEqual true
               deploy.v5.isEmpty mustEqual true
               deploy.guid mustEqual PlanetSideGUID(2502)
 
@@ -45,10 +44,9 @@ class OneMannedFieldTurretDataTest extends Specification {
               inv.head.parentSlot mustEqual 1
               inv.head.obj match {
                 case WeaponData(
-                      CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv4, wv5, wfguid),
+                      CommonFieldData(wfaction, wbops, walternate, wv1, wv2, wv3, wv5, wfguid),
                       fmode,
-                      List(ammo),
-                      _
+                      List(ammo)
                     ) =>
                   wfaction mustEqual PlanetSideEmpire.NEUTRAL
                   wbops mustEqual false
@@ -56,7 +54,6 @@ class OneMannedFieldTurretDataTest extends Specification {
                   wv1 mustEqual true
                   wv2.isEmpty mustEqual true
                   wv3 mustEqual false
-                  wv4.isEmpty mustEqual true
                   wv5.isEmpty mustEqual true
                   wfguid mustEqual PlanetSideGUID(0)
 
@@ -66,14 +63,13 @@ class OneMannedFieldTurretDataTest extends Specification {
                   ammo.guid mustEqual PlanetSideGUID(2510)
                   ammo.parentSlot mustEqual 0
                   ammo.obj match {
-                    case CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid) =>
+                    case CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid) =>
                       faction mustEqual PlanetSideEmpire.NEUTRAL
                       bops mustEqual false
                       alternate mustEqual false
                       v1 mustEqual true
-                      v2.isEmpty mustEqual true
+                      v2 must beSome(CommonFieldDataExtra.Default)
                       v3 mustEqual false
-                      v4.contains(false) mustEqual true
                       v5.isEmpty mustEqual true
                       fguid mustEqual PlanetSideGUID(0)
                     case _ =>
@@ -94,7 +90,7 @@ class OneMannedFieldTurretDataTest extends Specification {
       val obj = OneMannedFieldTurretData(
         CommonFieldDataWithPlacement(
           PlacementData(Vector3(3567.1406f, 2988.0078f, 71.84375f), Vector3.z(185.625f)),
-          CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(2502))
+          CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(2502))
         ),
         255,
         InventoryData(
@@ -104,34 +100,14 @@ class OneMannedFieldTurretDataTest extends Specification {
               PlanetSideGUID(2615),
               1,
               WeaponData(
-                CommonFieldData(
-                  PlanetSideEmpire.NEUTRAL,
-                  false,
-                  false,
-                  true,
-                  None,
-                  false,
-                  None,
-                  None,
-                  PlanetSideGUID(0)
-                ),
+                CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, PlanetSideGUID(0)),
                 0,
                 List(
                   InternalSlot(
                     ObjectClass.energy_gun_ammo,
                     PlanetSideGUID(2510),
                     0,
-                    CommonFieldData(
-                      PlanetSideEmpire.NEUTRAL,
-                      false,
-                      false,
-                      true,
-                      None,
-                      false,
-                      Some(false),
-                      None,
-                      PlanetSideGUID(0)
-                    )
+                    CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))
                   )
                 )
               )

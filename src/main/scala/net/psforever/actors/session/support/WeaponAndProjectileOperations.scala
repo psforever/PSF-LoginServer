@@ -26,11 +26,11 @@ import net.psforever.objects.vital.etc.OicwLilBuddyReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.exp.ToDatabase
-import net.psforever.packet.game.UplinkRequest
+import net.psforever.packet.game.packets.{AIDamage, AvatarGrenadeStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, Event0, Event1, Event2, HitMessage, LashMessage, LongRangeProjectileInfoMessage, ObjectAttachMessage, ObjectDeleteMessage, OrbitalStrikeWaypointMessage, PlanetsideAttributeMessage, ProjectileStateMessage, QuantityUpdateMessage, ReloadMessage, SplashHitMessage, TriggerEffectMessage, TriggeredEffectLocation, UplinkPositionEvent, UplinkRequest, UplinkRequestType, UplinkResponse, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage}
 import net.psforever.services.base.CachedEnvelope
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ReloadTool, SendResponse, WeaponDryFire}
-import net.psforever.types.{ChatMessageType, PlanetSideEmpire, ValidPlanetSideGUID, Vector3}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 
 import scala.collection.mutable
@@ -46,7 +46,7 @@ import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{ExoSuitType, PlanetSideGUID}
@@ -390,7 +390,7 @@ class WeaponAndProjectileOperations(
         player.Zone.LocalEvents ! MessageEnvelope(
           s"${player.Zone.id}",
           PlanetSideGUID(-1),
-          SendResponse(TriggerEffectMessage(ValidPlanetSideGUID(0), strikeType, None, Some(TriggeredEffectLocation(orbitalStrikePos.get, Vector3(0, 0, 90)))))
+          SendResponse(TriggerEffectMessage(Default.GUID0, strikeType, None, Some(TriggeredEffectLocation(orbitalStrikePos.get, Vector3(0, 0, 90)))))
         )
         player.Zone.LocalEvents ! MessageEnvelope(
           s"$playerFaction",

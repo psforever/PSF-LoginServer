@@ -1,6 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.teamwork
 
+import net.psforever.objects.Default
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
@@ -74,7 +75,7 @@ class Squad(squadId: PlanetSideGUID, alignment: PlanetSideEmpire.Value) extends 
 }
 
 object Squad {
-  final val Blank = new Squad(PlanetSideGUID(0), PlanetSideEmpire.NEUTRAL) {
+  final val Blank = new Squad(Default.GUID0, PlanetSideEmpire.NEUTRAL) {
     override def ZoneId: Int                        = 0
     override def ZoneId_=(id: Int): Int             = 0
     override def ZoneId_=(id: Option[Int]): Int     = 0

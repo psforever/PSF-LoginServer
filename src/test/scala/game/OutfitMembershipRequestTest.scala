@@ -2,8 +2,8 @@
 package game
 
 import net.psforever.packet._
-import net.psforever.packet.game.OutfitMembershipRequest
-import net.psforever.packet.game.OutfitMembershipRequestAction._
+import net.psforever.packet.game.packets.OutfitMembershipRequestAction._
+import net.psforever.packet.game.packets.OutfitMembershipRequest
 import org.specs2.mutable._
 import scodec.bits._
 

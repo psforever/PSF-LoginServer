@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
 import net.psforever.objects.zones.interaction.InteractsWithZone
-import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, VehicleSubStateMessage, _}
+import net.psforever.packet.game.packets.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, PlanetsideAttributeMessage, ServerVehicleOverrideMsg, VehicleStateMessage, VehicleSubStateMessage}
 import net.psforever.types.DriveState
 
 trait VehicleFunctions extends CommonSessionInterfacingFunctionality {
@@ -26,11 +26,11 @@ trait VehicleFunctions extends CommonSessionInterfacingFunctionality {
 
   /* messages */
 
-  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit
+  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit
 
-  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit
+  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState): Unit
 
-  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState.Value, reason: String): Unit
+  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState, reason: String): Unit
 }
 
 class VehicleOperations(

@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, Ca
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
 import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.packet.game.{ChangeFireModeMessage, HackState1}
+import net.psforever.packet.game.packets.{ChangeFireModeMessage, HackState1}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.vehicle.support.TurretUpgrader
@@ -44,7 +44,7 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   private var testToResetToDefaultFireMode: Boolean = false
 
-  AutomaticOperation = true
+  //AutomaticOperation = true
 
   override def postStop(): Unit = {
     super.postStop()

@@ -3,7 +3,7 @@ package net.psforever.objects.teamwork
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.Default
-import net.psforever.packet.game.WaypointInfo
+import net.psforever.packet.game.packets.WaypointInfo
 import net.psforever.types.{PlanetSideGUID, SquadWaypoint, Vector3}
 import net.psforever.services.teamwork.{SquadSubscriptionEntity, SquadSwitchboard}
 

@@ -69,10 +69,10 @@ object PlayerData extends Marshallable[PlayerData] {
     * @return a `PlayerData` object
     */
   def apply(
-      basic_appearance: Int => CharacterAppearanceData,
-      character_data: (Boolean, Boolean) => CharacterData,
-      inventory: InventoryData,
-      drawn_slot: DrawnSlot.Type
+             basic_appearance: Int => CharacterAppearanceData,
+             character_data: (Boolean, Boolean) => CharacterData,
+             inventory: InventoryData,
+             drawn_slot: DrawnSlot.Type
   ): PlayerData = {
     val appearance = basic_appearance(5)
     PlayerData(None, appearance, character_data(appearance.altModelBit.isDefined, true), Some(inventory), drawn_slot)(
@@ -91,9 +91,9 @@ object PlayerData extends Marshallable[PlayerData] {
     * @return a `PlayerData` object
     */
   def apply(
-      basic_appearance: Int => CharacterAppearanceData,
-      character_data: (Boolean, Boolean) => CharacterData,
-      drawn_slot: DrawnSlot.Type
+             basic_appearance: Int => CharacterAppearanceData,
+             character_data: (Boolean, Boolean) => CharacterData,
+             drawn_slot: DrawnSlot.Type
   ): PlayerData = {
     val appearance = basic_appearance(5)
     PlayerData(None, appearance, character_data(appearance.altModelBit.isDefined, true), None, drawn_slot)(position_defined = false)
@@ -111,11 +111,11 @@ object PlayerData extends Marshallable[PlayerData] {
     * @return a `PlayerData` object
     */
   def apply(
-      pos: PlacementData,
-      basic_appearance: Int => CharacterAppearanceData,
-      character_data: (Boolean, Boolean) => CharacterData,
-      inventory: InventoryData,
-      drawn_slot: DrawnSlot.Type
+             pos: PlacementData,
+             basic_appearance: Int => CharacterAppearanceData,
+             character_data: (Boolean, Boolean) => CharacterData,
+             inventory: InventoryData,
+             drawn_slot: DrawnSlot.Type
   ): PlayerData = {
     val appearance = basic_appearance(PaddingOffset(Some(pos)))
     PlayerData(
@@ -138,10 +138,10 @@ object PlayerData extends Marshallable[PlayerData] {
     * @return a `PlayerData` object
     */
   def apply(
-      pos: PlacementData,
-      basic_appearance: Int => CharacterAppearanceData,
-      character_data: (Boolean, Boolean) => CharacterData,
-      drawn_slot: DrawnSlot.Type
+             pos: PlacementData,
+             basic_appearance: Int => CharacterAppearanceData,
+             character_data: (Boolean, Boolean) => CharacterData,
+             drawn_slot: DrawnSlot.Type
   ): PlayerData = {
     val appearance = basic_appearance(PaddingOffset(Some(pos)))
     PlayerData(Some(pos), appearance, character_data(appearance.altModelBit.isDefined, false), None, drawn_slot)(position_defined = true)

@@ -17,6 +17,7 @@ import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, VehicleSo
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.exp.ToDatabase
+import net.psforever.packet.game.packets.{BindStatus, CharacterCreateRequestMessage, ChatMsg, DropItemMessage, GenericAction, HackMessage, HackState, HackState1, HackState7, ImplantAction, ItemTransactionMessage, ObjectCreateDetailedMessage, ObjectDeleteMessage, OutfitMembershipRequest, OutfitMembershipResponse, OutfitRequest, PlayerStateShiftMessage, ShiftState, TargetInfo, TargetingInfoMessage, VoiceHostInfo, VoiceHostKill, VoiceHostRequest}
 import net.psforever.services.avatar.support.GroundEnvelope
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
@@ -47,10 +48,9 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.vital._
 import net.psforever.objects.zones._
 import net.psforever.packet._
-import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, ChangeShortcutBankMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, ZipLineMessage}
-import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
+import net.psforever.packet.game.packets.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, ChangeShortcutBankMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, ZipLineMessage}
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.local.support.CaptureFlagManager
@@ -260,7 +260,7 @@ class GeneralOperations(
     continent.zipLinePaths.find(x => x.PathId == pathId) match {
       case Some(path) if path.IsTeleporter =>
         val endPoint = path.ZipLinePoints.last
-        sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, pathId, pos))
+        sendResponse(ZipLineMessage(Default.GUID0, forwards, 0, pathId, pos))
         //todo: send to zone to show teleport animation to all clients
         sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, (player.Orientation.z + player.FacingYawUpper) % 360f, None)))
         GeneralOperations.ZiplineBehavior.Teleporter
@@ -964,7 +964,7 @@ class GeneralOperations(
    *             second pair is maximum quantity
    */
   def updateDeployableUIElements(list: List[(Int, Int, Int, Int)]): Unit = {
-    val guid = PlanetSideGUID(0)
+    val guid = Default.GUID0
     list.foreach {
       case (currElem, curr, maxElem, max) =>
         //fields must update in ordered pairs: max, curr
@@ -1372,7 +1372,7 @@ class GeneralOperations(
           sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           terminal.Actor ! Terminal.Request(
             player,
-            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
+            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "router_telepad", 0, Default.GUID0)
           )
         } else if (tdef == GlobalDefinitions.targeting_laser_dispenser) {
           //explicit request
@@ -1380,7 +1380,7 @@ class GeneralOperations(
           sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           terminal.Actor ! Terminal.Request(
             player,
-            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, PlanetSideGUID(0))
+            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, Default.GUID0)
           )
         } else {
           log.info(s"${player.Name} is accessing a ${terminal.Definition.Name}")

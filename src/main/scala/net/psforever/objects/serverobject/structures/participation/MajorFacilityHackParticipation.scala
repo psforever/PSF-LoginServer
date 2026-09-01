@@ -14,7 +14,7 @@ import net.psforever.objects.Player
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.zones.exp.ToDatabase
-import net.psforever.packet.game.ChatMsg
+import net.psforever.packet.game.packets.ChatMsg
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 

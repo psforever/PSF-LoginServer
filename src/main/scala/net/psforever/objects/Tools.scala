@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.equipment.ChargeFireModeDefinition
-import net.psforever.packet.game.QuantityUpdateMessage
+import net.psforever.packet.game.packets.QuantityUpdateMessage
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 

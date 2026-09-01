@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.damage
 
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.packet.game.PlanetsideAttributeMessage
+import net.psforever.packet.game.packets.PlanetsideAttributeMessage
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 

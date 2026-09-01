@@ -311,7 +311,6 @@ object GlobalDefinitionsDeployable {
     tank_traps.Modifiers = TrapCollisionDamageMultiplier(5f) //10f
     tank_traps.mass = 600f
 
-    val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
     portable_manned_turret.Descriptor = "FieldTurrets"
     portable_manned_turret.MaxHealth = 1000
@@ -327,7 +326,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret.ReserveAmmunition = true
     portable_manned_turret.FactionLocked = true
-    portable_manned_turret.Packet = fieldTurretConverter
+    portable_manned_turret.Packet = FieldTurretConverter
     portable_manned_turret.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret.deployAnimation = DeployAnimation.Fdu
@@ -362,7 +361,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret_nc.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_nc.ReserveAmmunition = true
     portable_manned_turret_nc.FactionLocked = true
-    portable_manned_turret_nc.Packet = fieldTurretConverter
+    portable_manned_turret_nc.Packet = FieldTurretConverter
     portable_manned_turret_nc.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_nc.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_nc.deployAnimation = DeployAnimation.Fdu
@@ -396,7 +395,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret_tr.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_tr.ReserveAmmunition = true
     portable_manned_turret_tr.FactionLocked = true
-    portable_manned_turret_tr.Packet = fieldTurretConverter
+    portable_manned_turret_tr.Packet = FieldTurretConverter
     portable_manned_turret_tr.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_tr.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_tr.deployAnimation = DeployAnimation.Fdu
@@ -430,7 +429,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret_vs.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_vs.ReserveAmmunition = true
     portable_manned_turret_vs.FactionLocked = true
-    portable_manned_turret_vs.Packet = fieldTurretConverter
+    portable_manned_turret_vs.Packet = FieldTurretConverter
     portable_manned_turret_vs.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_vs.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_vs.deployAnimation = DeployAnimation.Fdu
@@ -467,7 +466,7 @@ object GlobalDefinitionsDeployable {
     router_telepad_deployable.Repairable = false
     router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
-    router_telepad_deployable.Packet = new TelepadDeployableConverter
+    router_telepad_deployable.Packet = TelepadDeployableConverter
     router_telepad_deployable.Model = SimpleResolutions.calculate
     router_telepad_deployable.Geometry = GeometryForm.representByRaisedSphere(radius = 1.2344f)
 
@@ -477,6 +476,6 @@ object GlobalDefinitionsDeployable {
     internal_router_telepad_deployable.Repairable = false
     internal_router_telepad_deployable.DeployTime = Duration.create(1, "ms")
     internal_router_telepad_deployable.DeployCategory = DeployableCategory.Telepads
-    internal_router_telepad_deployable.Packet = new InternalTelepadDeployableConverter
+    internal_router_telepad_deployable.Packet = InternalTelepadDeployableConverter
   }
 }

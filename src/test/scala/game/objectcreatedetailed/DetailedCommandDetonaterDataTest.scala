@@ -3,7 +3,7 @@ package game.objectcreatedetailed
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.ObjectCreateDetailedMessage
+import net.psforever.packet.game.packets.ObjectCreateDetailedMessage
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scodec.bits._
@@ -22,14 +22,13 @@ class DetailedCommandDetonaterDataTest extends Specification {
           parent.get.guid mustEqual PlanetSideGUID(3530)
           parent.get.slot mustEqual 0
           data match {
-            case DetailedCommandDetonaterData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v4, v5, fguid)) =>
+            case DetailedCommandDetonaterData(CommonFieldData(faction, bops, alternate, v1, v2, v3, v5, fguid)) =>
               faction mustEqual PlanetSideEmpire.VS
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual false
               v2.isEmpty mustEqual true
               v3 mustEqual false
-              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
             case _ =>
@@ -44,7 +43,7 @@ class DetailedCommandDetonaterDataTest extends Specification {
 
     "encode" in {
       val obj = DetailedCommandDetonaterData(
-        CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, None, None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, None, PlanetSideGUID(0))
       )
       val msg = ObjectCreateDetailedMessage(
         ObjectClass.command_detonater,

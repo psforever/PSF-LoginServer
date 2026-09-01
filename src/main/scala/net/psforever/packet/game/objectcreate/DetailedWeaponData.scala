@@ -2,7 +2,6 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -34,94 +33,17 @@ final case class DetailedWeaponData(
 }
 
 object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
-
-  /**
-    * Overloaded constructor for creating `DetailedWeaponData` while masking use of `InternalSlot` for its `DetailedAmmoBoxData`.
-    * @param unk1 na
-    * @param unk2 na
-    * @param cls the code for the type of object (ammunition) being constructed
-    * @param guid the globally unique id assigned to the ammunition
-    * @param parentSlot the slot where the ammunition is to be installed in the weapon
-    * @param ammo the constructor data for the ammunition
-    * @return a `DetailedWeaponData` object
-    */
-  def apply(
-      unk1: Int,
-      unk2: Int,
-      cls: Int,
-      guid: PlanetSideGUID,
-      parentSlot: Int,
-      ammo: DetailedAmmoBoxData
-  ): DetailedWeaponData = {
-    DetailedWeaponData(
-      CommonFieldData(
-        PlanetSideEmpire(unk1 & 3),
-        bops = false,
-        alternate = false,
-        v1 = (unk2 & 8) == 8,
-        None,
-        jammered = (unk2 & 4) == 4,
-        None,
-        None,
-        PlanetSideGUID(0)
-      ),
-      0,
-      List(InternalSlot(cls, guid, parentSlot, ammo))
-    )
-  }
-
-  /**
-    * Overloaded constructor for creating `DetailedWeaponData` while masking use of `InternalSlot` for its `DetailedAmmoBoxData`.
-    * @param unk1 na
-    * @param unk2 na
-    * @param cls the code for the type of object (ammunition) being constructed
-    * @param guid the globally unique id assigned to the ammunition
-    * @param parentSlot the slot where the ammunition is to be installed in the weapon
-    * @param ammo the constructor data for the ammunition
-    * @return a `DetailedWeaponData` object
-    */
-  def apply(
-      unk1: Int,
-      unk2: Int,
-      fire_mode: Int,
-      cls: Int,
-      guid: PlanetSideGUID,
-      parentSlot: Int,
-      ammo: DetailedAmmoBoxData
-  ): DetailedWeaponData = {
-    DetailedWeaponData(
-      CommonFieldData(
-        PlanetSideEmpire(unk1 & 3),
-        bops = false,
-        alternate = false,
-        v1 = (unk2 & 8) == 8,
-        None,
-        jammered = (unk2 & 4) == 4,
-        None,
-        None,
-        PlanetSideGUID(0)
-      ),
-      fire_mode,
-      List(InternalSlot(cls, guid, parentSlot, ammo))
-    )
-  }
-
   implicit val codec: Codec[DetailedWeaponData] = (
     ("data" | CommonFieldData.codec) ::
-      uint8 ::
-      uint8 ::
-      ("fire_mode" | uint8) ::
-      uint2 ::
-      ("ammo" | optional(bool, InventoryData.codec_detailed)) ::
-      ("unk" | bool)
+      ToolPatternData.codec
   ).exmap[DetailedWeaponData](
     {
-      case data :: 1 :: 0 :: fmode :: 1 :: Some(InventoryData(ammo)) :: unk :: HNil =>
-        val magSize = ammo.size
+      case data :: ToolPatternData(_, fmode, _, _, Some(InventoryData(ammoList)), unk) :: HNil =>
+        val magSize = ammoList.size
         if (magSize == 0) {
           Attempt.failure(Err("weapon must decode some ammunition"))
         } else {
-          Attempt.successful(DetailedWeaponData(data, fmode, ammo, unk))
+          Attempt.successful(DetailedWeaponData(data, fmode, ammoList, unk))
         }
 
       case data =>
@@ -135,7 +57,7 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
         } else if (magSize >= 255) {
           Attempt.failure(Err("weapon encodes too much ammunition (255+ types!)"))
         } else {
-          Attempt.successful(data :: 1 :: 0 :: fmode :: 1 :: Some(InventoryData(ammo)) :: unk :: HNil)
+          Attempt.successful(data :: ToolPatternData(u1 = 1, fmode, u3 = false, u4 = true, Some(InventoryData(ammo)), u6 = unk) :: HNil)
         }
     }
   )

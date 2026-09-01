@@ -9,7 +9,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{SpawnPoint, Vehicle}
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.{HotSpotInfo, Zone}
-import net.psforever.packet.game.DroppodError
+import net.psforever.packet.game.packets.DroppodError
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, SpawnGroup, Vector3}
 import net.psforever.util.Config
 import net.psforever.zones.Zones

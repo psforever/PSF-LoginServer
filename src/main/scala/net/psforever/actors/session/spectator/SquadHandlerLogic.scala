@@ -3,11 +3,11 @@ package net.psforever.actors.session.spectator
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.AvatarActor
-import net.psforever.actors.session.support.SessionSquadHandlers.{rethrowSquadServiceResponse, SquadUIElement}
+import net.psforever.actors.session.support.SessionSquadHandlers.{SquadUIElement, rethrowSquadServiceResponse}
 import net.psforever.actors.session.support.{SessionData, SessionSquadHandlers, SpawnOperations, SquadHandlerFunctions}
 import net.psforever.objects.{Default, LivePlayerList}
 import net.psforever.objects.avatar.Avatar
-import net.psforever.packet.game.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEventAction}
+import net.psforever.packet.game.packets.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEventAction}
 import net.psforever.services.chat.SquadChannel
 import net.psforever.services.teamwork.SquadResponse
 import net.psforever.types.{PlanetSideGUID, SquadListDecoration, SquadResponseType}
@@ -170,7 +170,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
               sendResponse(PlanetsideAttributeMessage(playerGuid, 34, 4294967295L)) //unknown, perhaps unrelated?
               avatarActor ! AvatarActor.SetLookingForSquad(false)
               //a finalization? what does this do?
-              sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
+              sendResponse(SquadDefinitionActionMessage(Default.GUID0, 0, SquadAction.Unknown(18)))
               ops.squad_supplement_id = 0
               ops.squadUpdateCounter = 0
               ops.updateSquad = ops.NoSquadUpdates

@@ -4,7 +4,7 @@ import net.psforever.objects.Player
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable.HackInfo
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.packet.game.TriggeredSound
+import net.psforever.packet.game.packets.TriggeredSound
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 trait Hackable {

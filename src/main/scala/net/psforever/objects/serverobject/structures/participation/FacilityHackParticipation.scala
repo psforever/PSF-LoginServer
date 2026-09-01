@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.structures.participation
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.sourcing.UniquePlayer
-import net.psforever.packet.game.GenericObjectActionMessage
+import net.psforever.packet.game.packets.GenericObjectActionMessage
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.types.{PlanetSideEmpire, Vector3}

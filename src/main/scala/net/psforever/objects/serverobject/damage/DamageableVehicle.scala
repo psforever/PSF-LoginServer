@@ -11,7 +11,7 @@ import net.psforever.objects.vital.interaction.{Adversarial, DamageResult}
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.exp.ToDatabase
-import net.psforever.packet.game.DamageWithPositionMessage
+import net.psforever.packet.game.packets.DamageWithPositionMessage
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.types.Vector3

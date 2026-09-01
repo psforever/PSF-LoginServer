@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.{packets, _}
+import net.psforever.packet.game.packets.{SplashHitMessage, SplashedTarget}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import scodec.bits._
 
@@ -44,7 +45,7 @@ class SplashHitMessageTest extends Specification {
   }
 
   "encode" in {
-    val msg = SplashHitMessage(
+    val msg = packets.SplashHitMessage(
       113,
       PlanetSideGUID(40103),
       Vector3(3681.3438f, 2728.9062f, 90.921875f),

@@ -11,7 +11,8 @@ import net.psforever.objects.Session
 import net.psforever.objects.avatar.ModePermissions
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
 import net.psforever.objects.sourcing.{TurretSource, VehicleSource}
-import net.psforever.packet.game.ImplantAction
+import net.psforever.packet.game.packets
+import net.psforever.packet.game.packets.{ActionProgressMessage, AvatarStatisticsMessage, AvatarVehicleTimerMessage, BattleExperienceMessage, CharacterInfoMessage, CreateShortcutMessage, DeathStatistic, DisplayedAwardMessage, FavoritesMessage, FriendsResponse, ImplantAction, ItemTransactionResultMessage, PlanetSideZoneID, PlanetsideAttributeMessage, RibbonBarSlot, SessionStatistic, Shortcut}
 import net.psforever.services.avatar.AvatarStamp
 import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
@@ -48,7 +49,8 @@ import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.sourcing.{PlayerSource,SourceWithHealthEntry}
 import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity}
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
-import net.psforever.packet.game.{Friend => GameFriend, _}
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{Friend => GameFriend}
 import net.psforever.persistence
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{SendResponse, PlanetsideAttribute}
@@ -2195,7 +2197,6 @@ class AvatarActor(
       case Success(pairedResults) =>
         lazy val now       = LocalDateTime.now()
         lazy val gen       = new AtomicInteger(1)
-        lazy val converter = new CharacterSelectConverter
         pairedResults.foreach {
           case (a, saveOpt) =>
             //setup character
@@ -2251,7 +2252,7 @@ class AvatarActor(
               ObjectCreateDetailedMessage(
                 ObjectClass.avatar,
                 pguid,
-                converter.DetailedConstructorData(player).get
+                CharacterSelectConverter.DetailedConstructorData(player).get
               )
             )
             //display zone
@@ -2292,7 +2293,7 @@ class AvatarActor(
           }
           //finalize list
           sessionActor ! SessionActor.SendResponse(
-            CharacterInfoMessage(unk = 15, PlanetSideZoneID(0), 0, PlanetSideGUID(0), finished = true, secondsSinceLastLogin = 0L)
+            CharacterInfoMessage(unk = 15, PlanetSideZoneID(0), 0, Default.GUID0, finished = true, secondsSinceLastLogin = 0L)
           )
       case Failure(e) =>
         log.error(e)("db failure")
@@ -2676,7 +2677,7 @@ class AvatarActor(
 
   // same as in SA, this really doesn't belong here
   def updateDeployableUIElements(list: List[(Int, Int, Int, Int)]): Unit = {
-    val guid = PlanetSideGUID(0)
+    val guid = Default.GUID0
     list.foreach({
       case (currElem, curr, maxElem, max) =>
         //fields must update in ordered pairs: max, curr

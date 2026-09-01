@@ -3,7 +3,7 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ObjectCreateDetailedMessage, ObjectCreateMessage}
+import net.psforever.packet.game.packets.{ObjectCreateDetailedMessage, ObjectCreateMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 
 /**

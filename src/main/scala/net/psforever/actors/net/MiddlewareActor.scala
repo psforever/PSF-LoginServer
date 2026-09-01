@@ -4,6 +4,7 @@ import akka.actor.Cancellable
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.io.Udp
+
 import java.net.InetSocketAddress
 import java.security.{SecureRandom, Security}
 import javax.crypto.spec.SecretKeySpec
@@ -21,10 +22,10 @@ import net.psforever.objects.Default
 import net.psforever.packet._
 import net.psforever.packet.control._
 import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerChallengeXchg, ServerFinished}
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
 import net.psforever.packet.crypto._
-import net.psforever.packet.game.{ChangeFireModeMessage, CharacterInfoMessage, KeepAliveMessage, PingMsg}
 import net.psforever.packet.PacketCoding.CryptoCoding
+import net.psforever.packet.game.packets.{ChangeFireModeMessage, CharacterInfoMessage, ChatMsg, KeepAliveMessage, PingMsg, PropertyOverrideMessage, SquadDetailDefinitionUpdateMessage}
 import net.psforever.packet.reset.ResetSequence
 import net.psforever.util.{Config, DiffieHellman, Md5Mac}
 

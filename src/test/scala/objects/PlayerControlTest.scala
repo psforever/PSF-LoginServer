@@ -22,7 +22,8 @@ import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{DestroyMessage, InventoryStateMessage, RepairMessage}
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope

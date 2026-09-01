@@ -5,7 +5,7 @@ import net.psforever.objects.Tool
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.sourcing.{SourceEntry, SourceWithHealthEntry}
 import net.psforever.objects.vital.{DamagingActivity, RepairFromEquipment, SpawningActivity}
-import net.psforever.packet.game.PlanetsideAttributeMessage
+import net.psforever.packet.game.packets.PlanetsideAttributeMessage
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 

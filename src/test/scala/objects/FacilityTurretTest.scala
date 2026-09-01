@@ -16,7 +16,7 @@ import net.psforever.objects.serverobject.mount.{MountInfo, Mountable}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.turret._
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
+import net.psforever.packet.game.packets.{InventoryStateMessage, RepairMessage}
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.services.base.envelope.MessageEnvelope

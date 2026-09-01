@@ -56,8 +56,8 @@ import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.blockmap.{BlockMap, SectorPopulation}
-import net.psforever.packet.game.EmpireBenefitsMessage.{ZoneBenefit, ZoneLock, ZoneLockBenefit, ZoneLockZone}
-import net.psforever.packet.game.{EmpireBenefitsMessage, PropertyOverrideMessage}
+import net.psforever.packet.game.packets.EmpireBenefitsMessage.{ZoneBenefit, ZoneLock, ZoneLockBenefit, ZoneLockZone}
+import net.psforever.packet.game.packets.{EmpireBenefitsMessage, PropertyOverrideMessage}
 import net.psforever.services.Service
 import net.psforever.zones.Zones
 
@@ -1300,9 +1300,9 @@ object Zone {
 
     final case class CanNotDespawn(zone: Zone, vehicle: Vehicle, reason: String)
 
-    final case class TryDeploymentChange(vehicle: Vehicle, toDeployState: DriveState.Value)
+    final case class TryDeploymentChange(vehicle: Vehicle, toDeployState: DriveState)
 
-    final case class CanNotDeploy(zone: Zone, vehicle: Vehicle, toDeployState: DriveState.Value, reason: String)
+    final case class CanNotDeploy(zone: Zone, vehicle: Vehicle, toDeployState: DriveState, reason: String)
   }
 
   object HotSpot {

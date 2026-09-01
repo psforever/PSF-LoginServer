@@ -7,7 +7,7 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, SessionSquadHandlers, SquadHandlerFunctions}
 import net.psforever.objects.{Default, LivePlayerList}
 import net.psforever.objects.avatar.Avatar
-import net.psforever.packet.game.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, MemberEvent, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEvent, WaypointEventAction}
+import net.psforever.packet.game.packets.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, MemberEvent, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEvent, WaypointEventAction}
 import net.psforever.services.chat.SquadChannel
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadAction => SquadServiceAction}
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadListDecoration, SquadResponseType, WaypointSubtype}
@@ -66,7 +66,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
     if (!excluded.exists(_ == avatar.id)) {
       response match {
         case SquadResponse.ListSquadFavorite(line, task) =>
-          sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), line, SquadAction.ListSquadFavorite(task)))
+          sendResponse(SquadDefinitionActionMessage(Default.GUID0, line, SquadAction.ListSquadFavorite(task)))
 
         case SquadResponse.InitList(infos) =>
           sendResponse(ReplicationStreamMessage(infos))
@@ -243,7 +243,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
               sendResponse(PlanetsideAttributeMessage(playerGuid, 34, 4294967295L)) //unknown, perhaps unrelated?
               avatarActor ! AvatarActor.SetLookingForSquad(false)
               //a finalization? what does this do?
-              sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
+              sendResponse(SquadDefinitionActionMessage(Default.GUID0, 0, SquadAction.Unknown(18)))
               ops.squad_supplement_id = 0
               ops.squadUpdateCounter = 0
               ops.updateSquad = ops.NoSquadUpdates

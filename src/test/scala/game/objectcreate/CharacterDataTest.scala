@@ -2,7 +2,7 @@
 package game.objectcreate
 
 import net.psforever.packet.PacketCoding
-import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.packets.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types._
 import org.specs2.mutable._
@@ -46,7 +46,6 @@ class CharacterDataTest extends Specification {
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
                   a.data.jammered mustEqual false
-                  a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Reinforced
                   a.unk5 mustEqual 0
@@ -163,7 +162,6 @@ class CharacterDataTest extends Specification {
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
                   a.data.jammered mustEqual false
-                  a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.Reinforced
                   a.unk5 mustEqual 0
@@ -232,7 +230,6 @@ class CharacterDataTest extends Specification {
                   a.data.v1 mustEqual false
                   a.data.v2.isEmpty mustEqual true
                   a.data.jammered mustEqual false
-                  a.data.v4.isEmpty mustEqual true
                   a.data.v5.isEmpty mustEqual true
                   a.exosuit mustEqual ExoSuitType.MAX
                   a.unk5 mustEqual 1
@@ -303,17 +300,7 @@ class CharacterDataTest extends Specification {
           5,
           CharacterVoice.Voice5
         ),
-        CommonFieldData(
-          PlanetSideEmpire.TR,
-          false,
-          false,
-          false,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, PlanetSideGUID(0)),
         ExoSuitType.Reinforced,
         0,
         30777081L,
@@ -367,31 +354,51 @@ class CharacterDataTest extends Specification {
           ObjectClass.plasma_grenade,
           PlanetSideGUID(3662),
           0,
-          WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, CommonFieldData()(false))
+          WeaponData(
+            CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+            0,
+            List(InternalSlot(ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
+          )
         ) ::
           InventoryItemData(
             ObjectClass.bank,
             PlanetSideGUID(3908),
             1,
-            WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, CommonFieldData()(false))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+              1,
+              List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(4143), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
+            )
           ) ::
           InventoryItemData(
             ObjectClass.mini_chaingun,
             PlanetSideGUID(4164),
             2,
-            WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, CommonFieldData()(false))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+              0,
+              List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
+            )
           ) ::
           InventoryItemData(
             ObjectClass.phoenix,
             PlanetSideGUID(3603),
             3,
-            WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, CommonFieldData()(false))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+              0,
+              List(InternalSlot(ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
+            )
           ) ::
           InventoryItemData(
             ObjectClass.chainblade,
             PlanetSideGUID(4088),
             4,
-            WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, CommonFieldData()(false))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+              1,
+              List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
+            )
           ) ::
           Nil
       )
@@ -411,17 +418,7 @@ class CharacterDataTest extends Specification {
           5,
           CharacterVoice.Voice5
         ),
-        CommonFieldData(
-          PlanetSideEmpire.TR,
-          false,
-          false,
-          false,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, None, PlanetSideGUID(0)),
         ExoSuitType.Reinforced,
         0,
         192L,
@@ -474,31 +471,51 @@ class CharacterDataTest extends Specification {
           ObjectClass.plasma_grenade,
           PlanetSideGUID(3662),
           0,
-          WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, CommonFieldData()(false))
+          WeaponData(
+            CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+            0,
+            List(InternalSlot(ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
+          )
         ) ::
           InventoryItemData(
             ObjectClass.bank,
             PlanetSideGUID(3908),
             1,
-            WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, CommonFieldData()(false))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+              1,
+              List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(4143), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
+            )
           ) ::
           InventoryItemData(
             ObjectClass.mini_chaingun,
             PlanetSideGUID(4164),
             2,
-            WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, CommonFieldData()(false))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+              0,
+              List(InternalSlot(ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
+            )
           ) ::
           InventoryItemData(
             ObjectClass.phoenix,
             PlanetSideGUID(3603),
             3,
-            WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, CommonFieldData()(false))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+              0,
+              List(InternalSlot(ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
+            )
           ) ::
           InventoryItemData(
             ObjectClass.chainblade,
             PlanetSideGUID(4088),
             4,
-            WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, CommonFieldData()(false))
+            WeaponData(
+              CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, v2 = None, jammered = false, v5 = None, guid = PlanetSideGUID(0)),
+              1,
+              List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0))))
+            )
           ) ::
           Nil
       )
@@ -527,17 +544,7 @@ class CharacterDataTest extends Specification {
           10,
           CharacterVoice.Voice2
         ),
-        CommonFieldData(
-          PlanetSideEmpire.VS,
-          false,
-          true,
-          false,
-          None,
-          false,
-          None,
-          None,
-          PlanetSideGUID(0)
-        ),
+        CommonFieldData(PlanetSideEmpire.VS, false, true, false, None, false, None, PlanetSideGUID(0)),
         ExoSuitType.MAX,
         1,
         0L,

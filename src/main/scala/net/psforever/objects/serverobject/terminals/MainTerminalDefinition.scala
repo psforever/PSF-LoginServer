@@ -1,10 +1,7 @@
 // Copyright (c) 2025 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import akka.actor.ActorContext
-import net.psforever.objects.{Default, Player}
-import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.Player
 
 /**
   * The definition for any `Terminal` that is of a type "main_terminal".

@@ -3,7 +3,8 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game._
+import net.psforever.packet.game.packets._
+import net.psforever.packet.game.packets.{FavoritesAction, FavoritesRequest}
 import net.psforever.types.{LoadoutType, PlanetSideGUID}
 import scodec.bits._
 

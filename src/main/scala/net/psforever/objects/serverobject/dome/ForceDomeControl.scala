@@ -13,7 +13,7 @@ import net.psforever.objects.vital.etc.ForceDomeExposure
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.ChatMsg
+import net.psforever.packet.game.packets.ChatMsg
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalAction
