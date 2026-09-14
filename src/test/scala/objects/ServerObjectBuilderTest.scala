@@ -3,6 +3,7 @@ package objects
 
 import akka.actor.ActorContext
 import base.FreedContextActorTest
+import net.psforever.actors.zone.building.{MajorFacilityLogic, WarpGateLogic}
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.serverobject.ServerObjectBuilder
@@ -14,7 +15,7 @@ import net.psforever.types.{PlanetSideGUID, Vector3}
 class BuildingBuilderTest extends FreedContextActorTest {
   "Building object" should {
     "build" in {
-      val structure: (String, Int, Int, Zone, ActorContext) => Building = Building.Structure(StructureType.Building)
+      val structure: (String, Int, Int, Zone, ActorContext) => Building = Building.Structure(StructureType.Facility, Vector3.Zero, Vector3.Zero, GlobalDefinitions.building, MajorFacilityLogic)
       val building = FoundationBuilder(structure).Build("building", 10, 10, Zone.Nowhere)(context)
       assert(building ne null)
       assert(building.isInstanceOf[Building])
@@ -27,7 +28,7 @@ class BuildingBuilderTest extends FreedContextActorTest {
 class WarpGateBuilderTest extends FreedContextActorTest {
   "WarpGate object" should {
     "build" in {
-      val structure: (String, Int, Int, Zone, ActorContext) => Building = WarpGate.Structure
+      val structure: (String, Int, Int, Zone, ActorContext) => Building = WarpGate.Structure(Vector3.Zero, GlobalDefinitions.warpgate, WarpGateLogic)
       val building = FoundationBuilder(structure).Build("wgate", 10, 10, Zone.Nowhere)(context)
       assert(building ne null)
       assert(building.isInstanceOf[WarpGate])

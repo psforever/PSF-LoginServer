@@ -5,6 +5,7 @@ import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
 import base.{ActorTest, FreedContextActorTest}
 import net.psforever.actors.zone.BuildingActor
+import net.psforever.actors.zone.building.MajorFacilityLogic
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
@@ -16,6 +17,7 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.serverobject.structures.participation.MajorFacilityHackParticipation
 import net.psforever.packet.game.packets.UseItemMessage
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
@@ -179,7 +181,7 @@ class ResourceSiloControlUseTest extends FreedContextActorTest {
   )
   buildingMap += 6 -> building
   system.spawn(InterstellarClusterService(Seq(zone)), InterstellarClusterService.InterstellarClusterServiceKey.id)
-  building.Actor = context.spawn(BuildingActor(zone, building), "integ-fac-test-building-control").toClassic
+  building.Actor = context.spawn(BuildingActor(zone, building, MajorFacilityLogic), "integ-fac-test-building-control").toClassic
   building.Invalidate()
 
   guid.register(player, number = 1)

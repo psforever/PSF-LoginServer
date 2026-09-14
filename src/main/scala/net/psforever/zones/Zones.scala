@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.ActorContext
 import io.circe._
 import io.circe.parser._
+import net.psforever.actors.zone.building.{BuildingLogic, CavernFacilityLogic, FacilityLogic, MajorFacilityLogic, WarpGateLogic}
 import net.psforever.objects.{GlobalDefinitions, LocalLockerItem, LocalProjectile}
 import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.guid.selector.{NumberSelector, RandomSelector, SpecificSelector}
@@ -258,6 +259,7 @@ object Zones {
           zoneMap.environment = info.environment
 
           zoneMap.zipLinePaths = zplData.toList
+          zoneMap.cavern = info.value.startsWith("ugd")
 
           // This keeps track of the last used turret weapon guid, as they seem to be arbitrarily assigned at 5000+
           val turretWeaponGuid = new AtomicInteger(5000)
@@ -294,7 +296,7 @@ object Zones {
                   structure.guid,
                   structure.mapId.get,
                   FoundationBuilder(
-                    WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.hst)
+                    WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.hst, WarpGateLogic)
                   )
                 )
               case objectType @ "warpgate_cavern" if warpGateTypes.contains(objectType) =>
@@ -303,7 +305,7 @@ object Zones {
                   structure.guid,
                   structure.mapId.get,
                   FoundationBuilder(
-                    WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.warpgate_cavern)
+                    WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.warpgate_cavern, WarpGateLogic)
                   )
                 )
               case objectType @ "warpgate_small" if warpGateTypes.contains(objectType) =>
@@ -312,7 +314,7 @@ object Zones {
                   structure.guid,
                   structure.mapId.get,
                   FoundationBuilder(
-                    WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.warpgate_small)
+                    WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.warpgate_small, WarpGateLogic)
                   )
                 )
               case objectType @ "warpgate" if warpGateTypes.contains(objectType) =>
@@ -320,9 +322,16 @@ object Zones {
                   structure.objectName,
                   structure.guid,
                   structure.mapId.get,
-                  FoundationBuilder(WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ)))
+                  FoundationBuilder(WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.warpgate, WarpGateLogic))
                 )
               case _ =>
+                val logic: BuildingLogic = if (zoneMap.cavern) {
+                  CavernFacilityLogic
+                } else if (structureType == StructureType.Facility) {
+                  MajorFacilityLogic
+                } else {
+                  FacilityLogic
+                }
                 zoneMap.addLocalBuilding(
                   structure.objectName,
                   structure.guid,
@@ -332,7 +341,8 @@ object Zones {
                       structureType,
                       Vector3(structure.absX, structure.absY, structure.absZ),
                       Vector3(0f, 0f, structure.yaw),
-                      structure.objectDefinition.asInstanceOf[BuildingDefinition]
+                      structure.objectDefinition.asInstanceOf[BuildingDefinition],
+                      logic
                     )
                   )
                 )
@@ -852,7 +862,6 @@ object Zones {
                 case gate: WarpGate => gate.Active = false
               }
             case zoneId if zoneId.startsWith("c") =>
-              map.cavern = true
               deactivateGeoWarpGateOnContinent(bldgs)
             case _ => ;
           }

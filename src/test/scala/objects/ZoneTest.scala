@@ -2,7 +2,6 @@
 package objects
 
 import java.util.concurrent.atomic.AtomicInteger
-
 import akka.actor.ActorContext
 import base.ActorTest
 import net.psforever.objects.entity.IdentifiableEntity
@@ -19,6 +18,7 @@ import net.psforever.objects.Vehicle
 import org.specs2.mutable.Specification
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.actors.zone.building.FacilityLogic
 import net.psforever.objects.avatar.Avatar
 import net.psforever.services.ServiceManager
 
@@ -150,7 +150,7 @@ class ZoneActorTest extends ActorTest {
           "Building",
           buildingGuid = 1,
           mapId = 1,
-          FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 1, 1)))
+          FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 1, 1), Vector3.Zero, GlobalDefinitions.building, FacilityLogic))
         )
         addLocalObject(2, SpawnTube.Constructor(Vector3(1, 0, 0), Vector3.Zero))
         addLocalObject(3, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
@@ -163,7 +163,7 @@ class ZoneActorTest extends ActorTest {
           "Building",
           buildingGuid = 5,
           mapId = 2,
-          FoundationBuilder(Building.Structure(StructureType.Building))
+          FoundationBuilder(Building.Structure(StructureType.Building, Vector3.Zero, Vector3.Zero, GlobalDefinitions.building, FacilityLogic))
         )
         addLocalObject(6, SpawnTube.Constructor(Vector3.Zero, Vector3.Zero))
         linkObjectToBuilding(6, 5)
@@ -172,7 +172,7 @@ class ZoneActorTest extends ActorTest {
           "Building",
           buildingGuid = 7,
           mapId = 3,
-          FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 1, 1)))
+          FoundationBuilder(Building.Structure(StructureType.Building, Vector3(1, 1, 1), Vector3.Zero, GlobalDefinitions.building, FacilityLogic))
         )
         addLocalObject(8, Terminal.Constructor(Vector3.Zero, GlobalDefinitions.dropship_vehicle_terminal))
         addLocalObject(9, SpawnTube.Constructor(Vector3(1, 0, 0), Vector3.Zero))
@@ -248,7 +248,7 @@ class ZonePopulationTest extends ActorTest {
 
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
-      zone.Population ! Zone.Population.Leave(avatar, _)
+      zone.Population ! Zone.Population.Leave(avatar, null)
       val reply = receiveOne(Duration.create(100, "ms"))
       assert(reply.isInstanceOf[Zone.Population.PlayerHasLeft])
       assert(zone.Players.isEmpty)

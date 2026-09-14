@@ -5,6 +5,7 @@ import akka.actor.Props
 import akka.testkit.TestProbe
 import base.FreedContextActorTest
 import net.psforever.actors.zone.BuildingActor
+import net.psforever.actors.zone.building.{FacilityLogic, MajorFacilityLogic}
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.guid.NumberPoolHub
@@ -45,7 +46,7 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
     override def VehicleEvents = catchall
     override def Activity = catchall
   }
-  val building = Building.Structure(StructureType.Facility)(name = "integ-fac-test-building", guid = 6, map_id = 0, zone, context)
+  val building = Building.Structure(StructureType.Facility, Vector3.Zero, Vector3.Zero, GlobalDefinitions.building, MajorFacilityLogic)(name = "integ-fac-test-building", guid = 6, map_id = 0, zone, context)
   building.Invalidate()
 
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
@@ -118,7 +119,7 @@ class AutoRepairFacilityIntegrationGiveNtuTest extends FreedContextActorTest {
     override def VehicleEvents = catchall
     override def Activity = catchall
   }
-  val building = Building.Structure(StructureType.Facility)(name = "integ-fac-test-building", guid = 6, map_id = 0, zone, context)
+  val building = Building.Structure(StructureType.Facility, Vector3.Zero, Vector3.Zero, GlobalDefinitions.building, MajorFacilityLogic)(name = "integ-fac-test-building", guid = 6, map_id = 0, zone, context)
   building.Invalidate()
 
   val terminal = new Terminal(AutoRepairIntegrationTest.terminal_definition)
@@ -189,7 +190,7 @@ class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest 
     GlobalDefinitions.cryo_facility
   )
   buildingMap += 6 -> building
-  building.Actor = context.spawn(BuildingActor(zone, building), "integ-fac-test-building-control").toClassic
+  building.Actor = context.spawn(BuildingActor(zone, building, MajorFacilityLogic), "integ-fac-test-building-control").toClassic
   building.Invalidate()
 
   guid.register(player, number = 1)
@@ -281,7 +282,7 @@ class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends Free
     GlobalDefinitions.cryo_facility
   )
   buildingMap += 6 -> building
-  building.Actor = context.spawn(BuildingActor(zone, building), "integ-fac-test-building-control").toClassic
+  building.Actor = context.spawn(BuildingActor(zone, building, MajorFacilityLogic), "integ-fac-test-building-control").toClassic
   building.Invalidate()
 
   guid.register(player, number = 1)
@@ -383,7 +384,7 @@ class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedCon
     GlobalDefinitions.cryo_facility
   )
   buildingMap += 6 -> building
-  building.Actor = context.spawn(BuildingActor(zone, building), "integ-fac-test-building-control").toClassic
+  building.Actor = context.spawn(BuildingActor(zone, building, MajorFacilityLogic), "integ-fac-test-building-control").toClassic
   building.Invalidate()
 
   guid.register(player, number = 1)
@@ -482,7 +483,7 @@ class AutoRepairTowerIntegrationTest extends FreedContextActorTest {
     override def VehicleEvents = catchall
     override def Activity = catchall
   }
-  val building = Building.Structure(StructureType.Tower)(name = "integ-twr-test-building", guid = 6, map_id = 0, zone, context)
+  val building = Building.Structure(StructureType.Facility, Vector3.Zero, Vector3.Zero, GlobalDefinitions.building, MajorFacilityLogic)(name = "integ-fac-test-building", guid = 6, map_id = 0, zone, context)
   building.Invalidate()
 
   val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
