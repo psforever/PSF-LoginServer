@@ -257,7 +257,7 @@ class ChatOperations(
         (None, None)
     }
     (zoneOpt, lockVal) match {
-      case (Some(zone), Some(lock)) if zone.map.cavern =>
+      case (Some(zone), Some(lock)) if zone.isACavern =>
         //caverns must be rotated in an order
         if (lock == 0) {
           cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryRotationToZoneUnlock(zone.id))

@@ -163,7 +163,7 @@ object Players {
     ExoSuitDefinition.Select(exosuit, player.Faction).Permissions match {
       case Nil =>
         true
-      case _ if player.IsInVRZone =>
+      case _ if player.Zone.isVR =>
         true
       case permissions if subtype != 0 =>
         val certs = player.avatar.certifications

@@ -23,7 +23,6 @@ import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.vehicles.interaction.WithWater
 import net.psforever.objects.vital.{ShieldCharge, SpawningActivity, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.packet.game.packets._
 import net.psforever.packet.game.packets.{CargoMountPointStatusMessage, ObjectDetachMessage, PlanetsideAttributeMessage, TriggerEffectMessage, TriggeredEffectLocation}
 import net.psforever.services.ServiceManager
 import net.psforever.services.base.envelope.MessageEnvelope
@@ -596,7 +595,7 @@ class VehicleControlInteractWithWaterWadingTest extends ActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Water, DeepSquare(5, 2, 2, 0, 0))
   val zone = new Zone(
-    id = "test-zone",
+    zoneId = "test-zone",
     new ZoneMap(name = "test-map") {
       environment = List(pool)
     },
@@ -649,7 +648,7 @@ class VehicleControlInteractWithWaterStartDrowningTest extends ActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Water, DeepSquare(5, 2, 2, 0, 0))
   val zone = new Zone(
-    id = "test-zone",
+    zoneId = "test-zone",
     new ZoneMap(name = "test-map") {
       environment = List(pool)
     },
@@ -809,7 +808,7 @@ class VehicleControlInteractWithWaterStopWadingTest extends ActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Water, DeepSquare(5, 2, 2, 0, 0))
   val zone = new Zone(
-    id = "test-zone",
+    zoneId = "test-zone",
     new ZoneMap(name = "test-map") {
       environment = List(pool)
     },
@@ -965,7 +964,7 @@ class VehicleControlInteractWithLavaTest extends ActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Lava, DeepSquare(-1, 10, 10, 0, 0))
   val zone = new Zone(
-    id = "test-zone",
+    zoneId = "test-zone",
     new ZoneMap(name = "test-map") {
       environment = List(pool)
     },
@@ -1027,7 +1026,7 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool = Pool(EnvironmentAttribute.Death, DeepSquare(5, 10, 10, 0, 0))
   val zone = new Zone(
-    id = "test-zone",
+    zoneId = "test-zone",
     new ZoneMap(name = "test-map") {
       environment = List(pool)
     },
@@ -1080,7 +1079,7 @@ class ApcControlCanChargeCapacitor extends FreedContextActorTest {
   val localProbe = TestProbe()
   val vehicleProbe = TestProbe()
   val catchall = TestProbe()
-  val zone = new Zone(id = "test-zone", new ZoneMap(name = "test-map"), zoneNumber = 0) {
+  val zone = new Zone(zoneId = "test-zone", new ZoneMap(name = "test-map"), zoneNumber = 0) {
     override def SetupNumberPools(): Unit = {}
     GUID(guid)
     override def Vehicles = List(apc)
@@ -1128,7 +1127,7 @@ class ApcControlCanEmp extends FreedContextActorTest {
   val localProbe = TestProbe()
   val vehicleProbe = TestProbe()
   val catchall = TestProbe()
-  val zone = new Zone(id = "test-zone", new ZoneMap(name = "test-map"), zoneNumber = 0) {
+  val zone = new Zone(zoneId = "test-zone", new ZoneMap(name = "test-map"), zoneNumber = 0) {
     override def SetupNumberPools(): Unit = {}
     GUID(guid)
     override def Vehicles = List(apc, fury)

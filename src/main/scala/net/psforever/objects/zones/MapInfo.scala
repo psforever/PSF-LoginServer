@@ -14,7 +14,7 @@ sealed abstract class MapInfo(
     val scale: MapScale,
     val hotSpotSpan: Int,
     val environment: List[PieceOfEnvironment]
-) extends StringEnumEntry {}
+) extends StringEnumEntry
 
 case object MapInfo extends StringEnum[MapInfo] {
 

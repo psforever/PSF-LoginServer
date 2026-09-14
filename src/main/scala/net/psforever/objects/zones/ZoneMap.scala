@@ -33,7 +33,6 @@ class ZoneMap(val name: String) {
   var localObjects: List[ServerObjectBuilder[_]]                    = List()
   var checksum: Long                                                = 0
   var zipLinePaths: List[ZipLinePath]                               = List()
-  var cavern: Boolean                                               = false
   var environment: List[PieceOfEnvironment]                         = List()
   private var linkTurretWeapon: Map[Int, Int]                       = Map()
   private var linkTerminalPad: Map[Int, Int]                        = Map()

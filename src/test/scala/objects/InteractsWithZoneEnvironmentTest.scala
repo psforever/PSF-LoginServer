@@ -25,7 +25,7 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
     val testMap = new ZoneMap(name = "test-map") {
       environment = List(pool1, pool2, pool3)
     }
-    new Zone("test-zone", testMap, zoneNumber = 0) {
+    new Zone(zoneId = "test-zone", testMap, zoneNumber = 0) {
       override def AvatarEvents: ActorRef = zoneEvents.ref
     }
   }

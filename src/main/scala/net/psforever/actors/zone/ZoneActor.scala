@@ -241,7 +241,7 @@ class ZoneActor(
         )
       }
       msg.is_hacked match {
-        case true if building.BuildingType == StructureType.Facility && !zone.map.cavern =>
+        case true if building.BuildingType == StructureType.Facility && !zone.isACavern =>
           zone.LocalEvents ! MessageEnvelope(
             zone.id,
             SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))
@@ -251,7 +251,7 @@ class ZoneActor(
             zone.id,
             SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 1))
           )
-        case false if building.BuildingType == StructureType.Facility && !zone.map.cavern && !building.hasCavernLockBenefit =>
+        case false if building.BuildingType == StructureType.Facility && !zone.isACavern && !building.hasCavernLockBenefit =>
           zone.LocalEvents ! MessageEnvelope(
             zone.id,
             SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))

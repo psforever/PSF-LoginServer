@@ -253,13 +253,13 @@ object Zones {
         case (info, data, zplData) =>
           val mapid = info.value
           val zoneMap = new ZoneMap(mapid)
+          val expectsACavernZone = info.value.startsWith("ugd")
 
           zoneMap.checksum = info.checksum
           zoneMap.scale = info.scale
           zoneMap.environment = info.environment
 
           zoneMap.zipLinePaths = zplData.toList
-          zoneMap.cavern = info.value.startsWith("ugd")
 
           // This keeps track of the last used turret weapon guid, as they seem to be arbitrarily assigned at 5000+
           val turretWeaponGuid = new AtomicInteger(5000)
@@ -325,7 +325,7 @@ object Zones {
                   FoundationBuilder(WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.warpgate, WarpGateLogic))
                 )
               case _ =>
-                val logic: BuildingLogic = if (zoneMap.cavern) {
+                val logic: BuildingLogic = if (expectsACavernZone) {
                   CavernFacilityLogic
                 } else if (structureType == StructureType.Facility) {
                   MajorFacilityLogic
@@ -774,7 +774,7 @@ object Zones {
           case _: Exception => defaultGuids
         }
 
-      val zone = new Zone(info.id, zoneMaps.find(_.name.equals(info.map.value)).get, info.value) {
+      val zone = new Zone(info, zoneMaps.find(_.name.equals(info.map.value)).get) {
         private val addPoolsFunc: () => Unit = addPools(guids, zone = this)
 
         override def SetupNumberPools() : Unit = addPoolsFunc()

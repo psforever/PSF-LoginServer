@@ -300,7 +300,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
       case DroppodLaunchRequest(zoneNumber, position, faction, replyTo) =>
         zones.find(_.Number == zoneNumber) match {
           //TODO all of the checks for the specific DroppodLaunchResponseMessage excuses go here
-          case Some(zone) if zone.map.cavern =>
+          case Some(zone) if zone.isACavern =>
             //just being cautious - caverns are typically not normally selectable as drop zones
             replyTo ! DroppodLaunchDenial(DroppodError.ZoneNotAvailable, None)
           case Some(zone) if zone.Number == Zones.sanctuaryZoneNumber(faction) =>

@@ -45,8 +45,6 @@ abstract class PlanetSideServerObject
     actor = ActorRef.noSender
     out
   }
-
-  def IsInVRZone: Boolean = Zone.id.startsWith("tz")
 }
 
 object PlanetSideServerObject {

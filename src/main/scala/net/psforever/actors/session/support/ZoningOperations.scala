@@ -625,7 +625,7 @@ class ZoningOperations(
       //CaptureFlagUpdateMessage()
       //VanuModuleUpdateMessage()
       //ModuleLimitsMessage()
-      val isCavern = zone.map.cavern
+      val isCavern = zone.isACavern
       if (!isCavern) {
         sendResponse(ZoneInfoMessage(continentNumber, empire_status = true, 0L))
       }
@@ -1043,7 +1043,7 @@ class ZoningOperations(
   def ZoningStartInitialMessageAndTimer(): (Int, String) = {
     val location = if (Zones.sanctuaryZoneNumber(player.Faction) == continent.Number) {
       Zoning.Time.Sanctuary
-    } else if (player.IsInVRZone) {
+    } else if (player.Zone.isVR) {
       continent.id match {
         case "tzshtr" | "tzdrtr" | "tzcotr" =>
           if (player.Faction == PlanetSideEmpire.TR) Zoning.Time.Friendly else Zoning.Time.None
@@ -1347,7 +1347,7 @@ class ZoningOperations(
           ICS.FindZone(_.id.equals(zoneId), context.self)
         ))
       } else if (player.HasGUID) {
-        if (zoneId.startsWith("tz") || player.IsInVRZone) {
+        if (zoneId.startsWith("tz") || player.Zone.isVR) {
           // reset the players loadout when entering or exiting any VR Training zone
           // this is to prevent both entering the VR Driving Area with an ExoSuit too heavy to drive,
           // or smuggling special equipment out of the VR Shooting Range
@@ -2188,7 +2188,7 @@ class ZoningOperations(
                 _.faction == pfaction
               }
               val noFriendlyPlayersInZone = friendlyPlayersInZone == 0
-              if (inZone.map.cavern) {
+              if (inZone.isACavern) {
                 enqueueNewActivity(ActivityQueuedTask(
                   SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_locked")), 20)
                 ) //You have been returned to the sanctuary because the location you logged out is not available.
@@ -3276,7 +3276,7 @@ class ZoningOperations(
           case _ if player.HasGUID => // player is deconstructing self or instant action
             val player_guid = player.GUID
             // entering or exiting VR zones uses a fade-out effect for the player instead of the usual green cloud deconstruction effect
-            val effect = if (player.IsInVRZone || zoneId.startsWith("tz")) 2 else 1
+            val effect = if (player.Zone.isVR || zoneId.startsWith("tz")) 2 else 1
             sendResponse(ObjectDeleteMessage(player_guid, unk1=effect))
             continent.AvatarEvents ! MessageEnvelope(
               continent.id,

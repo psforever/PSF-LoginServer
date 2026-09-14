@@ -199,7 +199,7 @@ class AvatarActionTest extends Specification {
   }
 
   "Release" should {
-    val testZone: Zone = new Zone(id = "test", new ZoneMap( name = "test"), zoneNumber = 1)
+    val testZone: Zone = new Zone(zoneId = "test", new ZoneMap( name = "test"), zoneNumber = 1)
 
     "respond" in {
       val obj = testPlayer

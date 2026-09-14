@@ -74,7 +74,7 @@ case object CavernEquipmentQuestion extends ExclusionRule {
     obj match {
       case equipment: Equipment =>
         import net.psforever.objects.serverobject.structures.Building
-        if(GlobalDefinitions.isCavernWeapon(equipment.Definition) && !player.IsInVRZone) {
+        if(GlobalDefinitions.isCavernWeapon(equipment.Definition) && !player.Zone.isVR) {
           (player.Zone.GUID(msg.terminal_guid) match {
             case Some(term: Amenity) => Some(term.Owner)
             case _                   => None
@@ -115,7 +115,7 @@ case object CavernVehicleQuestion extends ExclusionRule {
       case vehicle: Vehicle =>
         import net.psforever.objects.serverobject.structures.Building
         val definition = vehicle.Definition
-        if ((definition == GlobalDefinitions.flail || definition == GlobalDefinitions.switchblade) && !player.IsInVRZone) {
+        if ((definition == GlobalDefinitions.flail || definition == GlobalDefinitions.switchblade) && !player.Zone.isVR) {
           (player.Zone.GUID(msg.terminal_guid) match {
             case Some(term: Amenity) => Some(term.Owner)
             case _                   => None
