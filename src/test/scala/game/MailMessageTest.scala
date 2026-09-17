@@ -3,7 +3,6 @@ package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.packets._
 import net.psforever.packet.game.packets.MailMessage
 import scodec.bits._
 
