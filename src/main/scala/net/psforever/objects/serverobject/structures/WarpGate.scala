@@ -3,11 +3,12 @@ package net.psforever.objects.serverobject.structures
 
 import akka.actor.ActorContext
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.{GlobalDefinitions, NtuContainer, SpawnPoint}
+import net.psforever.objects.{NtuContainer, SpawnPoint}
 import net.psforever.objects.zones.Zone
 import net.psforever.types._
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.BuildingActor
+import net.psforever.actors.zone.building.BuildingLogic
 import net.psforever.packet.game.packets.BuildingInfoUpdateMessage
 
 class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildingDefinition: WarpGateDefinition)
@@ -138,28 +139,14 @@ object WarpGate {
     new WarpGate(name, guid, map_id, zone, buildingDefinition)
   }
 
-  def Structure(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): WarpGate = {
-    val obj = new WarpGate(name, guid, map_id, zone, GlobalDefinitions.warpgate)
-    obj.Actor = context.spawn(BuildingActor(zone, obj), name = s"$map_id-$guid-gate").toClassic
-    obj
-  }
-
   def Structure(
-      location: Vector3
-  )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): WarpGate = {
-    val obj = new WarpGate(name, guid, map_id, zone, GlobalDefinitions.warpgate)
-    obj.Position = location
-    obj.Actor = context.spawn(BuildingActor(zone, obj), name = s"$map_id-$guid-gate").toClassic
-    obj
-  }
-
-  def Structure(
-      location: Vector3,
-      buildingDefinition: WarpGateDefinition
-  )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): WarpGate = {
+                 location: Vector3,
+                 buildingDefinition: WarpGateDefinition,
+                 logic: BuildingLogic
+               )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): WarpGate = {
     val obj = new WarpGate(name, guid, map_id, zone, buildingDefinition)
     obj.Position = location
-    obj.Actor = context.spawn(BuildingActor(zone, obj), name = s"$map_id-$guid-gate").toClassic
+    obj.Actor = context.spawn(BuildingActor(zone, obj, logic), name = s"$map_id-$guid-gate").toClassic
     obj
   }
 }

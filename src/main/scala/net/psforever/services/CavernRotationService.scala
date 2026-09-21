@@ -423,7 +423,7 @@ class CavernRotationService(
     */
   def manageCaverns(zones: Seq[Zone]): Boolean = {
     if (managedZones.isEmpty) {
-      val onlyCaverns = zones.filter{ z => z.map.cavern }
+      val onlyCaverns = zones.filter{ z => z.isACavern }
       val collectedZones = Config.app.game.cavernRotation.enhancedRotationOrder match {
         case Nil  => onlyCaverns
         case list => list.flatMap { index => onlyCaverns.find(_.Number == index ) }

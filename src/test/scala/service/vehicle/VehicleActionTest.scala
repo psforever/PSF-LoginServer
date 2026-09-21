@@ -29,7 +29,7 @@ object VehicleActionTest {
       i += 1
     }
     ams.DeploymentState = DriveState.Deployed
-    new Zone(id = "test", new ZoneMap( name = "test"), zoneNumber = 1) {
+    new Zone(zoneId = "test", new ZoneMap( name = "test"), zoneNumber = 1) {
       override def Vehicles: List[Vehicle] = List(notAms, ams)
     }
   }

@@ -4,6 +4,7 @@ package objects
 import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
 import base.FreedContextActorTest
+import net.psforever.actors.zone.building.FacilityLogic
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.guid.{NumberPoolHub, UniqueNumberOps, UniqueNumberSetup}
@@ -62,7 +63,7 @@ class OrbitalShuttlePadControlTest extends FreedContextActorTest {
   buildingMap += 1 -> building
   system.spawn(InterstellarClusterService(Seq(zone)), InterstellarClusterService.InterstellarClusterServiceKey.id)
   building.Faction = PlanetSideEmpire.TR
-  building.Actor = context.spawn(BuildingActor(zone, building), "test-orbital-building-tr-control").toClassic
+  building.Actor = context.spawn(BuildingActor(zone, building, FacilityLogic), "test-orbital-building-tr-control").toClassic
   building.Invalidate()
   guid.register(building, number = 1)
 

@@ -78,15 +78,39 @@ import scala.concurrent.{Future, Promise}
   * Dynamic game objects originate from player characters.
   * (Write more later.)
   *
-  * @param id         the privileged name that can be used as the second parameter in the packet `LoadMapMessage`
-  * @param map        the map of server objects upon which this `Zone` is based
-  * @param zoneNumber the numerical index of the `Zone` as it is recognized in a variety of packets;
-  *                   also used by `LivePlayerList` to indicate a specific `Zone`
-  * @see `ZoneMap`<br>
-  *      `LoadMapMessage`<br>
-  *      `LivePlayerList`
+  * @param info predefined information pertaining to the zone
+  * @param map map of server objects upon which this `Zone` is based
+  * @see `ZoneMap`
+  * @see `LoadMapMessage`
+  * @see `LivePlayerList`
   */
-class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
+class Zone(info: DefinedZoneInfo, val map: ZoneMap) {
+  /**
+   * Overloaded constructor.
+   * The zone info does not officially exist so an anonymous info ojbect is constructed specifically for this zone.
+   * @param zoneId privileged name that can be used as the second parameter in the packet `LoadMapMessage`
+   * @param map map of server objects upon which this `Zone` is based
+   * @param zoneNumber numerical index of the `Zone` as it is recognized in a variety of packets
+   * @return a `Zone` object
+   */
+  def this(zoneId: String, map: ZoneMap, zoneNumber: Int) = {
+    this(
+      new DefinedZoneInfo {
+        def value: Int = zoneNumber
+        def name: String = zoneId
+        def id: String = zoneId
+        def mood: ZoneType = ZoneType.Continent
+        def map: MapInfo = null
+        def aliases: AliasLookup = ZoneInfo.defaultAliases
+      },
+      map
+    )
+  }
+
+  val id: String = info.id
+  lazy val isACavern: Boolean = info.mood == ZoneType.Cavern
+  lazy val isVR: Boolean = info.mood.isInstanceOf[VirtualReality]
+
   /** Governs general synchronized external requests. */
   var actor: typed.ActorRef[ZoneActor.Command] = Default.typed.Actor
 
@@ -305,7 +329,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     *
     * @return the abstract index position of this `Zone`
     */
-  def Number: Int = zoneNumber
+  def Number: Int = info.value
 
   /**
     * The globally unique identifier system ensures that concurrent requests do not clash.
@@ -885,7 +909,7 @@ object Zone {
   private def AssignOutwardSideToDoors(zone: Zone): Unit = {
     //let ZoneActor's sanity check catch any missing entities
     //todo there are no doors in the training zones so we may skip that
-    if (zone.map.cavern) {
+    if (zone.isACavern) {
       //todo what do?
       //almost all are type ancient_door and don't have many hints to determine outward-ness; there are no IFF locks
     } else if (
@@ -1044,7 +1068,7 @@ object Zone {
   private def AssignSidednessToAmenities(zone: Zone): Unit = {
     //let ZoneActor's sanity check catch any missing entities
     //todo training zones, where everything is outside
-    if (zone.map.cavern) {
+    if (zone.isACavern) {
       //todo what do?
       /*
       quite a few amenities are disconnected from buildings
@@ -1482,7 +1506,7 @@ object Zone {
     * @return the discovered faction-aligned cavern facility
     */
   def findConnectedCavernFacility(building: Building): Option[Building] = {
-    if (building.Zone.map.cavern) {
+    if (building.Zone.isACavern) {
       None
     } else {
       val neighbors = building.AllNeighbours.getOrElse(Set.empty[Building]).toList
@@ -1564,7 +1588,7 @@ object Zone {
                                                             target: WarpGate
                                                           ): Option[Building] = {
     WarpGateLogic.findNeighborhoodWarpGate(target.Neighbours.getOrElse(Nil)) match {
-      case Some(gate) if gate.Zone.map.cavern =>
+      case Some(gate) if gate.Zone.isACavern =>
         WarpGateLogic.findNeighborhoodNormalBuilding(gate.Neighbours(faction).getOrElse(Nil))
       case _ =>
         None
@@ -1987,7 +2011,7 @@ object Zone {
     //inform remaining targets that they have suffered damage
     allAffectedTargets
       .foreach { target =>
-      if (target.IsInVRZone) {
+      if (target.Zone.isVR) {
         //disable all server-side damage in VR zones, unless the target is a bot in the VR Shooting Range
         target match {
           case bot: AvatarBot =>

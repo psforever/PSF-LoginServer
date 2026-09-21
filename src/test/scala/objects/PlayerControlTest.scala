@@ -22,7 +22,6 @@ import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
-import net.psforever.packet.game.packets._
 import net.psforever.packet.game.packets.{DestroyMessage, InventoryStateMessage, RepairMessage}
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
@@ -840,7 +839,7 @@ class PlayerControlInteractWithLavaTest extends ActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool: Pool = Pool(EnvironmentAttribute.Lava, DeepSquare(-1, 10, 10, 0, 0))
   val zone: Zone = new Zone(
-    id = "test-map",
+    zoneId = "test-map",
     new ZoneMap(name = "test-map") {
       environment = List(pool)
     },
@@ -902,7 +901,7 @@ class PlayerControlInteractWithDeathTest extends ActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(15))
   val pool: Pool = Pool(EnvironmentAttribute.Death, DeepSquare(10, 10, 10, 0, 0))
   val zone: Zone = new Zone(
-    id = "test-map",
+    zoneId = "test-map",
     new ZoneMap(name = "test-map") {
       environment = List(pool)
     },

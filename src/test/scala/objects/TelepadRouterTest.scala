@@ -14,7 +14,6 @@ import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.packet.game.packets._
 import net.psforever.packet.game.packets.{DeployableIcon, DeployableInfo, DeploymentAction, GenericObjectActionMessage, ObjectCreateMessage}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
@@ -30,7 +29,7 @@ class TelepadDeployableNoRouterTest extends ActorTest {
   val telepad = Deployables.Make(DeployedItem.router_telepad_deployable)() //guid=1
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
-  val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
+  val zone = new Zone(zoneId = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
     private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools(): Unit = {}
@@ -94,7 +93,7 @@ class TelepadDeployableNoActivationTest extends ActorTest {
   val internal = router.Utility(UtilityType.internal_router_telepad_deployable).get //guid=3
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
-  val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
+  val zone = new Zone(zoneId = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
     private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools(): Unit = {}
@@ -165,7 +164,7 @@ class TelepadDeployableAttemptTest extends ActorTest {
   val internal = router.Utility(UtilityType.internal_router_telepad_deployable).get //guid=3
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
-  val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
+  val zone = new Zone(zoneId = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
     private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools(): Unit = {}
@@ -227,7 +226,7 @@ class TelepadDeployableResponseFromRouterTest extends FreedContextActorTest {
     .asInstanceOf[Utility.InternalTelepad] //guid=3
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
-  val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
+  val zone = new Zone(zoneId = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
     private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools(): Unit = {}

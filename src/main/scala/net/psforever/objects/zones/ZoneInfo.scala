@@ -7,23 +7,50 @@ final case class AliasLookup(
                               facilities: Map[String, String] = Map()
                             )
 
+trait ZoneType
+
+trait Mainland extends ZoneType
+
+trait VirtualReality extends ZoneType
+
+object ZoneType {
+  case object Sanctuary extends ZoneType
+  case object VirtualRealityForShooting extends VirtualReality
+  case object VirtualRealityForDriving extends VirtualReality
+  case object VirtualRealityForCoop extends VirtualReality
+  case object Continent extends Mainland
+  case object BattleIsland extends Mainland
+  case object Cavern extends ZoneType
+}
+
+trait DefinedZoneInfo {
+  def value: Int
+  def name: String
+  def id: String
+  def map: MapInfo
+  def mood: ZoneType
+  def aliases: AliasLookup
+}
+
 sealed abstract class ZoneInfo(
     val value: Int,
     val name: String,
     val id: String,
     val map: MapInfo,
-    val aliases: AliasLookup = ZoneInfo.defaultAliases,
-) extends IntEnumEntry {}
+    val mood: ZoneType,
+    val aliases: AliasLookup = ZoneInfo.defaultAliases
+) extends IntEnumEntry with DefinedZoneInfo
 
 case object ZoneInfo extends IntEnum[ZoneInfo] {
-  private val defaultAliases = AliasLookup(Nil, Map.empty[String, String])
+  final val defaultAliases = AliasLookup(Nil, Map.empty[String, String])
 
   case object Solsar
       extends ZoneInfo(
         value = 1,
         name = "Solsar",
         id = "z1",
-        map = MapInfo.Map01
+        map = MapInfo.Map01,
+        mood = ZoneType.Continent
       )
 
   case object Hossin
@@ -31,7 +58,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 2,
         name = "Hossin",
         id = "z2",
-        map = MapInfo.Map02
+        map = MapInfo.Map02,
+        mood = ZoneType.Continent
       )
 
   case object Cyssor
@@ -39,7 +67,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 3,
         name = "Cyssor",
         id = "z3",
-        map = MapInfo.Map03
+        map = MapInfo.Map03,
+        mood = ZoneType.Continent
       )
 
   case object Ishundar
@@ -47,7 +76,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 4,
         name = "Ishundar",
         id = "z4",
-        map = MapInfo.Map04
+        map = MapInfo.Map04,
+        mood = ZoneType.Continent
       )
 
   case object Forseral
@@ -55,7 +85,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 5,
         name = "Forseral",
         id = "z5",
-        map = MapInfo.Map05
+        map = MapInfo.Map05,
+        mood = ZoneType.Continent
       )
 
   case object Ceryshen
@@ -63,7 +94,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 6,
         name = "Ceryshen",
         id = "z6",
-        map = MapInfo.Map06
+        map = MapInfo.Map06,
+        mood = ZoneType.Continent
       )
 
   case object Esamir
@@ -71,7 +103,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 7,
         name = "Esamir",
         id = "z7",
-        map = MapInfo.Map07
+        map = MapInfo.Map07,
+        mood = ZoneType.Continent
       )
 
   case object Oshur
@@ -79,7 +112,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 8,
         name = "Oshur",
         id = "z8",
-        map = MapInfo.Map08
+        map = MapInfo.Map08,
+        mood = ZoneType.Continent
       )
 
   case object Searhus
@@ -87,7 +121,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 9,
         name = "Searhus",
         id = "z9",
-        map = MapInfo.Map09
+        map = MapInfo.Map09,
+        mood = ZoneType.Continent
       )
 
   case object Amerish
@@ -95,7 +130,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 10,
         name = "Amerish",
         id = "z10",
-        map = MapInfo.Map10
+        map = MapInfo.Map10,
+        mood = ZoneType.Continent
       )
 
   case object NcSanctuary
@@ -104,6 +140,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "NC Sanctuary",
         id = "home1",
         map = MapInfo.Map11,
+        mood = ZoneType.Sanctuary,
         aliases = AliasLookup(zone = Seq("nc-sanctuary"))
       )
 
@@ -113,6 +150,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "TR Sanctuary",
         id = "home2",
         map = MapInfo.Map12,
+        mood = ZoneType.Sanctuary,
         aliases = AliasLookup(zone = Seq("tr-sanctuary"))
       )
 
@@ -122,6 +160,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "VS Sanctuary",
         id = "home3",
         map = MapInfo.Map13,
+        mood = ZoneType.Sanctuary,
         aliases = AliasLookup(zone = Seq("vs-sanctuary"))
       )
 
@@ -131,6 +170,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "tzshtr",
         id = "tzshtr",
         map = MapInfo.Map14,
+        mood = ZoneType.VirtualRealityForShooting,
         aliases = AliasLookup(zone = Seq("tr-shooting"))
       )
 
@@ -140,6 +180,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "tzdrtr",
         id = "tzdrtr",
         map = MapInfo.Map15,
+        mood = ZoneType.VirtualRealityForDriving,
         aliases = AliasLookup(zone = Seq("tr-driving"))
       )
 
@@ -148,7 +189,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 16,
         name = "tzcotr",
         id = "tzcotr",
-        map = MapInfo.Map16
+        map = MapInfo.Map16,
+        mood = ZoneType.VirtualRealityForCoop
       )
 
   case object tzshnc
@@ -157,6 +199,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "tzshnc",
         id = "tzshnc",
         map = MapInfo.Map14,
+        mood = ZoneType.VirtualRealityForShooting,
         aliases = AliasLookup(zone = Seq("nc-shooting"))
       )
 
@@ -166,6 +209,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "tzdrnc",
         id = "tzdrnc",
         map = MapInfo.Map15,
+        mood = ZoneType.VirtualRealityForDriving,
         aliases = AliasLookup(zone = Seq("nc-driving"))
       )
 
@@ -174,6 +218,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 19,
         name = "tzconc",
         id = "tzconc",
+        mood = ZoneType.VirtualRealityForCoop,
         map = MapInfo.Map16
       )
 
@@ -183,6 +228,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "tzshvs",
         id = "tzshvs",
         map = MapInfo.Map14,
+        mood = ZoneType.VirtualRealityForShooting,
         aliases = AliasLookup(zone = Seq("vs-shooting"))
       )
 
@@ -192,6 +238,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "tzdrvs",
         id = "tzdrvs",
         map = MapInfo.Map15,
+        mood = ZoneType.VirtualRealityForDriving,
         aliases = AliasLookup(zone = Seq("vs-driving"))
       )
 
@@ -200,6 +247,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 22,
         name = "tzcovs",
         id = "tzcovs",
+        mood = ZoneType.VirtualRealityForCoop,
         map = MapInfo.Map16
       )
 
@@ -208,7 +256,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 23,
         name = "Supai",
         id = "c1",
-        map = MapInfo.Ugd01
+        map = MapInfo.Ugd01,
+        mood = ZoneType.Cavern
       )
 
   case object Hunhau
@@ -216,7 +265,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 24,
         name = "Hunhau",
         id = "c2",
-        map = MapInfo.Ugd02
+        map = MapInfo.Ugd02,
+        mood = ZoneType.Cavern
       )
 
   case object Adlivun
@@ -224,7 +274,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 25,
         name = "Adlivun",
         id = "c3",
-        map = MapInfo.Ugd03
+        map = MapInfo.Ugd03,
+        mood = ZoneType.Cavern
       )
 
   case object Byblos
@@ -232,7 +283,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 26,
         name = "Byblos",
         id = "c4",
-        map = MapInfo.Ugd04
+        map = MapInfo.Ugd04,
+        mood = ZoneType.Cavern
       )
 
   case object Annwn
@@ -240,7 +292,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 27,
         name = "Annwn",
         id = "c5",
-        map = MapInfo.Ugd05
+        map = MapInfo.Ugd05,
+        mood = ZoneType.Cavern
       )
 
   case object Drugaskan
@@ -248,7 +301,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 28,
         name = "Drugaskan",
         id = "c6",
-        map = MapInfo.Ugd06
+        map = MapInfo.Ugd06,
+        mood = ZoneType.Cavern
       )
 
   case object Extinction
@@ -257,6 +311,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "Extinction",
         id = "i1",
         map = MapInfo.Map99,
+        mood = ZoneType.BattleIsland,
         aliases = AliasLookup(facilities = Map(
           ("Mithra", "Blue_Base"),
           ("Yazata", "Red_Base"),
@@ -270,6 +325,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "Ascension",
         id = "i2",
         map = MapInfo.Map98,
+        mood = ZoneType.BattleIsland,
         aliases = AliasLookup(facilities = Map(
           ("Zal", "Base_Alpha"),
           ("Rashnu", "Base_Bravo"),
@@ -283,6 +339,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "Desolation",
         id = "i3",
         map = MapInfo.Map97,
+        mood = ZoneType.BattleIsland,
         aliases = AliasLookup(facilities = Map(
           ("Dahaka", "Red_Base_97"),
           ("Jamshid", "Blue_Base_97"),
@@ -296,6 +353,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "Nexus",
         id = "i4",
         map = MapInfo.Map96,
+        mood = ZoneType.BattleIsland,
         aliases = AliasLookup(facilities = Map(
           ("Atar", "Nexus_base")
         ))

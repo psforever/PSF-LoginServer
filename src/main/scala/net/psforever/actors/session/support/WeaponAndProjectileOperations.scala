@@ -423,7 +423,7 @@ class WeaponAndProjectileOperations(
     } else {
       equipment foreach {
         case obj: ConstructionItem =>
-          val certifications = if (player.IsInVRZone) GlobalDefinitions.vrZoneTempEngineeringCerts() else player.avatar.certifications
+          val certifications = if (player.Zone.isVR) GlobalDefinitions.vrZoneTempEngineeringCerts() else player.avatar.certifications
           if (Deployables.performConstructionItemAmmoChange(certifications, obj, obj.AmmoTypeIndex)) {
             log.info(
               s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${obj.AmmoType} (option #${obj.FireModeIndex})"
@@ -452,7 +452,7 @@ class WeaponAndProjectileOperations(
         val originalModeIndex = obj.FireModeIndex
         if (obj match {
           case citem: ConstructionItem =>
-            val certifications = if (player.IsInVRZone) GlobalDefinitions.vrZoneTempEngineeringCerts() else player.avatar.certifications
+            val certifications = if (player.Zone.isVR) GlobalDefinitions.vrZoneTempEngineeringCerts() else player.avatar.certifications
             val modeChanged = Deployables.performConstructionItemFireModeChange(
               certifications,
               citem,
@@ -1095,7 +1095,7 @@ class WeaponAndProjectileOperations(
 
   def fireStateStartMountedMessages(itemGuid: PlanetSideGUID): Unit = {
     sessionLogic.findContainedEquipment()._1.collect {
-      case turret: FacilityTurret if continent.map.cavern =>
+      case turret: FacilityTurret if continent.isACavern =>
         turret.Actor ! VanuSentry.ChangeFireStart
     }
     continent.VehicleEvents ! MessageEnvelope(
@@ -1136,7 +1136,7 @@ class WeaponAndProjectileOperations(
 
   def fireStateStopMountedMessages(itemGuid: PlanetSideGUID): Unit = {
     sessionLogic.findContainedEquipment()._1.collect {
-      case turret: FacilityTurret if continent.map.cavern =>
+      case turret: FacilityTurret if continent.isACavern =>
         turret.Actor ! VanuSentry.ChangeFireStop
     }
     continent.VehicleEvents ! MessageEnvelope(

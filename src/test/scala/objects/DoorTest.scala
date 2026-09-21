@@ -132,7 +132,7 @@ object DoorControlTest {
     val eventsProbe = new TestProbe(system)
     val door = Door(GlobalDefinitions.door)
     val guid = new NumberPoolHub(new MaxNumberSource(5))
-    val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
+    val zone = new Zone(zoneId = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
       override def SetupNumberPools(): Unit = {}
       GUID(guid)
       override def LocalEvents: ActorRef = eventsProbe.ref

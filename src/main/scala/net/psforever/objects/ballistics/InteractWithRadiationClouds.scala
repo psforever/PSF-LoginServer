@@ -28,7 +28,7 @@ class InteractWithRadiationClouds(
       projectiles
         .foreach { projectile =>
           val shouldDamage = user match {
-            case Some(player) if (player.IsInVRZone && target.Faction == player.Faction) =>
+            case Some(player) if (player.Zone.isVR && target.Faction == player.Faction) =>
               //disable self-damage and friendly-fire in VR zones
               false
             case Some(player) =>

@@ -14,6 +14,7 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.types._
 import scalax.collection.{Graph, GraphEdge}
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.zone.building.BuildingLogic
 import net.psforever.objects.serverobject.dome.ForceDomePhysics
 import net.psforever.objects.serverobject.llu.{CaptureFlag, CaptureFlagSocket}
 import net.psforever.objects.serverobject.structures.participation.{MajorFacilityHackParticipation, NoParticipation, ParticipationLogic, TowerHackParticipation}
@@ -444,41 +445,13 @@ object Building {
                  buildingType: StructureType,
                  location: Vector3,
                  rotation: Vector3,
-                 definition: BuildingDefinition
+                 definition: BuildingDefinition,
+                 buildingLogic: BuildingLogic
                )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): Building = {
     val obj = new Building(name, guid, map_id, zone, buildingType, definition)
     obj.Position = location
     obj.Orientation = rotation
-    obj.Actor = context.spawn(BuildingActor(zone, obj), s"$map_id-$buildingType-building").toClassic
-    obj
-  }
-
-  def Structure(
-                 buildingType: StructureType,
-                 location: Vector3
-               )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): Building = {
-    val obj = new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
-    obj.Position = location
-    obj.Actor = context.spawn(BuildingActor(zone, obj), s"$map_id-$buildingType-building").toClassic
-    obj
-  }
-
-  def Structure(
-                 buildingType: StructureType
-               )(name: String, guid: Int, map_id: Int, zone: Zone, context: ActorContext): Building = {
-    val obj = new Building(name, guid, map_id, zone, buildingType, GlobalDefinitions.building)
-    obj.Actor = context.spawn(BuildingActor(zone, obj), s"$map_id-$buildingType-building").toClassic
-    obj
-  }
-
-  def Structure(
-                 buildingType: StructureType,
-                 buildingDefinition: BuildingDefinition,
-                 location: Vector3
-               )(name: String, guid: Int, id: Int, zone: Zone, context: ActorContext): Building = {
-    val obj = new Building(name, guid, id, zone, buildingType, buildingDefinition)
-    obj.Position = location
-    obj.Actor = context.spawn(BuildingActor(zone, obj), s"$id-$buildingType-building").toClassic
+    obj.Actor = context.spawn(BuildingActor(zone, obj, buildingLogic), s"$map_id-$buildingType-building").toClassic
     obj
   }
 }

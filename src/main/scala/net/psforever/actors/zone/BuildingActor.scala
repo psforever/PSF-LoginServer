@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.building._
-import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.packets.ContinentalLockUpdateMessage
@@ -27,20 +27,10 @@ final case class BuildingControlDetails(
                                        )
 
 object BuildingActor {
-  def apply(zone: Zone, building: Building): Behavior[Command] =
+  def apply(zone: Zone, building: Building, logic: BuildingLogic): Behavior[Command] =
     Behaviors
       .supervise[Command] {
         Behaviors.withStash(capacity = 100) { buffer =>
-          val logic: BuildingLogic = building match {
-            case _: WarpGate =>
-              WarpGateLogic
-            case _ if zone.map.cavern =>
-              CavernFacilityLogic
-            case _ if building.BuildingType == StructureType.Facility =>
-              MajorFacilityLogic
-            case _ =>
-              FacilityLogic
-          }
           Behaviors.setup(context => new BuildingActor(context, buffer, zone, building, logic).start())
         }
       }

@@ -14,7 +14,7 @@ class HartServiceTest extends ActorTest {
   "HartService" should {
     val hart = system.actorOf(Props[HartService](), name = "hart")
     val catchall = new TestProbe(system).ref
-    val zone = new Zone("test", new ZoneMap("test"), zoneNumber = 0) {
+    val zone = new Zone(zoneId = "test", new ZoneMap("test"), zoneNumber = 0) {
       override def SetupNumberPools(): Unit = {}
       override def AvatarEvents: ActorRef = catchall
       override def LocalEvents: ActorRef = catchall

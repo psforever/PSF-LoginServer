@@ -66,7 +66,7 @@ class FacilityTurret(tDef: FacilityTurretDefinition)
   }
 
   override def Owner: AmenityOwner = {
-    if (Zone.map.cavern) {
+    if (Zone.isACavern) {
       Building.NoBuilding
     } else {
       super.Owner

@@ -1569,7 +1569,7 @@ class AvatarActor(
             .foreach {
               case (item, name) =>
                 Avatar.purchaseCooldowns.get(item) match {
-                  case Some(cooldown) if session.get.player.IsInVRZone => ()
+                  case Some(cooldown) if session.get.player.Zone.isVR => ()
                     //don't update purchase timers for players in VR training zones
                   case Some(cooldown) =>
                     //only send for items with cooldowns

@@ -18,7 +18,7 @@ final case class EquipmentPage(stock: Map[String, () => Equipment]) extends Scru
     stock.get(msg.item_name) match {
       case Some(item) =>
         val createdItem = item()
-        if (!Exclude.exists(_.checkRule(player, msg, createdItem)) || player.IsInVRZone) {
+        if (!Exclude.exists(_.checkRule(player, msg, createdItem)) || player.Zone.isVR) {
           Terminal.BuyEquipment(createdItem)
         } else {
           Terminal.NoDeal()

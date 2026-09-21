@@ -416,7 +416,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 }
               val hasCavernEquipmentBenefit: Boolean =
                 terminalOpt.exists { terminal =>
-                  if (terminal.IsInVRZone) {
+                  if (terminal.Zone.isVR) {
                     true
                   } else {
                     terminal.Owner match {
