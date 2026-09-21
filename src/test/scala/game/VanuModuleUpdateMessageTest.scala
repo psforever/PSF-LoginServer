@@ -2,7 +2,7 @@
 package game
 
 import net.psforever.packet._
-import net.psforever.packet.game.packets.{PulseState, ModuleInfo, VanuModuleUpdateMessage}
+import net.psforever.packet.game.packets.{ModuleIcon, ModuleIconPulseColor, ModuleInfo, VanuModuleUpdateMessage}
 import net.psforever.types.Vector3
 import scodec.bits._
 import org.specs2.mutable.Specification
@@ -27,11 +27,11 @@ class VanuModuleUpdateMessageTest  extends Specification {
         zone_number mustEqual 2
         info.size mustEqual 2
         info.head match {
-          case ModuleInfo(1, PulseState.Green, 0L, false, false, Vector3(2048, 2048, 0)) => ok
+          case ModuleInfo(ModuleIcon.NonPowered, ModuleIconPulseColor.Green, 0L, false, false, Vector3(2048, 2048, 0)) => ok
           case _ => ko
         }
         info(1) match {
-          case ModuleInfo(5, PulseState.Red, 0L, false, false, Vector3(4098, 1024, 0)) => ok
+          case ModuleInfo(ModuleIcon.Weapon, ModuleIconPulseColor.Red, 0L, false, false, Vector3(4098, 1024, 0)) => ok
           case _ => ko
         }
       case _ =>
@@ -48,8 +48,8 @@ class VanuModuleUpdateMessageTest  extends Specification {
 
   "encode (info)" in {
     val msg = VanuModuleUpdateMessage(2, List(
-      ModuleInfo(module_type = 1, pulseGreen = true, u3 = 0L, Vector3(2048, 2048, 0)),
-      ModuleInfo(module_type = 5, pulseGreen = false, u3 = 0L, Vector3(4098, 1024, 0))
+      ModuleInfo(ModuleIcon.NonPowered, pulseGreen = true, u3 = 0L, Vector3(2048, 2048, 0)),
+      ModuleInfo(ModuleIcon.Weapon, pulseGreen = false, u3 = 0L, Vector3(4098, 1024, 0))
     ))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
