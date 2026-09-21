@@ -22,7 +22,7 @@ import net.psforever.objects.vehicles.control.{CargoBehavior, CarrierBehavior}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.packets.GenericAction.FirstPersonViewWithEffect
-import net.psforever.packet.game.packets.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, CreateShortcutMessage, DeployableInfo, Friend, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TrainingZoneMessage, TriggeredSound, WeatherMessage}
+import net.psforever.packet.game.packets.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, CreateShortcutMessage, DeployableInfo, Friend, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ModuleLimitsMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TrainingZoneMessage, TriggeredSound, VanuModuleUpdateMessage, WeatherMessage}
 import net.psforever.services.avatar.support.{CorpseEnvelope, ReleaseEnvelope}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse}
@@ -623,8 +623,8 @@ class ZoningOperations(
       else
         sendResponse(ContinentalLockUpdateMessage(continentNumber, zone.lockedBy))
       //CaptureFlagUpdateMessage()
-      //VanuModuleUpdateMessage()
-      //ModuleLimitsMessage()
+      sendResponse(VanuModuleUpdateMessage(continentNumber, Nil))
+      sendResponse(ModuleLimitsMessage(255, 15, 3))
       val isCavern = zone.isACavern
       if (!isCavern) {
         sendResponse(ZoneInfoMessage(continentNumber, empire_status = true, 0L))

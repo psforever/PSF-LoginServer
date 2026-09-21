@@ -538,7 +538,7 @@ object GamePacketOpcode extends Enumeration {
 
       // OPCODES 0xc0-cf
       case 0xc0 => packets.CaptureFlagUpdateMessage.decode
-      case 0xc1 => noDecoder(VanuModuleUpdateMessage)
+      case 0xc1 => packets.VanuModuleUpdateMessage.decode
       case 0xc2 => packets.FacilityBenefitShieldChargeRequestMessage.decode
       case 0xc3 => packets.ProximityTerminalUseMessage.decode
       case 0xc4 => packets.QuantityDeltaUpdateMessage.decode
@@ -547,7 +547,7 @@ object GamePacketOpcode extends Enumeration {
       case 0xc7 => packets.LongRangeProjectileInfoMessage.decode
       // 0xc8
       case 0xc8 => packets.WeaponLazeTargetPositionMessage.decode
-      case 0xc9 => noDecoder(ModuleLimitsMessage)
+      case 0xc9 => packets.ModuleLimitsMessage.decode
       case 0xca => noDecoder(OutfitBenefitMessage)
       case 0xcb => noDecoder(EmpireChangeTimeMessage)
       case 0xcc => noDecoder(ClockCalibrationMessage)
