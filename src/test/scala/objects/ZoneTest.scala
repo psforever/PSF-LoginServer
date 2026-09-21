@@ -248,7 +248,7 @@ class ZonePopulationTest extends ActorTest {
 
       assert(zone.Players.size == 1)
       assert(zone.Players.head == avatar)
-      zone.Population ! Zone.Population.Leave(avatar, _)
+      zone.Population ! Zone.Population.Leave(avatar, null)
       val reply = receiveOne(Duration.create(100, "ms"))
       assert(reply.isInstanceOf[Zone.Population.PlayerHasLeft])
       assert(zone.Players.isEmpty)
