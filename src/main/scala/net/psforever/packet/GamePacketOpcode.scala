@@ -301,7 +301,7 @@ object GamePacketOpcode extends Enumeration {
      many opcodes are still stubs. Rendering the payload would cost a string twice the
      packet's length each time. */
   private def noDecoder(opcode: GamePacketOpcode.Type) =
-    (_: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode"))
+    (_: BitVector) => Attempt.failure(Err(s"${PacketHelpers.NoDecoderMessage} game packet $opcode"))
 
   /// Mapping of packet IDs to decoders. Notice that we are using the @switch annotation which ensures that the Scala
   /// compiler will be able to optimize this as a lookup table (switch statement). Microbenchmarks show a nearly 400x

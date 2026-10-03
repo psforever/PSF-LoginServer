@@ -727,6 +727,137 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
         }) ~
         delete(queryRoute(PortalQueries.sessionDestroy(sid).map(n => Map("removed" -> n))))
     },
+    // ---- Packet Review -------------------------------------------------------------------
+    //
+    // Capture exists only while somebody is looking at it. The page joins, keeps saying so while it
+    // collects, and says when it leaves; the world server arms the union of what the current
+    // watchers asked for and holds a small shared window they all read from. Nothing here persists,
+    // and nothing is captured at all when the page is closed -- see `PacketCapture`.
+    //
+    // Every route is game-master only. Captured packets are other players' traffic.
+
+    // The opcode tables, both spaces, with what is charted, what is armed and what may never be.
+    path("packet-review" / "opcodes") {
+      get {
+        gameMaster {
+          complete(
+            HttpResponse(
+              StatusCodes.OK,
+              entity = HttpEntity(
+                ContentTypes.`application/json`,
+                write(
+                  Map(
+                    "opcodes"  -> PacketCapture.catalogue,
+                    "redacted" -> PacketCapture.Redacted.map { case (k, v) => k.toString -> v },
+                    "state"    -> PacketCapture.state
+                  )
+                )
+              )
+            )
+          )
+        }
+      }
+    },
+    // Join the capture, or renew a place in it, with this page's selection. Called on start and on
+    // every poll, so a selection changed in the UI applies on the next collection without a second
+    // round trip and without the two ever disagreeing.
+    path("packet-review" / "subscribe") {
+      post {
+        gameMasterCaller { c =>
+          entity(as[String]) { body =>
+            val json   = parse(body)
+            val viewer = scala.util.Try((json \ "viewer").extract[String]).toOption.getOrElse("")
+            val game   = scala.util.Try((json \ "game").extract[List[Int]]).toOption.getOrElse(Nil).toSet
+            val ctl    = scala.util.Try((json \ "control").extract[List[Int]]).toOption.getOrElse(Nil).toSet
+            if (viewer.isEmpty) {
+              complete(StatusCodes.BadRequest, """{"message":"viewer required","error":true}""")
+            } else {
+              val (state, refused) = PacketCapture.subscribe(viewer, c.username, game, ctl)
+              complete(
+                HttpResponse(
+                  StatusCodes.OK,
+                  entity = HttpEntity(
+                    ContentTypes.`application/json`,
+                    write(
+                      Map(
+                        "state" -> state,
+                        // Named rather than merely absent, so the page can say why a selection it
+                        // offered did not take rather than appearing to lose it.
+                        "refused" -> refused.toList.sorted.map { o =>
+                          Map("opcode" -> o.toString, "reason" -> PacketCapture.Redacted(o))
+                        }
+                      )
+                    )
+                  )
+                )
+              )
+            }
+          }
+        }
+      }
+    },
+    // Give up a place immediately -- the page navigating away or the tab closing. The lease would
+    // lapse on its own shortly after; this makes leaving take effect at once.
+    path("packet-review" / "leave") {
+      post {
+        gameMaster {
+          entity(as[String]) { body =>
+            val viewer = scala.util.Try((parse(body) \ "viewer").extract[String]).toOption.getOrElse("")
+            PacketCapture.leave(viewer)
+            complete(
+              HttpResponse(
+                StatusCodes.OK,
+                entity = HttpEntity(ContentTypes.`application/json`, write(Map("state" -> PacketCapture.state)))
+              )
+            )
+          }
+        }
+      }
+    },
+    // Stop capture for everyone at once, whoever started it.
+    path("packet-review" / "stop") {
+      post {
+        gameMaster {
+          PacketCapture.stopAll()
+          complete(
+            HttpResponse(
+              StatusCodes.OK,
+              entity = HttpEntity(ContentTypes.`application/json`, write(Map("state" -> PacketCapture.state)))
+            )
+          )
+        }
+      }
+    },
+    // Read forward from a cursor. Reading does not consume: every watcher walks the same window at
+    // its own pace, so two admins reviewing the same opcode share one capture. `oldest` is how a
+    // page that fell behind knows it missed something rather than quietly skipping it.
+    path("packet-review") {
+      get {
+        gameMaster {
+          parameters("viewer".withDefault(""), "since".as[Long].withDefault(0L), "limit".as[Int].withDefault(200)) {
+            (viewer, cursor, limit) =>
+              val packets = PacketCapture.since(viewer, cursor, math.min(math.max(limit, 1), 1000))
+              val state   = PacketCapture.state
+              complete(
+                HttpResponse(
+                  StatusCodes.OK,
+                  entity = HttpEntity(
+                    ContentTypes.`application/json`,
+                    write(
+                      Map(
+                        "packets" -> packets,
+                        "cursor"  -> packets.lastOption.map(_.id).getOrElse(cursor),
+                        "oldest"  -> state.oldestId,
+                        "state"   -> state
+                      )
+                    )
+                  )
+                )
+              )
+          }
+        }
+      }
+    },
     // Base captures and failed captures, newest first; same seven-day in-memory retention.
     path("interstellar-log") {
       get {

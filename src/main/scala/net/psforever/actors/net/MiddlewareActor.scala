@@ -14,10 +14,11 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration._
-import scodec.Attempt
+import scodec.{Attempt, Err}
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits.{BitVector, ByteVector, HexStringSyntax}
 import scodec.interop.akka.EnrichedByteVector
+import net.psforever.actors.api.PacketCapture
 import net.psforever.objects.Default
 import net.psforever.packet._
 import net.psforever.packet.control._
@@ -569,7 +570,17 @@ class MiddlewareActor(
   }
 
   /** Handle incoming packet */
-  private def in(packet: PlanetSidePacket): Behavior[Command] = {
+  private def in(packet: PlanetSidePacket): Behavior[Command] = in(packet, None)
+
+  /**
+    * Handle an incoming packet, keeping a copy for Packet Review if its opcode is armed.
+    *
+    * `raw` is the bytes this packet was decoded from, where the caller still has them -- everything
+    * arriving inside a bundle does. A packet that arrived as a datagram of its own does not, and is
+    * re-encoded instead, which costs nothing while nobody is capturing.
+    */
+  private def in(packet: PlanetSidePacket, raw: Option[ByteVector]): Behavior[Command] = {
+    if (!PacketCapture.idle) captureInbound(packet, raw)
     packet match {
       case packet: PlanetSideGamePacket =>
         nextActor ! packet
@@ -582,11 +593,11 @@ class MiddlewareActor(
             Behaviors.same
 
           case MultiPacket(packets) =>
-            packets.foreach(p => in(PacketCoding.decodePacket(p)))
+            packets.foreach(p => in(p, PacketCoding.decodePacket(p)))
             Behaviors.same
 
           case MultiPacketEx(packets) =>
-            packets.foreach(p => in(PacketCoding.decodePacket(p)))
+            packets.foreach(p => in(p, PacketCoding.decodePacket(p)))
             Behaviors.same
 
           case RelatedA(slot, subslot) =>
@@ -652,11 +663,108 @@ class MiddlewareActor(
     }
   }
 
-  private def in(packet: Attempt[PlanetSidePacket]): Unit = {
+  /**
+    * Handle a packet that has just been decoded out of `raw`, successfully or not.
+    *
+    * The failure branch is the interesting one for Packet Review: an opcode nobody has charted yet
+    * fails here every time, and these bytes are the only evidence of what it actually carries. They
+    * used to go no further than a log line.
+    */
+  private def in(raw: ByteVector, packet: Attempt[PlanetSidePacket]): Unit = {
     packet match {
-      case Successful(_packet) => in(_packet)
-      case Failure(cause)      => log.error(s"Could not decode packet: ${cause.message}")
+      case Successful(_packet) => in(_packet, Some(raw))
+      case Failure(cause) =>
+        if (!PacketCapture.idle) captureUndecodable(raw, cause)
+        log.error(s"Could not decode packet: ${cause.message}")
     }
+  }
+
+  /** Whether this connection's frames are encrypted yet, which is the review tier for its packets. */
+  private def captureSecured: Boolean = crypto.isDefined
+
+  /** Keep a decoded packet for review, along with how the server's own class renders it. */
+  private def captureInbound(packet: PlanetSidePacket, raw: Option[ByteVector]): Unit = {
+    val (space, opcode, name) = packet match {
+      case p: PlanetSideGamePacket    => (PacketCapture.Spaces.Game, p.opcode.id, p.opcode.toString)
+      case p: PlanetSideControlPacket => (PacketCapture.Spaces.Control, p.opcode.id, p.opcode.toString)
+      case _                          => return
+    }
+    if (!PacketCapture.armedFor(space, opcode)) return
+    val bytes = raw.orElse(PacketCoding.encodePacket(packet).toOption.map(_.bytes)).getOrElse(ByteVector.empty)
+    PacketCapture.offer(
+      space = space,
+      opcode = opcode,
+      name = name,
+      tier = PacketCapture.tierOf(packet, captureSecured),
+      direction = "in",
+      session = connectionId,
+      raw = bytes,
+      decoded = Some(packet.toString),
+      error = None,
+      charted = true,
+      // By-name, like `decoded`: never walked for traffic nobody asked to see.
+      fields = PacketCapture.fieldsOf(packet)
+    )
+  }
+
+  /** Keep the bytes of a packet that would not decode, named by whichever opcode table applies. */
+  private def captureUndecodable(raw: ByteVector, cause: Err): Unit = {
+    if (raw.isEmpty) return
+    // Same convention `PacketCoding.decodePacket` reads by: a leading zero byte means the control
+    // table names what follows, and anything else is a game opcode naming itself.
+    val first = raw(0) & 0xff
+    val (space, opcode) =
+      if (first == 0x00 && raw.size > 1) (PacketCapture.Spaces.Control, raw(1) & 0xff)
+      else (PacketCapture.Spaces.Game, first)
+    if (!PacketCapture.armedFor(space, opcode)) return
+    val control = space == PacketCapture.Spaces.Control
+    PacketCapture.offer(
+      space = space,
+      opcode = opcode,
+      name = if (control) PacketCapture.controlName(opcode) else PacketCapture.gameName(opcode),
+      tier =
+        if (control) PacketCapture.Tiers.Control
+        else if (captureSecured) PacketCapture.Tiers.Encrypted
+        else PacketCapture.Tiers.Plaintext,
+      direction = "in",
+      session = connectionId,
+      raw = raw,
+      decoded = None,
+      error = Some(cause.messageWithContext),
+      charted = !PacketHelpers.isUnimplemented(cause),
+      // Nothing decoded it, so there is no class to take field names from -- which is exactly the
+      // case the designer exists for.
+      fields = None
+    )
+  }
+
+  /**
+    * Keep an outgoing packet for review.
+    *
+    * Takes the bytes the caller has already encoded rather than encoding again: `out` has to encode
+    * every packet anyway to queue it, and encoding a second time purely to look at it would be real
+    * work done on the connection's thread for the benefit of an admin page.
+    */
+  private def captureOutbound(packet: PlanetSidePacket, payload: ByteVector): Unit = {
+    val (space, opcode, name) = packet match {
+      case p: PlanetSideGamePacket    => (PacketCapture.Spaces.Game, p.opcode.id, p.opcode.toString)
+      case p: PlanetSideControlPacket => (PacketCapture.Spaces.Control, p.opcode.id, p.opcode.toString)
+      case _                          => return
+    }
+    if (!PacketCapture.armedFor(space, opcode)) return
+    PacketCapture.offer(
+      space = space,
+      opcode = opcode,
+      name = name,
+      tier = PacketCapture.tierOf(packet, captureSecured),
+      direction = "out",
+      session = connectionId,
+      raw = payload,
+      decoded = Some(packet.toString),
+      error = None,
+      charted = true,
+      fields = PacketCapture.fieldsOf(packet)
+    )
   }
 
   private var lastOutboundEventTime: Long = 0L
@@ -671,9 +779,11 @@ class MiddlewareActor(
         PacketCoding.encodePacket(packet) match {
           case Successful(payload)
             if System.currentTimeMillis() - lastOutboundEventTime > packetOutboundDelay =>
+            if (!PacketCapture.idle) captureOutbound(packet, payload.bytes)
             outQueue.enqueue((packet, payload))
             processOutQueueBundle()
           case Successful(payload) =>
+            if (!PacketCapture.idle) captureOutbound(packet, payload.bytes)
             outQueue.enqueue((packet, payload))
             retimePacketProcessorIfNotRunning()
           case Failure(cause) =>
@@ -964,11 +1074,11 @@ class MiddlewareActor(
     */
   private def inSubslotNotMissing(slot: Int, subslot: Int, inner: ByteVector): Unit = {
     if (subslot == inSubslot + 1) {
-      in(PacketCoding.decodePacket(inner))
+      in(inner, PacketCoding.decodePacket(inner))
       send(RelatedB(slot % 4, subslot))
       inSubslot = subslot
     } else if (subslot > inSubslot + 1) {
-      in(PacketCoding.decodePacket(inner))
+      in(inner, PacketCoding.decodePacket(inner))
       ((inSubslot + 1) until subslot).foreach { s =>
         inSubslotsMissing.addOne((s, inSubslotMissingNumberOfAttempts))
       } //request missing SMP's
@@ -1015,17 +1125,17 @@ class MiddlewareActor(
   private def inSubslotMissingRequests(slot: Int, subslot: Int, inner: ByteVector): Unit = {
     if (subslot < inSubslot) {
       inSubslotsMissing.remove(subslot)
-      in(PacketCoding.decodePacket(inner))
+      in(inner, PacketCoding.decodePacket(inner))
       inSubslotsMissingRequestsFinished(slot)
     } else if (subslot > inSubslot + 1) {
       ((inSubslot + 1) until subslot).foreach { s =>
         inSubslotsMissing.addOne((s, inSubslotMissingNumberOfAttempts))
       } //request missing SMP's
       inSubslot = subslot
-      in(PacketCoding.decodePacket(inner))
+      in(inner, PacketCoding.decodePacket(inner))
     } else if (subslot == inSubslot + 1) {
       inSubslot = subslot
-      in(PacketCoding.decodePacket(inner))
+      in(inner, PacketCoding.decodePacket(inner))
     }
   }
 

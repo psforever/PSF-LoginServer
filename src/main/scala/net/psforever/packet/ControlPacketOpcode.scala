@@ -50,7 +50,7 @@ object ControlPacketOpcode extends Enumeration {
 
   /* see the note on GamePacketOpcode.noDecoder -- Err builds its message eagerly */
   private def noDecoder(opcode: ControlPacketOpcode.Type) =
-    (_: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for control packet $opcode"))
+    (_: BitVector) => Attempt.failure(Err(s"${PacketHelpers.NoDecoderMessage} control packet $opcode"))
 
   def getPacketDecoder(
       opcode: ControlPacketOpcode.Type
