@@ -837,12 +837,73 @@ object PortalQueries {
     ctx.run(q)
   }
 
+  /**
+    * Store a session -- but never let the caller decide WHOSE it is.
+    *
+    * `account_id` inside the session body is what [[CallerAuth]] reads to decide who is calling and
+    * whether they are a game master, so if a caller could write it, it could mint itself an
+    * administrator and every other check on this API would be decoration. The incoming body is
+    * therefore stripped of `account_id` and the stored value is carried across untouched; only
+    * [[sessionBindAccount]], called from the login route after a password has actually been checked,
+    * can set it.
+    *
+    * Everything else in the body is the portal's to own -- flash messages, CSRF tokens, whatever
+    * express-session is keeping -- and passes through unread.
+    *
+    * Done in SQL rather than by reading the row and writing it back, so a session being written
+    * concurrently cannot lose its binding to a racing update.
+    *
+    * Note `jsonb_exists(...)` rather than the natural `sess ? 'account_id'`. The driver scans the
+    * statement for bind placeholders and counts every literal question mark as one -- including any
+    * inside a SQL comment -- so the query arrives claiming more parameters than it was given and is
+    * rejected before it reaches Postgres. Keep question marks out of this file's SQL entirely.
+    */
   def sessionSet(sid: String, sess: String, expiresAt: Long): Future[Long] = {
     val q = quote(
       infix"""INSERT INTO session (sid, sess, expire)
-              VALUES (${lift(sid)}, ${lift(sess)}::json, TO_TIMESTAMP(${lift(expiresAt)}))
+              VALUES (
+                ${lift(sid)},
+                (${lift(sess)}::jsonb - 'account_id')::json,
+                TO_TIMESTAMP(${lift(expiresAt)})
+              )
               ON CONFLICT (sid) DO UPDATE
-                SET sess = EXCLUDED.sess, expire = EXCLUDED.expire""".as[Action[Long]]
+                SET sess = CASE
+                             WHEN jsonb_exists(session.sess::jsonb, 'account_id')
+                               THEN (
+                                 (EXCLUDED.sess::jsonb - 'account_id')
+                                 || jsonb_build_object('account_id', session.sess::jsonb -> 'account_id')
+                               )::json
+                             ELSE EXCLUDED.sess
+                           END,
+                    expire = EXCLUDED.expire""".as[Action[Long]]
+    )
+    ctx.run(q)
+  }
+
+  /**
+    * Bind a session to an account, after its password has been verified.
+    *
+    * The single writer of `account_id`. Splitting it out from [[sessionSet]] is what lets that method
+    * refuse the field outright: authentication happens here, in the same call that checked the
+    * credential, rather than being asserted later by whoever holds the session id.
+    *
+    * Creates the row if the portal has not written the session yet, which is the ordinary case --
+    * express-session does not persist an anonymous session (`saveUninitialized: false`), so a user's
+    * first stored session is usually the one created by logging in.
+    */
+  def sessionBindAccount(sid: String, accountId: Int, expiresAt: Long): Future[Long] = {
+    val q = quote(
+      infix"""INSERT INTO session (sid, sess, expire)
+              VALUES (
+                ${lift(sid)},
+                jsonb_build_object('account_id', ${lift(accountId)})::json,
+                TO_TIMESTAMP(${lift(expiresAt)})
+              )
+              ON CONFLICT (sid) DO UPDATE
+                SET sess = (
+                      session.sess::jsonb || jsonb_build_object('account_id', ${lift(accountId)})
+                    )::json,
+                    expire = TO_TIMESTAMP(${lift(expiresAt)})""".as[Action[Long]]
     )
     ctx.run(q)
   }

@@ -2,9 +2,9 @@ package net.psforever.actors.api
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCode, StatusCodes}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{Directive, Directive0, Directive1, Route}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization.write
 import org.json4s.{DefaultFormats, Formats}
@@ -237,15 +237,19 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
     }
 
   /**
-    * Like [[runRoute]], but audits the call. Used for every state-changing route: the outcome is
-    * recorded in the in-memory log along with which admin asked for it (the portal identifies itself
-    * with an `X-Admin-User` header; unauthenticated direct callers show as "unknown").
+    * Like [[runRoute]], but audits the call. Used for every state-changing route, which is also why
+    * the game-master check lives here rather than being repeated on each one: a route added later
+    * cannot forget it.
+    *
+    * The entry is attributed to the account behind the caller's session -- a name this process
+    * resolved from the database, not one the caller supplied. `X-Admin-User` used to fill this in and
+    * anyone could write anything in it, so the log recorded whoever the caller claimed to be.
     */
   private def auditedRoute(action: String, detail: Map[String, String])(
       handler: Class[_],
       args: Array[String]
   ): Route =
-    optionalHeaderValueByName("X-Admin-User") { admin =>
+    gameMasterCaller { actor =>
       extractClientIP { ip =>
         onComplete(run(handler, args)) {
           case Success(r) =>
@@ -267,7 +271,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
                     case _ if action == "zone.buildings"  => s"(${detail.getOrElse("assignments", "?")} facilities)"
                     case _                                => s"building ${detail.getOrElse("building", "?")}"
                   },
-                  actor = admin.getOrElse("unknown"),
+                  actor = actor.username,
                   from = -1,
                   to = AdminHttpService.factionId(detail.getOrElse("faction", "")),
                   flipped = true
@@ -277,7 +281,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
             record(
               AdminAction(
                 at = System.currentTimeMillis(),
-                admin = admin.getOrElse("unknown"),
+                admin = actor.username,
                 action = action,
                 detail = detail,
                 ok = ok,
@@ -290,7 +294,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
             record(
               AdminAction(
                 at = System.currentTimeMillis(),
-                admin = admin.getOrElse("unknown"),
+                admin = actor.username,
                 action = action,
                 detail = detail,
                 ok = false,
@@ -360,6 +364,97 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
     */
   private def capped(limit: Int): Int = math.max(1, math.min(limit, 500))
 
+  // --- caller authorisation ----------------------------------------------------------------------
+
+  /**
+    * Refuse a request, in the shape every other error here takes.
+    *
+    * 401 means "I do not know who you are"; 403 means "I do, and you may not". Keeping them distinct
+    * matters to the portal, which retries nothing on a 403 but can surface a re-login on a 401.
+    */
+  private def refuse(status: StatusCode, message: String): Route =
+    complete(
+      HttpResponse(
+        status,
+        entity = HttpEntity(ContentTypes.`application/json`, write(Map("message" -> message, "error" -> true)))
+      )
+    )
+
+  /**
+    * The caller behind `X-PSF-Session`, or a 401.
+    *
+    * A banned account is rejected here rather than at each call site. It has a valid session and a
+    * real identity, so 403 is the honest answer -- but it may do nothing at all, and letting it read
+    * even public-ish endpoints through an authenticated path would be a way to check whether a ban
+    * had been lifted.
+    */
+  private def caller: Directive1[CallerAuth.Caller] =
+    optionalHeaderValueByName(CallerAuth.SessionHeader).flatMap {
+      case None =>
+        Directive(_ => refuse(StatusCodes.Unauthorized, s"${CallerAuth.SessionHeader} required"))
+      case Some(sid) =>
+        onComplete(CallerAuth.resolve(sid)).flatMap {
+          case Success(Some(c)) if c.inactive =>
+            Directive(_ => refuse(StatusCodes.Forbidden, "account is banned"))
+          case Success(Some(c)) => provide(c)
+          case Success(None) =>
+            Directive(_ => refuse(StatusCodes.Unauthorized, "session is unknown or expired"))
+          case Failure(e) =>
+            log.error(e)("session lookup failed")
+            Directive(_ => refuse(StatusCodes.ServiceUnavailable, "cannot verify session"))
+        }
+    }
+
+  /** Any signed-in account. */
+  private def authenticated: Directive1[CallerAuth.Caller] = caller
+
+  /** A game master, keeping the identity for attribution. */
+  private def gameMasterCaller: Directive1[CallerAuth.Caller] =
+    caller.flatMap { c =>
+      if (c.gm) provide(c)
+      else Directive(_ => refuse(StatusCodes.Forbidden, "game-master rights required"))
+    }
+
+  /** A game master, and nobody else. */
+  private def gameMaster: Directive0 =
+    caller.flatMap { c =>
+      if (c.gm) pass
+      else Directive(_ => refuse(StatusCodes.Forbidden, "game-master rights required"))
+    }
+
+  /**
+    * The account named in the path, or a game master.
+    *
+    * This is what keeps one player out of another's login history and character list. A game master
+    * passes because the admin panel legitimately reads any account.
+    */
+  private def selfOrGameMaster(accountId: Int): Directive0 =
+    caller.flatMap { c =>
+      if (c.gm || c.accountId == accountId) pass
+      else Directive(_ => refuse(StatusCodes.Forbidden, "not your account"))
+    }
+
+  /**
+    * The owner of the character named in the path, or a game master.
+    *
+    * Ownership is looked up, not inferred. The refusal is a 404 rather than a 403 on purpose: a 403
+    * would confirm the character exists, which turns this into a way to enumerate valid character
+    * ids. Someone else's character and a character that was never created answer identically.
+    */
+  private def avatarOwnerOrGameMaster(avatarId: Int): Directive0 =
+    caller.flatMap { c =>
+      if (c.gm) pass
+      else
+        onComplete(CallerAuth.ownsAvatar(c.accountId, avatarId)).flatMap {
+          case Success(true) => pass
+          case Success(false) =>
+            Directive(_ => refuse(StatusCodes.NotFound, s"no character $avatarId"))
+          case Failure(e) =>
+            log.error(e)("ownership check failed")
+            Directive(_ => refuse(StatusCodes.ServiceUnavailable, "cannot verify ownership"))
+        }
+    }
+
   /** Pull a string field out of a JSON request body. */
   private def field(body: String, name: String): Option[String] =
     scala.util.Try((parse(body) \ name).extract[String]).toOption
@@ -372,8 +467,9 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
     path("zones")(get(runRoute(classOf[CmdListZones], Array.empty))),
     path("lattice")(get(runRoute(classOf[CmdListLattice], Array.empty))),
     // Combat snapshot for one continent: soldiers, vehicles (with seat/cargo), and deployables.
+    // Exact positions of every online player. Admin-only, and always was.
     path("zones" / Segment / "combat") { zoneId =>
-      get(runRoute(classOf[CmdCombatSnapshot], Array(zoneId)))
+      get(gameMaster(runRoute(classOf[CmdCombatSnapshot], Array(zoneId))))
     },
     // Who holds each capturable facility, from the live zones rather than the database.
     path("zones" / "control") {
@@ -392,42 +488,46 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
         parameters("offset".as[Int].withDefault(0), "limit".as[Int].withDefault(25),
                    "sort".withDefault("created"), "order".withDefault("desc"),
                    "filter".withDefault("all")) { (offset, limit, sort, order, filter) =>
-          queryRoute(
+          gameMaster(queryRoute(
             for {
               items <- PortalQueries.accountsWithLastLogin(offset, capped(limit), sort, order == "asc", filter)
               total <- PortalQueries.accountCount(filter)
             } yield paged(items, total)
-          )
+          ))
         }
       }
     },
     path("portal" / "accounts" / IntNumber) { id =>
-      get(queryRoute(PortalQueries.account(id).map(_.headOption)))
+      get(selfOrGameMaster(id)(queryRoute(PortalQueries.account(id).map(_.headOption))))
     },
     path("portal" / "accounts" / IntNumber / "logins") { id =>
       get {
         parameters("offset".as[Int].withDefault(0), "limit".as[Int].withDefault(25)) { (offset, limit) =>
-          queryRoute(
-            for {
-              items <- PortalQueries.accountLogins(id, offset, capped(limit))
-              total <- PortalQueries.loginCount(id)
-            } yield paged(items, total)
-          )
+          selfOrGameMaster(id) {
+            queryRoute(
+              for {
+                items <- PortalQueries.accountLogins(id, offset, capped(limit))
+                total <- PortalQueries.loginCount(id)
+              } yield paged(items, total)
+            )
+          }
         }
       }
     },
     path("portal" / "accounts" / IntNumber / "characters") { id =>
-      get(queryRoute(PortalQueries.charactersByAccount(id)))
+      get(selfOrGameMaster(id)(queryRoute(PortalQueries.charactersByAccount(id))))
     },
     path("portal" / "characters") {
       get {
         parameters("offset".as[Int].withDefault(0), "limit".as[Int].withDefault(25)) { (offset, limit) =>
-          queryRoute(
-            for {
-              items <- PortalQueries.characters(offset, capped(limit))
-              total <- PortalQueries.characterCount()
-            } yield paged(items, total)
-          )
+          gameMaster {
+            queryRoute(
+              for {
+                items <- PortalQueries.characters(offset, capped(limit))
+                total <- PortalQueries.characterCount()
+              } yield paged(items, total)
+            )
+          }
         }
       }
     },
@@ -444,12 +544,14 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
     path("portal" / "roles") {
       get {
         parameters("offset".as[Int].withDefault(0), "limit".as[Int].withDefault(25)) { (offset, limit) =>
-          queryRoute(
-            for {
-              items <- PortalQueries.roles(offset, capped(limit))
-              total <- PortalQueries.roleCount()
-            } yield paged(items, total)
-          )
+          gameMaster {
+            queryRoute(
+              for {
+                items <- PortalQueries.roles(offset, capped(limit))
+                total <- PortalQueries.roleCount()
+              } yield paged(items, total)
+            )
+          }
         }
       }
     },
@@ -457,7 +559,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
       get(queryRoute(PortalQueries.avatar(id).map(_.headOption)))
     },
     path("portal" / "avatars" / IntNumber / "owner") { id =>
-      get(queryRoute(PortalQueries.avatarOwner(id).map(_.headOption)))
+      get(avatarOwnerOrGameMaster(id)(queryRoute(PortalQueries.avatarOwner(id).map(_.headOption))))
     },
     path("portal" / "avatars" / IntNumber / "weapon-stats") { id =>
       get(queryRoute(PortalQueries.weaponStats(id)))
@@ -466,13 +568,13 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
       get(queryRoute(PortalQueries.avatarKdByDate(id)))
     },
     path("portal" / "avatars" / IntNumber / "locker") { id =>
-      get(queryRoute(PortalQueries.lockerItems(id).map(_.headOption)))
+      get(avatarOwnerOrGameMaster(id)(queryRoute(PortalQueries.lockerItems(id).map(_.headOption))))
     },
     path("portal" / "avatars" / IntNumber / "loadouts") { id =>
-      get(queryRoute(PortalQueries.loadouts(id)))
+      get(avatarOwnerOrGameMaster(id)(queryRoute(PortalQueries.loadouts(id))))
     },
     path("portal" / "avatars" / IntNumber / "vehicle-loadouts") { id =>
-      get(queryRoute(PortalQueries.vehicleLoadouts(id)))
+      get(avatarOwnerOrGameMaster(id)(queryRoute(PortalQueries.vehicleLoadouts(id))))
     },
     path("portal" / "leaderboard" / "top-kills") {
       get(queryRoute(PortalQueries.topKills()))
@@ -494,6 +596,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
     path("portal" / "search") {
       get {
         parameters("q", "offset".as[Int].withDefault(0), "limit".as[Int].withDefault(25)) { (term, offset, limit) =>
+          gameMaster {
           // `%` is stripped rather than escaped -- a caller has no business steering the LIKE pattern,
           // and a term shorter than three characters matches too much to be worth running.
           val cleaned = term.replace("%", "")
@@ -508,6 +611,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
                 characters <- PortalQueries.searchCharacters(pattern, offset, capped(limit))
               } yield Map("accounts" -> accounts, "characters" -> characters)
             )
+          }
           }
         }
       }
@@ -547,14 +651,35 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
         }
       })
     },
-    // Password check. The answer is only ever an account id or a refusal -- no hash crosses the wire,
+    // Password check, and the ONLY place a session is bound to an account. No hash crosses the wire,
     // and the refusal is identical whether the account is missing, wrong-password, or banned.
+    //
+    // The caller passes the session id it wants bound. That is what makes every other check on this
+    // API mean something: `account_id` is written here, after a password has been verified, and
+    // `sessionSet` refuses to let a caller write it any other way. Without this split, anyone able to
+    // store a session could name themselves a game master.
+    //
+    // Public by necessity -- it is how a caller stops being anonymous.
     path("portal" / "login") {
       post(entity(as[String]) { body =>
         (field(body, "username"), field(body, "password")) match {
           case (Some(username), Some(password)) =>
             onComplete(PortalQueries.validateAccount(username, password)) {
-              case Success(Some(id)) => complete(jsonOk(Map("account_id" -> id)))
+              case Success(Some(id)) =>
+                (field(body, "session_id"), scala.util.Try((parse(body) \ "expires").extract[Long]).toOption) match {
+                  case (Some(sid), Some(expires)) =>
+                    onComplete(PortalQueries.sessionBindAccount(sid, id, expires)) {
+                      case Success(_) => complete(jsonOk(Map("account_id" -> id)))
+                      case Failure(e) =>
+                        log.error(e)("could not bind the session")
+                        complete(HttpResponse(StatusCodes.ServiceUnavailable, entity = HttpEntity(
+                          ContentTypes.`application/json`,
+                          write(Map("message" -> "could not establish a session", "error" -> true)))))
+                    }
+                  // A caller that verified a password but asked for no session gets the answer and no
+                  // session. Useful for a health check; useless for acting as anyone.
+                  case _ => complete(jsonOk(Map("account_id" -> id)))
+                }
               case Success(None) =>
                 complete(HttpResponse(StatusCodes.Unauthorized, entity = HttpEntity(
                   ContentTypes.`application/json`, write(Map("message" -> "invalid credentials", "error" -> true)))))
@@ -569,6 +694,19 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
     },
     // The portal's Express session store. Opaque here on purpose: the session body is whatever
     // express-session serialised, and this end only keeps it and expires it.
+    //
+    // These are the one group NOT behind a caller check, and deliberately so -- a session cannot be
+    // required in order to store a session. They are self-authenticating instead: the session id in
+    // the path IS the credential, exactly as the browser cookie carrying it is. Reading, touching or
+    // deleting a session requires already knowing its id, which is the same thing as holding it.
+    //
+    // Writing is the case that would otherwise be dangerous, and is defused in `sessionSet` rather
+    // than here: it strips `account_id` from whatever is offered and carries the stored value across,
+    // so a caller can write junk into a session it knows the id of but cannot name itself an account
+    // -- let alone a game master. `sessionBindAccount`, reached only from the login route once a
+    // password has been checked, is the sole writer of that field.
+    //
+    // `reap` deletes rows that have ALREADY expired, and nothing else.
     path("portal" / "sessions" / "reap") {
       post(queryRoute(PortalQueries.sessionReap().map(n => Map("removed" -> n))))
     },
@@ -592,6 +730,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
     // Base captures and failed captures, newest first; same seven-day in-memory retention.
     path("interstellar-log") {
       get {
+        gameMaster {
         val entries = snapshotEvents(System.currentTimeMillis())
         complete(
           HttpResponse(
@@ -602,11 +741,13 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
             )
           )
         )
+        }
       }
     },
     // The in-memory audit trail of administrative actions, newest first.
     path("log") {
       get {
+        gameMaster {
         val now = System.currentTimeMillis()
         val entries = snapshotLog(now)
         complete(
@@ -624,6 +765,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
             )
           )
         )
+        }
       }
     },
 
