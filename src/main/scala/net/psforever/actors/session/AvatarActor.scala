@@ -1336,16 +1336,27 @@ class AvatarActor(
                 if (created.equals(lastLogin)) {
                   //first login
                   //initialize default values that would be compromised during login if blank
+                  //
+                  //both inserts IGNORE a conflict, and must. "First login" is inferred from created
+                  //matching lastLogin, and lastLogin is only written once a login completes, so a
+                  //first login interrupted after this point -- a disconnect, a restart, a slow
+                  //query -- leaves the rows written and the timestamps still equal. The next attempt
+                  //takes this branch again, the insert violates certification_pkey (or
+                  //shortcut_avatar_id_slot_key), the whole future fails, and the client is answered
+                  //with ActionResultMessage.Fail. That state cannot recover on its own: the login has
+                  //to succeed to update lastLogin, and lastLogin is what would stop it retrying the
+                  //failing insert, so the character is permanently unloadable. Ignoring the conflict
+                  //makes the initialisation repeatable, which is what it always needed to be.
                   val inits = for {
                     _ <- ctx.run(
                       liftQuery(
                         basicLoginCertifications.map { cert => persistence.Certification(cert.value, avatarId) }.toList
-                      ).foreach(c => query[persistence.Certification].insertValue(c))
+                      ).foreach(c => query[persistence.Certification].insertValue(c).onConflictIgnore)
                     )
                     _ <- ctx.run(
                       liftQuery(
                         List(persistence.Shortcut(avatarId, 0, 0, "medkit"))
-                      ).foreach(c => query[persistence.Shortcut].insertValue(c))
+                      ).foreach(c => query[persistence.Shortcut].insertValue(c).onConflictIgnore)
                     )
                   } yield true
                   inits.onComplete {
