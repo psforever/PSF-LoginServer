@@ -466,6 +466,28 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
     path("players")(get(runRoute(classOf[CmdListPlayers], Array.empty))),
     path("zones")(get(runRoute(classOf[CmdListZones], Array.empty))),
     path("lattice")(get(runRoute(classOf[CmdListLattice], Array.empty))),
+    // Every squad the world server is holding. Admin-only: a squad listing names online players,
+    // their positions and their health, which is the same class of information as the combat snapshot.
+    path("squads")(get(gameMaster(runRoute(classOf[CmdListSquads], Array.empty)))),
+    // Disband a squad, or pull one character out of whichever squad holds them. Both go through the
+    // squad service's own lifecycle methods, so the channel, the faction listing and an emptied
+    // squad closing itself all happen exactly as they would in game. See `CmdSquadAction`.
+    path("squads" / IntNumber / "disband") { squadId =>
+      post(
+        auditedRoute("squad.disband", Map("squad" -> squadId.toString))(
+          classOf[CmdSquadAction],
+          Array("disband", squadId.toString)
+        )
+      )
+    },
+    path("squads" / "members" / LongNumber / "remove") { charId =>
+      post(
+        auditedRoute("squad.member.remove", Map("char" -> charId.toString))(
+          classOf[CmdSquadAction],
+          Array("remove", charId.toString)
+        )
+      )
+    },
     // Combat snapshot for one continent: soldiers, vehicles (with seat/cargo), and deployables.
     // Exact positions of every online player. Admin-only, and always was.
     path("zones" / Segment / "combat") { zoneId =>

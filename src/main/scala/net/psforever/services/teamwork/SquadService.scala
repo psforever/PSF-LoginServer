@@ -194,6 +194,38 @@ class SquadService extends Actor {
     case Terminated(actorRef) =>
       LeaveInGeneral(actorRef)
 
+    // Administrative access from the PSF-HTTP API. Handled here, in the actor's own loop, so the
+    // snapshot is consistent and the commands run against the same state the game is using.
+    case SquadService.ListSquads(replyTo) =>
+      replyTo ! SquadService.SquadListing(squadListing())
+
+    case SquadService.AdminDisband(squadId, replyTo) =>
+      squadFeatures.get(PlanetSideGUID(squadId)) match {
+        case Some(features) =>
+          val size = features.Squad.Size
+          DisbandSquad(features)
+          replyTo ! SquadService.AdminResult(ok = true, s"squad #$squadId disbanded ($size members)")
+        case None =>
+          replyTo ! SquadService.AdminResult(ok = false, s"no squad #$squadId")
+      }
+
+    case SquadService.AdminRemoveMember(charId, replyTo) =>
+      memberToSquad.get(charId) match {
+        case Some(guid) =>
+          squadFeatures.get(guid) match {
+            case Some(features) =>
+              val name = features.Squad.Membership.find(_.CharId == charId).map(_.Name).getOrElse(charId.toString)
+              // The same call a player leaving of their own accord makes, so every consequence --
+              // the channel, the listing, an emptied squad closing itself -- happens as it normally would.
+              LeaveSquad(charId, features)
+              replyTo ! SquadService.AdminResult(ok = true, s"$name removed from squad #${guid.guid}")
+            case None =>
+              replyTo ! SquadService.AdminResult(ok = false, s"character $charId maps to a squad that no longer exists")
+          }
+        case None =>
+          replyTo ! SquadService.AdminResult(ok = false, s"character $charId is not in a squad")
+      }
+
     case message @ SquadServiceMessage(tplayer, zone, squad_action) =>
       squad_action match {
         case SquadAction.InitSquadList() =>
@@ -1038,6 +1070,37 @@ class SquadService extends Actor {
     * @see `SquadSubscriptionEntity.Publish`
     * @param features the squad
     */
+  /** Every squad the service currently holds, flattened for the administrative listing. */
+  private def squadListing(): List[SquadService.SquadSummary] = {
+    squadFeatures.toList.map {
+      case (guid, features) =>
+        val squad = features.Squad
+        SquadService.SquadSummary(
+          id = guid.guid,
+          faction = squad.Faction.toString,
+          leader = squad.Leader.Name,
+          leaderCharId = squad.Leader.CharId,
+          task = squad.Task,
+          zoneId = squad.ZoneId,
+          size = squad.Size,
+          capacity = squad.Capacity,
+          listed = features.Listed,
+          members = squad.Membership.zipWithIndex.collect {
+            case (member, index) if member.CharId != 0 =>
+              SquadService.SquadMemberSummary(
+                position = index,
+                charId = member.CharId,
+                name = member.Name,
+                role = member.Role,
+                zoneId = member.ZoneId,
+                health = member.Health,
+                armor = member.Armor
+              )
+          }.toList
+        )
+    }.sortBy(_.id)
+  }
+
   def DisbandSquad(features: SquadFeatures): Unit = {
     val squad = features.Squad
     val leader = squad.Leader.CharId
@@ -1360,6 +1423,61 @@ class SquadService extends Actor {
 }
 
 object SquadService {
+
+  /**
+    * Administrative access to the squad registry, for the PSF-HTTP API.
+    *
+    * Squads live only in this actor's memory -- there is no squad table, and nothing outside here can
+    * see one. So an operator with a squad problem in front of them (a leader who has gone offline
+    * holding a full squad, a squad wedged in a state its members cannot leave) has no way to look at
+    * it, let alone act on it, without a way in. These messages are that way in.
+    *
+    * They are answered from inside the actor's own message loop rather than by exposing the registry,
+    * which is what keeps them safe: a snapshot is built while nothing else is mutating the maps, and
+    * the two commands reuse the same lifecycle methods the game itself calls rather than a second
+    * implementation of "disband" that could drift from the first.
+    *
+    * NOTE ON PLATOONS: PlanetSide's platoon -- three squads under one leader -- is not implemented in
+    * this server. `Platoon` exists only as a chat channel and a first-time-event name; there is no
+    * platoon entity, no grouping of squads, and nothing to administer. Squads are the whole of it.
+    */
+  final case class ListSquads(replyTo: ActorRef)
+
+  /** One squad, flattened for reporting. */
+  final case class SquadSummary(
+      id: Int,
+      faction: String,
+      leader: String,
+      leaderCharId: Long,
+      task: String,
+      zoneId: Int,
+      size: Int,
+      capacity: Int,
+      listed: Boolean,
+      members: List[SquadMemberSummary]
+  )
+
+  /** One occupied position in a squad. */
+  final case class SquadMemberSummary(
+      position: Int,
+      charId: Long,
+      name: String,
+      role: String,
+      zoneId: Int,
+      health: Int,
+      armor: Int
+  )
+
+  final case class SquadListing(squads: List[SquadSummary])
+
+  /** Disband a squad outright, as though its leader had. */
+  final case class AdminDisband(squadId: Int, replyTo: ActorRef)
+
+  /** Remove one character from whichever squad holds them. */
+  final case class AdminRemoveMember(charId: Long, replyTo: ActorRef)
+
+  final case class AdminResult(ok: Boolean, message: String)
+
   final private val FactionWordSalad: String = "TRNCVS"
 
   final case class PerformStartSquad(player: Player)
