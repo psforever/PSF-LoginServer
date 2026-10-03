@@ -14,7 +14,7 @@ import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
 /**
-  * The PSF-Server HTTP API, served over Akka HTTP in place of the old raw-TCP PSAdmin protocol.
+  * The PSF-HTTP API, served over Akka HTTP in place of the old raw-TCP PSAdmin protocol.
   *
   * This actor owns the HTTP binding for its whole lifetime -- it is the "server hosted in an actor":
   * bound on preStart, unbound on stop, and any bind failure terminates the system exactly as the old
@@ -106,7 +106,7 @@ object AdminHttpService {
 
   private[api] def installSink(f: InterstellarEvent => Unit): Unit = sink = Some(f)
 
-  /** Report an interstellar event. Does nothing if the PSF-Server HTTP API is not running. */
+  /** Report an interstellar event. Does nothing if the PSF-HTTP API is not running. */
   def report(event: InterstellarEvent): Unit = sink.foreach(_(event))
 
   /** Audited actions that change base ownership, and so are also interstellar events. */
@@ -195,7 +195,7 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
   override def receive: Receive = {
     case b: Http.ServerBinding =>
       binding = Some(b)
-      log.info(s"PSF-Server HTTP API listening on ${b.localAddress}")
+      log.info(s"PSF-HTTP API listening on ${b.localAddress}")
     case default =>
       log.error(s"Unexpected message $default")
   }
