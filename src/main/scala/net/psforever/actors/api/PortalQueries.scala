@@ -1,7 +1,7 @@
 package net.psforever.actors.api
 
 import com.github.t3hnar.bcrypt._
-import io.getquill.{Action, Query}
+import io.getquill.{Action, Ord, Query}
 import net.psforever.persistence
 import net.psforever.util.Database._
 
@@ -17,23 +17,31 @@ import scala.concurrent.Future
   * log people in. Everything it needs is served from here now, so the login server owns the database
   * outright and the portal owns none of it.
   *
-  * These are deliberately RAW SQL rather than Quill quotations. The statements are analytic -- window
-  * functions, `GROUP BY` over computed columns, chained outer joins -- and they arrived here already
-  * tuned on the portal side. Restating them as quotations would be a rewrite of working SQL for no
-  * gain, and would risk changing results silently. Quill still decodes the rows into the case classes
-  * below, so the shape of every result is checked even though the statements are not.
+  * Most of these are Quill QUOTATIONS against `persistence.*`, the way the rest of this codebase
+  * queries the database. Raw SQL is the EXCEPTION here, kept only where a quotation cannot reasonably
+  * express the statement:
+  *
+  *   - the leaderboards and outfit summaries (window functions, CTEs, `GROUP BY` over computed
+  *     columns);
+  *   - the accounts listing, which joins a grouped subquery back to the row that produced it;
+  *   - the session store, which manipulates a JSON column.
+  *
+  * Prefer a quotation for anything new. It is checked at compile time, it cannot be broken by a typo
+  * in a column alias, and it sidesteps a trap peculiar to this driver: a literal question mark
+  * anywhere in a raw statement -- including inside a SQL comment, and including the `?` jsonb
+  * operator -- is counted as a bind placeholder, and the query is rejected for having more parameters
+  * than it was given.
   *
   * Return types are INFERRED on purpose. Quill's `run` is overloaded between a query
   * (`Quoted[Query[T]] -> Future[List[T]]`) and a single value (`Quoted[T] -> Future[T]`), and an
   * expected type of `Future[List[T]]` matches BOTH -- annotating one picks the wrong overload and
-  * fails to compile. Each raw query returns `Future[List[<its row type>]]`.
+  * fails to compile.
   *
   * The row classes carry snake_case field names, which is unusual for Scala and deliberate: they are
-  * wire DTOs, and one name has to satisfy three contracts at once. Quill decodes a row by matching the
-  * field to the column alias, json4s serialises the field name verbatim, and the portal's React
-  * components already read `killer_id`, `faction_id` and so on. Every column must therefore be
-  * aliased to its field name, in declaration order -- a mismatch fails at runtime, not compile time,
-  * which is the price of keeping the SQL verbatim.
+  * wire DTOs whose field names ARE the JSON keys the portal's React components already read
+  * (`killer_id`, `faction_id`). For the remaining raw statements they double as the column aliases
+  * Quill decodes on, so there a mismatch fails at runtime rather than compile time -- one more reason
+  * to prefer a quotation.
   *
   * Timestamps are cast to `text` in SQL rather than decoded as dates and re-encoded. The portal has
   * always passed these straight through to the browser as strings, and going via a temporal type here
@@ -61,11 +69,36 @@ object PortalQueries {
     if (parts.length == 4) Some(parts.takeRight(2).mkString(".")) else None
   }
 
+  /**
+    * A `LocalDateTime` in the exact text form Postgres produces, which is what the portal has always
+    * received: `2026-07-25 06:27:38.089649`.
+    *
+    * The raw statements this file grew from cast timestamps with `::text` and let Postgres format
+    * them. A quotation decodes a real `LocalDateTime` instead, and `toString` would render
+    * `2026-07-25T06:27:38.089649` -- a `T` where the browser has always seen a space, and, when the
+    * seconds and nanoseconds are both zero, no seconds field at all. Reproducing the database's own
+    * format keeps the wire bytes identical across the conversion.
+    *
+    * Postgres trims trailing zeros, so `.847000` prints as `.847` and an exactly-zero fraction is
+    * omitted entirely.
+    *
+    * One deliberate loss: the project's persistence classes use Joda `LocalDateTime`, which carries
+    * MILLISECONDS. Postgres stores microseconds, so a timestamp that used to arrive as
+    * `.089649` now reads `.089`. These values are only ever displayed as dates, and using the
+    * project's own temporal type matters more than three digits nothing renders.
+    */
+  private val SecondsFormat = org.joda.time.format.DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+
+  private def pgTimestamp(at: org.joda.time.LocalDateTime): String = {
+    val whole = at.toString(SecondsFormat)
+    val millis = at.getMillisOfSecond
+    if (millis == 0) whole
+    else whole + "." + "%03d".format(millis).reverse.dropWhile(_ == '0').reverse
+  }
+
   // --- row types ---------------------------------------------------------------------------------
 
-  case class Count(count: Long)
-
-  case class Account(
+  case class AccountRow(
       id: Int,
       username: String,
       created: String,
@@ -251,51 +284,63 @@ object PortalQueries {
   /**
     * One account, WITHOUT either password column.
     *
-    * The portal's `SELECT *` used to drag `passhash`, `password` and `token` across the wire on every
-    * authenticated request, and then delete them before responding. Selecting only what is displayed
-    * means they never leave the database in the first place.
+    * The projection is part of the query, not something applied after: Quill emits a SELECT of just
+    * these columns, so `passhash` and `password` are never read out of the table at all -- they do not
+    * reach this process, let alone the portal.
     */
   def account(id: Int) = {
-    val q = quote(
-      infix"""SELECT id AS id, username AS username, created::text AS created,
-                     last_modified::text AS last_modified, inactive AS inactive, gm AS gm
-              FROM account WHERE id = ${lift(id)}""".as[Query[Account]]
-    )
-    ctx.run(q)
+    ctx
+      .run(
+        query[persistence.Account]
+          .filter(_.id == lift(id))
+          .map(a => (a.id, a.username, a.created, a.lastModified, a.inactive, a.gm))
+      )
+      .map(_.map { case (accId, username, created, modified, inactive, gm) =>
+        AccountRow(accId, username, pgTimestamp(created), pgTimestamp(modified), inactive, gm)
+      })
   }
+
 
   /** Who owns a character, and whether it still exists. Backs the portal's "is this yours?" check. */
   def avatarOwner(avatarId: Int) = {
-    val q = quote(
-      infix"""SELECT id AS id, account_id AS account_id, name AS name, deleted AS deleted
-              FROM avatar WHERE id = ${lift(avatarId)}""".as[Query[AvatarOwner]]
-    )
-    ctx.run(q)
+    ctx
+      .run(query[persistence.Avatar].filter(_.id == lift(avatarId)).map(a => (a.id, a.accountId, a.name, a.deleted)))
+      .map(_.map { case (id, accountId, name, deleted) => AvatarOwner(id, accountId, name, deleted) })
   }
+
 
   /** A character by name, for the public name lookup. */
   def characterByName(name: String) = {
-    val q = quote(
-      infix"""SELECT id AS id, account_id AS account_id, name AS name, faction_id AS faction_id,
-                     created::text AS created, last_login::text AS last_login
-              FROM avatar WHERE name = ${lift(name)} AND deleted = false""".as[Query[NamedCharacter]]
-    )
-    ctx.run(q)
+    ctx
+      .run(
+        query[persistence.Avatar]
+          .filter(a => a.name == lift(name) && !a.deleted)
+          .map(a => (a.id, a.accountId, a.name, a.factionId, a.created, a.lastLogin))
+      )
+      .map(_.map { case (id, accountId, n, faction, created, lastLogin) =>
+        NamedCharacter(id, accountId, n, faction, pgTimestamp(created), pgTimestamp(lastLogin))
+      })
   }
+
 
   /** Every living character on an account, with its GM/spectate grants. */
   def charactersByAccount(accountId: Int) = {
-    val q = quote(
-      infix"""SELECT a.id AS id, a.account_id AS account_id, a.name AS name, a.faction_id AS faction_id,
-                     a.gender_id AS gender_id, a.head_id AS head_id, a.created::text AS created,
-                     a.last_login::text AS last_login, a.bep AS bep, a.cep AS cep, a.deleted AS deleted,
-                     b.avatar_id AS avatar_id, b.can_gm AS can_gm, b.can_spectate AS can_spectate
-              FROM avatar a
-              LEFT JOIN avatarmodepermission b ON a.id = b.avatar_id
-              WHERE a.account_id = ${lift(accountId)} AND a.deleted = false""".as[Query[AccountCharacter]]
-    )
-    ctx.run(q)
+    ctx
+      .run(
+        query[persistence.Avatar]
+          .filter(a => a.accountId == lift(accountId) && !a.deleted)
+          .leftJoin(query[persistence.Avatarmodepermission])
+          .on((a, p) => a.id == p.avatarId)
+      )
+      .map(_.map { case (a, perm) =>
+        AccountCharacter(
+          a.id, a.accountId, a.name, a.factionId, a.genderId, a.headId,
+          pgTimestamp(a.created), pgTimestamp(a.lastLogin), a.bep, a.cep, a.deleted,
+          perm.map(_.avatarId), perm.map(_.canGm), perm.map(_.canSpectate)
+        )
+      })
   }
+
 
   /** A character sheet, with the outfit it belongs to if any. */
   def avatar(id: Int) = {
@@ -339,33 +384,35 @@ object PortalQueries {
 
   /** A character's locker contents, as the stored inventory blob. */
   def lockerItems(avatarId: Int) = {
-    val q = quote(
-      infix"""SELECT items AS items FROM locker
-              WHERE avatar_id = ${lift(avatarId)}""".as[Query[LockerRow]]
-    )
-    ctx.run(q)
+    ctx
+      .run(query[persistence.Locker].filter(_.avatarId == lift(avatarId)).map(_.items))
+      .map(_.map(items => LockerRow(Option(items))))
   }
+
 
   /** A character's saved infantry loadouts. */
   def loadouts(avatarId: Int) = {
-    val q = quote(
-      infix"""SELECT loadout_number AS loadout_number, exosuit_id AS exosuit_id, name AS name,
-                     items AS items
-              FROM loadout WHERE avatar_id = ${lift(avatarId)}
-              ORDER BY loadout_number""".as[Query[LoadoutRow]]
-    )
-    ctx.run(q)
+    ctx
+      .run(
+        query[persistence.Loadout]
+          .filter(_.avatarId == lift(avatarId))
+          .sortBy(_.loadoutNumber)
+          .map(l => (l.loadoutNumber, l.exosuitId, l.name, l.items))
+      )
+      .map(_.map { case (number, exosuit, name, items) => LoadoutRow(number, exosuit, name, items) })
   }
+
 
   /** A character's saved vehicle loadouts. */
   def vehicleLoadouts(avatarId: Int) = {
-    val q = quote(
-      infix"""SELECT loadout_number AS loadout_number, name AS name, vehicle AS vehicle,
-                     items AS items
-              FROM vehicleloadout WHERE avatar_id = ${lift(avatarId)}
-              ORDER BY loadout_number""".as[Query[VehicleLoadoutRow]]
-    )
-    ctx.run(q)
+    ctx
+      .run(
+        query[persistence.Vehicleloadout]
+          .filter(_.avatarId == lift(avatarId))
+          .sortBy(_.loadoutNumber)
+          .map(l => (l.loadoutNumber, l.name, l.vehicle, l.items))
+      )
+      .map(_.map { case (number, name, vehicle, items) => VehicleLoadoutRow(number, name, vehicle, items) })
   }
 
   // --- leaderboards ------------------------------------------------------------------------------
@@ -495,29 +542,26 @@ object PortalQueries {
   /**
     * A fixed-size page of characters for the statistics tables.
     *
-    * The sort arrives as free text, so it is not spliced into the statement -- see
-    * [[accountsWithLastLogin]] for why the ordering is written as `CASE` expressions over a lifted key.
+    * The sort arrives as free text and is matched here against the three columns the statistics pages
+    * offer. As a quotation the ordering is simply a different `sortBy` per case -- the raw version had
+    * to express it as `CASE` expressions over a lifted key, because splicing a column name into SQL is
+    * how injection happens. Composing quoted queries removes the question entirely.
     */
   def characterBatch(batch: Int, sort: String, ascending: Boolean) = {
-    val key = sort match {
-      case "bep" => 2
-      case "cep" => 3
-      case _     => 1 // id
+    val base = quote(query[persistence.Avatar])
+    val sorted = (sort, ascending) match {
+      case ("bep", true)  => quote(base.sortBy(_.bep)(Ord.asc))
+      case ("bep", false) => quote(base.sortBy(_.bep)(Ord.desc))
+      case ("cep", true)  => quote(base.sortBy(_.cep)(Ord.asc))
+      case ("cep", false) => quote(base.sortBy(_.cep)(Ord.desc))
+      case (_, false)     => quote(base.sortBy(_.id)(Ord.desc))
+      case _              => quote(base.sortBy(_.id)(Ord.asc))
     }
-    val q = quote(
-      infix"""SELECT id AS id, name AS name, faction_id AS faction_id, bep AS bep, cep AS cep
-              FROM avatar
-              ORDER BY
-                CASE WHEN ${lift(key)} = 1 AND     ${lift(ascending)} THEN id  END ASC,
-                CASE WHEN ${lift(key)} = 1 AND NOT ${lift(ascending)} THEN id  END DESC,
-                CASE WHEN ${lift(key)} = 2 AND     ${lift(ascending)} THEN bep END ASC,
-                CASE WHEN ${lift(key)} = 2 AND NOT ${lift(ascending)} THEN bep END DESC,
-                CASE WHEN ${lift(key)} = 3 AND     ${lift(ascending)} THEN cep END ASC,
-                CASE WHEN ${lift(key)} = 3 AND NOT ${lift(ascending)} THEN cep END DESC
-              OFFSET ${lift(batch)} * 500 LIMIT 500""".as[Query[StatCharacter]]
-    )
-    ctx.run(q)
+    ctx
+      .run(sorted.drop(lift(batch * 500)).take(500).map(a => (a.id, a.name, a.factionId, a.bep, a.cep)))
+      .map(_.map { case (id, name, faction, bep, cep) => StatCharacter(id, name, faction, bep, cep) })
   }
+
 
   // --- paginated listings ------------------------------------------------------------------------
 
@@ -570,124 +614,142 @@ object PortalQueries {
 
   /** How many accounts a given filter matches, for the pager. */
   def accountCount(filter: String) = {
-    val onlyGm     = filter == "gm"
-    val onlyBanned = filter == "banned"
-    val q = quote(
-      infix"""SELECT COUNT(*) AS count FROM account
-              WHERE (NOT ${lift(onlyGm)}     OR gm = TRUE)
-                AND (NOT ${lift(onlyBanned)} OR inactive = TRUE)""".as[Query[Count]]
-    )
-    ctx.run(q)
+    val base = quote(query[persistence.Account])
+    val filtered = filter match {
+      case "gm"     => quote(base.filter(_.gm))
+      case "banned" => quote(base.filter(_.inactive))
+      case _        => base
+    }
+    ctx.run(filtered.size)
   }
+
 
   /** All characters, most recently seen first, with their GM/spectate grants. */
   def characters(offset: Int, limit: Int) = {
-    val q = quote(
-      infix"""SELECT avatar.id AS id, avatar.account_id AS account_id, avatar.name AS name,
-                     avatar.faction_id AS faction_id, avatar.created::text AS created,
-                     avatar.last_login::text AS last_login,
-                     avatarmodepermission.avatar_id AS avatar_id,
-                     avatarmodepermission.can_gm AS can_gm,
-                     avatarmodepermission.can_spectate AS can_spectate
-              FROM avatar
-              LEFT JOIN avatarmodepermission ON avatarmodepermission.avatar_id = avatar.id
-              ORDER BY avatar.last_login DESC
-              OFFSET ${lift(offset)} LIMIT ${lift(limit)}""".as[Query[Character]]
-    )
-    ctx.run(q)
+    ctx
+      .run(
+        query[persistence.Avatar]
+          .leftJoin(query[persistence.Avatarmodepermission])
+          .on((a, p) => a.id == p.avatarId)
+          .sortBy { case (a, _) => a.lastLogin }(Ord.desc)
+          .drop(lift(offset))
+          .take(lift(limit))
+      )
+      .map(_.map { case (a, perm) =>
+        Character(
+          a.id, a.accountId, a.name, a.factionId,
+          pgTimestamp(a.created), pgTimestamp(a.lastLogin),
+          perm.map(_.avatarId), perm.map(_.canGm), perm.map(_.canSpectate)
+        )
+      })
   }
 
-  def characterCount() = {
-    val q = quote(infix"""SELECT COUNT(*) AS count FROM avatar""".as[Query[Count]])
-    ctx.run(q)
-  }
+
+  def characterCount() = ctx.run(query[persistence.Avatar].size)
+
 
   /** Only the characters that actually carry a GM or spectate grant. */
   def roles(offset: Int, limit: Int) = {
-    val q = quote(
-      infix"""SELECT avatar_id AS avatar_id, can_spectate AS can_spectate, can_gm AS can_gm,
-                     id AS id, last_login::text AS last_login, account_id AS account_id, name AS name
-              FROM avatarmodepermission
-              INNER JOIN avatar ON avatar_id = id
-              WHERE can_gm = TRUE OR can_spectate = TRUE
-              ORDER BY last_login DESC
-              OFFSET ${lift(offset)} LIMIT ${lift(limit)}""".as[Query[Role]]
-    )
-    ctx.run(q)
+    ctx
+      .run(
+        query[persistence.Avatarmodepermission]
+          .filter(p => p.canGm || p.canSpectate)
+          .join(query[persistence.Avatar])
+          .on((p, a) => p.avatarId == a.id)
+          .sortBy { case (_, a) => a.lastLogin }(Ord.desc)
+          .drop(lift(offset))
+          .take(lift(limit))
+      )
+      .map(_.map { case (p, a) =>
+        Role(p.avatarId, p.canSpectate, p.canGm, a.id, pgTimestamp(a.lastLogin), a.accountId, a.name)
+      })
   }
 
-  def roleCount() = {
-    val q = quote(
-      infix"""SELECT COUNT(*) AS count FROM avatarmodepermission
-              INNER JOIN avatar ON avatar_id = id
-              WHERE can_gm = TRUE OR can_spectate = TRUE""".as[Query[Count]]
-    )
-    ctx.run(q)
-  }
+
+  def roleCount() =
+    ctx.run(query[persistence.Avatarmodepermission].filter(p => p.canGm || p.canSpectate).size)
+
 
   /** One account's login history, newest first. The address is masked on the way out. */
   def accountLogins(accountId: Int, offset: Int, limit: Int): Future[List[LoginRow]] = {
-    val q = quote(
-      infix"""SELECT id AS id, account_id AS account_id, login_time::text AS login_time,
-                     port AS port, ip_address AS ip_address
-              FROM login WHERE account_id = ${lift(accountId)}
-              ORDER BY login_time DESC
-              OFFSET ${lift(offset)} LIMIT ${lift(limit)}""".as[Query[LoginRow]]
-    )
-    ctx.run(q).map(_.map(r => r.copy(ip_address = r.ip_address.flatMap(maskIp))))
+    ctx
+      .run(
+        query[persistence.Login]
+          .filter(_.accountId == lift(accountId))
+          .sortBy(_.loginTime)(Ord.desc)
+          .drop(lift(offset))
+          .take(lift(limit))
+          .map(l => (l.id, l.accountId, l.loginTime, l.port, l.ipAddress))
+      )
+      .map(_.map { case (id, accId, at, port, ip) =>
+        LoginRow(id, accId, pgTimestamp(at), port, maskIp(ip))
+      })
   }
 
-  def loginCount(accountId: Int) = {
-    val q = quote(
-      infix"""SELECT COUNT(*) AS count FROM login
-              WHERE account_id = ${lift(accountId)}""".as[Query[Count]]
-    )
-    ctx.run(q)
-  }
+
+  def loginCount(accountId: Int) =
+    ctx.run(query[persistence.Login].filter(_.accountId == lift(accountId)).size)
+
 
   // --- search ------------------------------------------------------------------------------------
 
-  /** Accounts whose username contains the term, case-insensitively. */
+  /**
+    * Accounts whose username contains the term, case-insensitively.
+    *
+    * `ilike` is the project's own helper from `net.psforever.util.Database`, which is exactly what it
+    * exists for -- the raw version reached for `UPPER(username) LIKE UPPER(?)` instead.
+    */
   def searchAccounts(pattern: String, offset: Int, limit: Int) = {
-    val q = quote(
-      infix"""SELECT id AS id, username AS username, gm AS gm, inactive AS inactive
-              FROM account WHERE UPPER(username) LIKE ${lift(pattern)}
-              ORDER BY username
-              OFFSET ${lift(offset)} LIMIT ${lift(limit)}""".as[Query[SearchAccount]]
-    )
-    ctx.run(q)
+    ctx
+      .run(
+        query[persistence.Account]
+          .filter(a => a.username.ilike(lift(pattern)))
+          .sortBy(_.username)
+          .drop(lift(offset))
+          .take(lift(limit))
+          .map(a => (a.id, a.username, a.gm, a.inactive))
+      )
+      .map(_.map { case (id, username, gm, inactive) => SearchAccount(id, username, gm, inactive) })
   }
+
 
   /** Characters whose name contains the term, case-insensitively. */
   def searchCharacters(pattern: String, offset: Int, limit: Int) = {
-    val q = quote(
-      infix"""SELECT a.id AS id, a.name AS name, a.account_id AS account_id,
-                     a.faction_id AS faction_id, b.avatar_id AS avatar_id,
-                     b.can_spectate AS can_spectate, b.can_gm AS can_gm
-              FROM avatar a
-              LEFT JOIN avatarmodepermission b ON a.id = b.avatar_id
-              WHERE UPPER(a.name) LIKE ${lift(pattern)}
-              ORDER BY name
-              OFFSET ${lift(offset)} LIMIT ${lift(limit)}""".as[Query[SearchCharacter]]
-    )
-    ctx.run(q)
+    ctx
+      .run(
+        query[persistence.Avatar]
+          .filter(a => a.name.ilike(lift(pattern)))
+          .leftJoin(query[persistence.Avatarmodepermission])
+          .on((a, p) => a.id == p.avatarId)
+          .sortBy { case (a, _) => a.name }
+          .drop(lift(offset))
+          .take(lift(limit))
+      )
+      .map(_.map { case (a, perm) =>
+        SearchCharacter(a.id, a.name, a.accountId, a.factionId,
+                        perm.map(_.avatarId), perm.map(_.canSpectate), perm.map(_.canGm))
+      })
   }
+
 
   // --- site statistics ---------------------------------------------------------------------------
 
-  def accountTotal() = {
-    val q = quote(infix"""SELECT COUNT(*) AS count FROM account""".as[Query[Count]])
-    ctx.run(q)
-  }
+  def accountTotal() = ctx.run(query[persistence.Account].size)
+
 
   def newestCharacter() = {
-    val q = quote(
-      infix"""SELECT id AS id, account_id AS account_id, name AS name, faction_id AS faction_id,
-              created::text AS created
-              FROM avatar ORDER BY id DESC LIMIT 1""".as[Query[LastCharacter]]
-    )
-    ctx.run(q)
+    ctx
+      .run(
+        query[persistence.Avatar]
+          .sortBy(_.id)(Ord.desc)
+          .take(1)
+          .map(a => (a.id, a.accountId, a.name, a.factionId, a.created))
+      )
+      .map(_.map { case (id, accountId, name, faction, created) =>
+        LastCharacter(id, accountId, name, faction, pgTimestamp(created))
+      })
   }
+
 
   // --- credentials -------------------------------------------------------------------------------
 
@@ -705,10 +767,11 @@ object PortalQueries {
     */
   def validateAccount(username: String, password: String): Future[Option[Int]] = {
     val q = quote(
-      infix"""SELECT id AS id, passhash AS passhash, inactive AS inactive
-              FROM account WHERE username = ${lift(username)}""".as[Query[Credentials]]
+      query[persistence.Account]
+        .filter(_.username == lift(username))
+        .map(a => (a.id, a.passhash, a.inactive))
     )
-    ctx.run(q).map {
+    ctx.run(q).map(_.map { case (id, passhash, inactive) => Credentials(id, passhash, inactive) }).map {
       case creds :: _ =>
         val ok = password.isBcryptedBounded(creds.passhash)
         if (ok && !creds.inactive) Some(creds.id) else None
@@ -732,12 +795,12 @@ object PortalQueries {
     * a constraint violation.
     */
   def createAccount(username: String, password: String): Future[Option[Int]] = {
+    // Case-insensitive, matching how LoginActor resolves an existing account.
     val taken = quote(
-      infix"""SELECT COUNT(*) AS count FROM account
-              WHERE LOWER(username) = LOWER(${lift(username)})""".as[Query[Count]]
+      query[persistence.Account].filter(_.username.toLowerCase == lift(username).toLowerCase).size
     )
     ctx.run(taken).flatMap {
-      case c :: _ if c.count > 0 => Future.successful(None)
+      case existing if existing > 0 => Future.successful(None)
       case _ =>
         val passhash = password.bcryptBounded(BcryptRounds)
         val launcher = launcherPassword(username, password, BcryptRounds)

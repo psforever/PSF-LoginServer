@@ -348,8 +348,8 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
     * The portal computes page numbers from this; it is deliberately not told a page number back,
     * since it is the side that decided which page to ask for.
     */
-  private def paged(items: Seq[Any], total: Seq[PortalQueries.Count]): Map[String, Any] =
-    Map("items" -> items, "item_count" -> total.headOption.map(_.count).getOrElse(0L))
+  private def paged(items: Seq[Any], total: Long): Map[String, Any] =
+    Map("items" -> items, "item_count" -> total)
 
   /**
     * An upper bound on page size.
@@ -520,8 +520,8 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
             characters <- PortalQueries.characterCount()
             newest     <- PortalQueries.newestCharacter()
           } yield Map(
-            "accounts"       -> accounts.headOption.map(_.count).getOrElse(0L),
-            "characters"     -> characters.headOption.map(_.count).getOrElse(0L),
+            "accounts"       -> accounts,
+            "characters"     -> characters,
             "last_character" -> newest.headOption
           )
         )
