@@ -418,6 +418,97 @@ object PortalQueries {
       .map(_.map { case (number, name, vehicle, items) => VehicleLoadoutRow(number, name, vehicle, items) })
   }
 
+  /* ---- scheduled actions -------------------------------------------------------------------- *
+   *
+   * The portal's own schedules. Quotations rather than raw SQL: these are plain single-table reads
+   * and writes, which is exactly what the quotation form is for.
+   */
+
+  /** Every schedule, newest first. */
+  def schedules() = {
+    ctx.run(query[persistence.Portalschedule].sortBy(_.id)(Ord.desc))
+  }
+
+  /** Only the schedules the evaluator needs to consider. */
+  def enabledSchedules() = {
+    ctx.run(query[persistence.Portalschedule].filter(_.enabled).sortBy(_.id)(Ord.asc))
+  }
+
+  def insertSchedule(row: persistence.Portalschedule) = {
+    ctx.run(query[persistence.Portalschedule].insertValue(lift(row)).returningGenerated(_.id))
+  }
+
+  def deleteSchedule(id: Int) = {
+    ctx.run(query[persistence.Portalschedule].filter(_.id == lift(id)).delete)
+  }
+
+  def setScheduleEnabled(id: Int, enabled: Boolean) = {
+    ctx.run(query[persistence.Portalschedule].filter(_.id == lift(id)).update(_.enabled -> lift(enabled)))
+  }
+
+  /** Re-arm a condition trigger once the population has crossed back the other way. */
+  def setScheduleArmed(id: Int, armed: Boolean) = {
+    ctx.run(query[persistence.Portalschedule].filter(_.id == lift(id)).update(_.armed -> lift(armed)))
+  }
+
+  /**
+    * Claim the right to run a schedule.
+    *
+    * This is the whole of the concurrency story, and it is deliberately a database operation rather
+    * than a lock held anywhere. Two portal processes -- and there are two in the local stack alone --
+    * evaluate the same schedules against the same clock and will reach "this is due" at the same
+    * moment. Whoever advances `last_run` past the deadline first gets 1 row back and runs the action;
+    * the other gets 0 and does nothing. A lock in one process would not have helped, since the
+    * processes do not share memory, and asking first and writing second would leave the same race
+    * open between the two statements.
+    *
+    * `notAfter` is the instant the claim is being made for: the update only applies while `last_run`
+    * is still older than it, so a second attempt for the same due time cannot succeed.
+    *
+    * @return 1 when the caller may run the action, 0 when somebody else already has
+    */
+  def claimSchedule(id: Int, notAfter: org.joda.time.LocalDateTime, at: org.joda.time.LocalDateTime): Future[Long] = {
+    val q = quote(
+      infix"""UPDATE portalschedule
+              SET last_run = ${lift(pgTimestamp(at))}::timestamp
+              WHERE id = ${lift(id)}
+                AND (last_run IS NULL OR last_run < ${lift(pgTimestamp(notAfter))}::timestamp)"""
+        .as[Action[Long]]
+    )
+    ctx.run(q)
+  }
+
+  /**
+    * Claim the right to run a CONDITION-triggered schedule, by disarming it.
+    *
+    * A time trigger can be claimed against its due instant because every process computes the same
+    * instant. A condition has no such value -- "the population is below ten" is true continuously,
+    * and each process would claim against its own `now`, so the second process's cutoff would be
+    * later than the timestamp the first just wrote and BOTH would win.
+    *
+    * The arming flag is the thing that is genuinely one-shot, so it is the claim: disarming is the
+    * atomic step, and only the update that actually changes `armed` from true gets a row back. The
+    * condition then cannot fire again until something re-arms it.
+    */
+  def claimArmedSchedule(id: Int, at: org.joda.time.LocalDateTime): Future[Long] = {
+    val q = quote(
+      infix"""UPDATE portalschedule
+              SET armed = FALSE, last_run = ${lift(pgTimestamp(at))}::timestamp
+              WHERE id = ${lift(id)} AND armed = TRUE"""
+        .as[Action[Long]]
+    )
+    ctx.run(q)
+  }
+
+  /** Record what happened, once the action has actually been attempted. */
+  def recordScheduleResult(id: Int, result: String, armed: Boolean) = {
+    ctx.run(
+      query[persistence.Portalschedule]
+        .filter(_.id == lift(id))
+        .update(_.lastResult -> lift(Option(result)), _.armed -> lift(armed))
+    )
+  }
+
   // --- leaderboards ------------------------------------------------------------------------------
 
   /**

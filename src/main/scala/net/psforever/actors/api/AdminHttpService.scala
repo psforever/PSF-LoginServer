@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.{Directive, Directive0, Directive1, Route}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization.write
 import org.json4s.{DefaultFormats, Formats}
+import net.psforever.persistence
 
 import scala.collection.mutable
 import scala.concurrent.{Future, Promise}
@@ -763,6 +764,129 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
             val (guns, vehicles) = TopWeapons.split(rows.map(r => (r.weapon_id, r.kills)), capped)
             Map("guns" -> guns, "vehicles" -> vehicles)
           })
+        }
+      }
+    },
+    // ---- Scheduled actions ------------------------------------------------------------------
+    //
+    // The portal's own schedules, stored here because the portal has no database and a schedule has
+    // to outlive a restart and be shared between processes. Nothing in the world server reads them;
+    // the portal evaluates them and calls back in to act. Game-master only -- a schedule can change
+    // who holds every base on a continent.
+    path("portal" / "schedules") {
+      get(gameMaster(queryRoute(PortalQueries.schedules().map(rows => Map("schedules" -> rows))))) ~
+        post {
+          gameMasterCaller { c =>
+            entity(as[String]) { body =>
+              val json = scala.util.Try(parse(body)).toOption
+              def str(k: String)  = json.flatMap(j => scala.util.Try((j \ k).extract[String]).toOption).filter(_.nonEmpty)
+              def num(k: String)  = json.flatMap(j => scala.util.Try((j \ k).extract[Int]).toOption)
+              (str("name"), str("action"), str("payload")) match {
+                case (Some(scheduleName), Some(scheduleAction), Some(schedulePayload)) =>
+                  val row = persistence.Portalschedule(
+                    id = 0,
+                    name = scheduleName,
+                    action = scheduleAction,
+                    payload = schedulePayload,
+                    enabled = true,
+                    atTime = str("at_time"),
+                    everyDays = num("every_days"),
+                    condition = str("condition"),
+                    threshold = num("threshold"),
+                    armed = true,
+                    lastRun = None,
+                    lastResult = None,
+                    createdBy = c.username
+                  )
+                  queryRoute(PortalQueries.insertSchedule(row).map(id => Map("id" -> id)))
+                case _ =>
+                  complete(StatusCodes.BadRequest, """{"message":"name, action and payload required","error":true}""")
+              }
+            }
+          }
+        }
+    },
+    // The action catalogue the portal builds its Scheduling form from. Served from here because this
+    // is where the actions are implemented -- the continent picker's options come from the live zone
+    // list, so a zone added to the server appears without anybody updating a table.
+    path("portal" / "schedules" / "actions") {
+      get(gameMaster(runRoute(classOf[CmdListScheduleActions], Array.empty)))
+    },
+    path("portal" / "schedules" / "enabled") {
+      get(gameMaster(queryRoute(PortalQueries.enabledSchedules().map(rows => Map("schedules" -> rows)))))
+    },
+    path("portal" / "schedules" / IntNumber) { id =>
+      delete(gameMaster(queryRoute(PortalQueries.deleteSchedule(id).map(n => Map("removed" -> n))))) ~
+        patch {
+          gameMaster {
+            entity(as[String]) { body =>
+              scala.util.Try((parse(body) \ "enabled").extract[Boolean]).toOption match {
+                case Some(enabled) =>
+                  queryRoute(PortalQueries.setScheduleEnabled(id, enabled).map(n => Map("updated" -> n)))
+                case None =>
+                  complete(StatusCodes.BadRequest, """{"message":"enabled required","error":true}""")
+              }
+            }
+          }
+        }
+    },
+    // Claim the right to run a schedule. Answers `{"claimed": 1}` to exactly one caller per due time;
+    // see `PortalQueries.claimSchedule` for why this is a database operation and not a lock.
+    path("portal" / "schedules" / IntNumber / "claim") { id =>
+      post {
+        gameMaster {
+          entity(as[String]) { body =>
+            scala.util.Try((parse(body) \ "not_after").extract[Long]).toOption match {
+              case Some(notAfter) =>
+                val cutoff = new org.joda.time.LocalDateTime(notAfter)
+                queryRoute(
+                  PortalQueries
+                    .claimSchedule(id, cutoff, org.joda.time.LocalDateTime.now())
+                    .map(n => Map("claimed" -> n))
+                )
+              case None =>
+                complete(StatusCodes.BadRequest, """{"message":"not_after required","error":true}""")
+            }
+          }
+        }
+      }
+    },
+    // Claim a condition-triggered run by disarming it. Only the update that actually flips `armed`
+    // wins, which is what makes a continuously-true condition fire exactly once.
+    path("portal" / "schedules" / IntNumber / "claim-armed") { id =>
+      post {
+        gameMaster {
+          queryRoute(
+            PortalQueries
+              .claimArmedSchedule(id, org.joda.time.LocalDateTime.now())
+              .map(n => Map("claimed" -> n))
+          )
+        }
+      }
+    },
+    path("portal" / "schedules" / IntNumber / "result") { id =>
+      post {
+        gameMaster {
+          entity(as[String]) { body =>
+            val json = scala.util.Try(parse(body)).toOption
+            val result = json.flatMap(j => scala.util.Try((j \ "result").extract[String]).toOption).getOrElse("")
+            val armed = json.flatMap(j => scala.util.Try((j \ "armed").extract[Boolean]).toOption).getOrElse(true)
+            queryRoute(PortalQueries.recordScheduleResult(id, result, armed).map(n => Map("updated" -> n)))
+          }
+        }
+      }
+    },
+    path("portal" / "schedules" / IntNumber / "armed") { id =>
+      post {
+        gameMaster {
+          entity(as[String]) { body =>
+            scala.util.Try((parse(body) \ "armed").extract[Boolean]).toOption match {
+              case Some(armed) =>
+                queryRoute(PortalQueries.setScheduleArmed(id, armed).map(n => Map("updated" -> n)))
+              case None =>
+                complete(StatusCodes.BadRequest, """{"message":"armed required","error":true}""")
+            }
+          }
         }
       }
     },

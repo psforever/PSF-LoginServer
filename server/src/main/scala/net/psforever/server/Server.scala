@@ -16,7 +16,7 @@ import ch.qos.logback.classic.joran.JoranConfigurator
 import io.sentry.{Sentry, SentryOptions}
 import net.psforever.actors.net.{LoginActor, MiddlewareActor, SocketSetup, SocketSetupInfo, SocketPane}
 import net.psforever.actors.session.SessionActor
-import net.psforever.actors.api.AdminHttpService
+import net.psforever.actors.api.{AdminHttpService, ScheduledActionsActor}
 import net.psforever.login._
 import net.psforever.objects.Default
 import net.psforever.objects.zones._
@@ -151,6 +151,14 @@ object Server {
     val adminEndpoint = system.actorOf(
       classic.Props(new AdminHttpService(Config.app.admin.bind, Config.app.admin.port)),
       "admin-http-endpoint"
+    )
+
+    // Scheduled actions. Evaluated here rather than in the portal because a schedule that fires at
+    // four in the morning has to be evaluated by a process that is running at four in the morning,
+    // and this is the process that is up whenever the game is.
+    val scheduledActions = system.actorOf(
+      classic.Props(new ScheduledActionsActor()),
+      "scheduled-actions"
     )
 
     logger.info(
