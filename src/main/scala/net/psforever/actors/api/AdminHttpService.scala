@@ -979,6 +979,27 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
       })
     },
 
+    // Set a character's battle and command experience. Owned here rather than done in Postgres
+    // because rank governs implant slots and uniform: routing it through the avatar's own experience
+    // path makes a lowered rank actually strip the implants it no longer supports, and a raised one
+    // take effect without waiting for the next login. See `CmdSetAvatarProgress`.
+    // Body: { "bep": n?, "cep": n? } -- absolute totals; omitted fields keep their stored value.
+    path("avatars" / IntNumber / "progress") { avatarId =>
+      post(entity(as[String]) { body =>
+        val json = scala.util.Try(parse(body)).toOption
+        val values = Seq("bep", "cep").flatMap { key =>
+          json.flatMap(j => scala.util.Try((j \ key).extract[Long]).toOption).map(v => s"$key:$v")
+        }
+        if (values.isEmpty)
+          complete(StatusCodes.BadRequest, """{"message":"bep or cep required","error":true}""")
+        else
+          auditedRoute(
+            "avatar.progress",
+            Map("avatar" -> avatarId.toString, "set" -> values.mkString(" "))
+          )(classOf[CmdSetAvatarProgress], avatarId.toString +: values.toArray)
+      })
+    },
+
     // Place a vehicle into a continent. `kind` is "ams", "router", or "vehicle:<name>"; an AMS and a
     // Router arrive already deployed. Height and attitude are derived from the terrain, so the caller
     // supplies only a 2D point. A Router may also carry its telepad's point.
