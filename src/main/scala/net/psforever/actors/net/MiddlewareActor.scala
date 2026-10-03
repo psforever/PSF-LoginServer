@@ -277,6 +277,13 @@ class MiddlewareActor(
 
   private val smpHistoryLength: Int = Config.app.network.middleware.smpHistoryLength
 
+  /**
+    * Turns a subslot into its slot in the history ring. This works because the history length is a
+    * power of two -- `Config` refuses to start otherwise -- so 65536, the subslot range, divides by it
+    * and a subslot's slot stays fixed across the 16-bit wrap. See the `RelatedA` handler.
+    */
+  private val smpHistoryMask: Int = smpHistoryLength - 1
+
   /** History of created `SlottedMetaPacket`s.
     * In case the client does not register receiving a packet by checking against packet subslot index numbers,
     * it will dispatch a `RelatedA` packet,
@@ -286,7 +293,6 @@ class MiddlewareActor(
     * The client and server supposedly maintain reciprocating mechanisms.
     */
   private val preparedSlottedMetaPackets: Array[SlottedMetaPacket] = new Array[SlottedMetaPacket](smpHistoryLength)
-  private var nextSmpIndex: Int                                    = 0
   private var acceptedSmpSubslot: Int                              = 0
 
   /** end of life stat */
@@ -585,17 +591,20 @@ class MiddlewareActor(
 
           case RelatedA(slot, subslot) =>
             val requestedSubslot = subslot - 1
-            //the history ring is pre-sized and holds null slots until it fills, so the predicate must be null-safe
-            preparedSlottedMetaPackets.find(p => p != null && p.subslot == requestedSubslot) match {
-              case Some(_packet) =>
-                outQueueBundled.enqueue(_packet)
-              case None if requestedSubslot < acceptedSmpSubslot =>
-                log.warn(
-                  s"Client indicated an smp of slot $slot prior to $subslot that is no longer logged " +
-                    s"(retransmit history holds $smpHistoryLength packets; raise network.middleware.smp-history-length if this recurs)"
-                )
-              case None =>
-                log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is not found")
+            // Indexed rather than searched. A scan over the whole history on every resend request
+            // costs the most exactly when requests arrive in bursts, which is when the session can least
+            // afford it. The entry still has to be vetted: it is null until the ring has filled, and
+            // afterwards it may hold a later subslot that has already overwritten the one asked about.
+            val recorded = preparedSlottedMetaPackets(requestedSubslot & smpHistoryMask)
+            if (recorded != null && recorded.subslot == requestedSubslot) {
+              outQueueBundled.enqueue(recorded)
+            } else if (requestedSubslot < acceptedSmpSubslot) {
+              log.warn(
+                s"Client indicated an smp of slot $slot prior to $subslot that is no longer logged " +
+                  s"(retransmit history holds $smpHistoryLength packets; raise network.middleware.smp-history-length if this recurs)"
+              )
+            } else {
+              log.warn(s"Client indicated an smp of slot $slot prior to $subslot that is not found")
             }
             Behaviors.same
 
@@ -1061,8 +1070,12 @@ class MiddlewareActor(
     */
   private def smp(slot: Int, data: ByteVector): SlottedMetaPacket = {
     val packet = SlottedMetaPacket(slot, nextSubslot, data)
-    preparedSlottedMetaPackets.update(nextSmpIndex, packet)
-    nextSmpIndex = (nextSmpIndex + 1) % smpHistoryLength
+    // Filed at the index its own subslot dictates rather than at a separate rolling cursor. This is
+    // what makes the lookup in `RelatedA` arithmetic instead of a scan. The two ways of counting
+    // agree only while the history length divides the 16-bit subslot range: at a hundred entries
+    // they fell out of step every time the subslot wrapped, because 65536 is not a multiple of 100.
+    // Keying on the subslot itself cannot drift, whatever the length is later set to.
+    preparedSlottedMetaPackets.update(packet.subslot & smpHistoryMask, packet)
     packet
   }
 

@@ -8,7 +8,8 @@ import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank}
 import net.psforever.packet.game.packets.ServerType
 import net.psforever.types.ChatMessageType
 import pureconfig.ConfigConvert.viaNonEmptyStringOpt
-import pureconfig.{ConfigConvert, ConfigSource}
+import pureconfig.{ConfigConvert, ConfigReader, ConfigSource}
+import pureconfig.error.{CannotParse, ConfigReaderFailures}
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import pureconfig.generic.auto._ // intellij: this is not unused
@@ -71,7 +72,7 @@ object Config {
   }
 
   // Typed config object
-  lazy val app: AppConfig = source.load[AppConfig] match {
+  lazy val app: AppConfig = source.load[AppConfig].flatMap(validate) match {
     case Right(config) => config
     case Left(failures) =>
       logger.error("Loading config failed")
@@ -79,6 +80,26 @@ object Config {
         logger.error(failure.toString)
       }
       sys.exit(1)
+  }
+
+  /**
+    * Checks a loaded config for what its types cannot express.
+    *
+    * `smp-history-length` must be a power of two. The resend history is a ring indexed by masking the
+    * subslot, which only holds together when 65536 (the subslot range) divides by the length; any other
+    * value would not fail loudly, it would quietly answer resend requests with the wrong packet or none.
+    */
+  private def validate(config: AppConfig): ConfigReader.Result[AppConfig] = {
+    val smp = config.network.middleware.smpHistoryLength
+    if (smp > 0 && (smp & (smp - 1)) == 0) {
+      Right(config)
+    } else {
+      Left(
+        ConfigReaderFailures(
+          CannotParse(s"network.middleware.smp-history-length must be a power of two (64, 128 ... 1024, 2048), not $smp", None)
+        )
+      )
+    }
   }
 }
 
