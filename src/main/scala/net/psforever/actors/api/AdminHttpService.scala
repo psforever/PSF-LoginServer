@@ -727,6 +727,23 @@ class AdminHttpService(bindAddress: String, port: Int) extends Actor {
         }) ~
         delete(queryRoute(PortalQueries.sessionDestroy(sid).map(n => Map("removed" -> n))))
     },
+    // Kills per weapon, split into a gun board and a vehicle board. Public alongside the other
+    // leaderboards -- it says what killed people, not who anybody is.
+    //
+    // The split happens here rather than in SQL because it needs the vehicle definitions: the kill
+    // record names the weapon and never says what the killer was riding in, so crediting a Liberator
+    // for its own bomb means asking the Liberator what it is armed with. See `TopWeapons`.
+    path("portal" / "leaderboard" / "top-weapons") {
+      get {
+        parameters("limit".as[Int].withDefault(15)) { limit =>
+          val capped = math.min(math.max(limit, 1), 100)
+          queryRoute(PortalQueries.killsByWeapon().map { rows =>
+            val (guns, vehicles) = TopWeapons.split(rows.map(r => (r.weapon_id, r.kills)), capped)
+            Map("guns" -> guns, "vehicles" -> vehicles)
+          })
+        }
+      }
+    },
     // ---- Packet Review -------------------------------------------------------------------
     //
     // Capture exists only while somebody is looking at it. The page joins, keeps saying so while it

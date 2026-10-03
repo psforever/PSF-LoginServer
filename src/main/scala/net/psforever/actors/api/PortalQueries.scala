@@ -195,6 +195,9 @@ object PortalQueries {
       assists: Int
   )
 
+  /** One row of `killsByWeapon`: an object id and how many kills it accounts for. */
+  case class WeaponKillRow(weapon_id: Int, kills: Int)
+
   case class TopKill(
       count: Long,
       killer_id: Int,
@@ -416,6 +419,26 @@ object PortalQueries {
   }
 
   // --- leaderboards ------------------------------------------------------------------------------
+
+  /**
+    * Kills per weapon across the whole server, from the same rows `topKills` counts.
+    *
+    * `killactivity` is the source rather than `weaponstat` because only `killactivity` is written by
+    * a kill; `weaponstat` accumulates per session and is empty on servers that have never flushed it,
+    * which would make an empty leaderboard look like nobody had ever fired a shot.
+    *
+    * `exp > 0` matches `topKills`: it excludes the kills the game scores as worth nothing -- team
+    * kills and suicides among them -- so a weapon cannot climb this board on friendly fire.
+    */
+  def killsByWeapon() = {
+    val q = quote(
+      infix"""SELECT weapon_id AS weapon_id, COUNT(*)::int AS kills
+              FROM killactivity WHERE exp > 0
+              GROUP BY weapon_id
+              ORDER BY kills DESC""".as[Query[WeaponKillRow]]
+    )
+    ctx.run(q)
+  }
 
   /** Leaderboard: the 500 deadliest characters by scored kills. */
   def topKills() = {
