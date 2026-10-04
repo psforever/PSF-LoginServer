@@ -1239,19 +1239,26 @@ class AvatarActor(
         case DeleteAvatar(id) =>
           import ctx._
           val performDeletion = for {
-            _ <- ctx.run(query[persistence.Weaponstatsession].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Kdasession].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Buildingcapture].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Shortcut].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Loadout].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Locker].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Friend].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Ignored].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Savedavatar].filter(_.avatarId == lift(id)).delete)
-            _ <- ctx.run(query[persistence.Savedplayer].filter(_.avatarId == lift(id)).delete)
-            r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(id)))
+            avatar <- ctx.run(query[persistence.Avatar]
+                .filter(a => a.id == lift(id) && a.accountId == lift(account.id)))
+            r <- if (avatar.nonEmpty) {
+              for {
+                _ <- ctx.run(query[persistence.Weaponstatsession].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Kdasession].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Buildingcapture].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Shortcut].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Loadout].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Locker].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Friend].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Ignored].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Savedavatar].filter(_.avatarId == lift(id)).delete)
+                _ <- ctx.run(query[persistence.Savedplayer].filter(_.avatarId == lift(id)).delete)
+              } yield avatar
+            } else {
+              Future.successful(List.empty[persistence.Avatar])
+            }
           } yield r
           performDeletion.onComplete {
             case Success(deleted) =>
@@ -1289,7 +1296,8 @@ class AvatarActor(
 
         case SelectAvatar(charId, replyTo) =>
           import ctx._
-          ctx.run(query[persistence.Avatar].filter(_.id == lift(charId))).onComplete {
+          ctx.run(query[persistence.Avatar].filter(a =>
+              a.id == lift(charId) && a.accountId == lift(account.id))).onComplete {
             case Success(characters) =>
               characters.headOption match {
                 case Some(character) =>
