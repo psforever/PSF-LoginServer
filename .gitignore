@@ -34,3 +34,13 @@ logs/
 pscrypto-lib/
 .bsp/
 project/project/
+
+# Compose reads `.env` from this directory automatically, for variable substitution in the compose
+# files. That makes it the natural home for host-specific values and secrets, so it must never be
+# committed.
+.env
+
+# Local-only compose overlay: host-specific addresses, published ports and dev secrets. Auto-merged
+# by `docker compose` without being referenced anywhere, which is exactly how it gets committed by
+# accident.
+docker-compose.override.yml

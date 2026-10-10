@@ -635,6 +635,44 @@ object Player {
 
   case object Revive
 
+  /**
+    * Apply administrator-set GM / spectator permissions to this player's live session.
+    *
+    * Sent from outside a session (the PSF-HTTP API), which can reach a `Player` through its zone but has
+    * no handle on the owning `AvatarActor`; the player's own control actor does, and forwards it.
+    */
+  final case class SetModePermissions(canSpectate: Boolean, canGm: Boolean)
+
+  /**
+    * Set this player's experience while they are logged in.
+    *
+    * `bepDelta` is a CHANGE, not a total, because the avatar's own battle-experience path is additive
+    * and doing the arithmetic anywhere else would race with experience the player earns in the
+    * meantime. It also does considerably more than move a number: it re-evaluates battle rank, strips
+    * implants that no longer fit the rank's slots, and resets cosmetics across the BR24 boundary --
+    * all of which an administrator setting a rank wants to happen. `cep` is a TOTAL, because the
+    * command-experience path is a plain assignment.
+    *
+    * Relayed the same way as `SetModePermissions`, and for the same reason.
+    */
+  final case class SetExperience(bepDelta: Option[Long], cep: Option[Long])
+
+  /**
+    * Force this player to recall to their faction's sanctuary, as if they had typed `/recall`.
+    *
+    * Relayed the same way as `SetModePermissions`, and for the same reason: only the session can
+    * perform a zone transfer, and the PSF-HTTP API cannot reach it directly.
+    */
+  final case class ForceRecall()
+
+  /**
+    * Force this player to a specific zone and position, as if a CSR had typed `/zone`.
+    *
+    * @param zoneId   the zone's internal name (`z8`, `home2`, ...), NOT its display alias
+    * @param position where in that zone to arrive -- normally one of the zone's warp gates
+    */
+  final case class ForceZone(zoneId: String, position: Vector3)
+
   def apply(core: Avatar): Player = {
     new Player(core)
   }

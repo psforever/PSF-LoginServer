@@ -1,4 +1,4 @@
-package net.psforever.login.psadmin
+package net.psforever.actors.api
 
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.{Actor, ActorRef}

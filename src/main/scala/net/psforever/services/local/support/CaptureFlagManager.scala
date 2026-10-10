@@ -2,6 +2,7 @@
 package net.psforever.services.local.support
 
 import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
+import net.psforever.actors.api.{AdminHttpService, InterstellarEvent}
 import net.psforever.login.WorldSession
 import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
@@ -148,6 +149,20 @@ class CaptureFlagManager(zone: Zone) extends Actor {
         zone,
         CaptureFlagChatMessageStrings.CTF_FlagPickedUp(player.Name, player.Faction, flag.Owner.asInstanceOf[Building].Name),
         fanfare = false
+      )
+      // Carrying an LLU is an act by a specific player, like hacking a console, so it is attributed.
+      // It changes no ownership on its own -- the base only flips once the unit is delivered.
+      AdminHttpService.report(
+        InterstellarEvent(
+          at = System.currentTimeMillis(),
+          kind = AdminHttpService.EventKinds.LluPickedUp,
+          zone = zone.id,
+          base = flag.Owner.asInstanceOf[Building].Name,
+          actor = player.Name,
+          from = flag.Owner.asInstanceOf[Building].Faction.id,
+          to = flag.Faction.id,
+          flipped = false
+        )
       )
 
     case CaptureFlagManager.DropFlag(flag: CaptureFlag) =>

@@ -67,7 +67,8 @@ import net.psforever.types.{
   MeritCommendation,
   PlanetSideEmpire,
   PlanetSideGUID,
-  TransactionType
+  TransactionType,
+  Vector3
 }
 import net.psforever.util.Database._
 import net.psforever.util.{Config, Database, DefinitionUtil}
@@ -201,6 +202,21 @@ object AvatarActor {
 
   /** Set the avatar's lookingForSquad */
   final case class SetLookingForSquad(lfs: Boolean) extends Command
+
+  /**
+    * Apply GM / spectator permissions to a character that is already logged in.
+    *
+    * Permissions are normally read once, at avatar load. An administrator granting or revoking them
+    * from the portal has to reach the live session too, otherwise the change only takes effect at the
+    * player's next login -- which is exactly the split-brain the portal migration exists to remove.
+    */
+  final case class SetModePermissions(canSpectate: Boolean, canGm: Boolean) extends Command
+
+  /** Force a sanctuary recall on behalf of an administrator. @see `Player.ForceRecall` */
+  final case class ForceRecall() extends Command
+
+  /** Force a transfer to `zoneId` at `position` on behalf of an administrator. @see `Player.ForceZone` */
+  final case class ForceZone(zoneId: String, position: Vector3) extends Command
 
   /** Restore up to the given stamina amount due to natural recharge */
   private case class RestoreStaminaPeriodically(stamina: Int) extends Command
@@ -1328,16 +1344,27 @@ class AvatarActor(
                 if (created.equals(lastLogin)) {
                   //first login
                   //initialize default values that would be compromised during login if blank
+                  //
+                  //both inserts IGNORE a conflict, and must. "First login" is inferred from created
+                  //matching lastLogin, and lastLogin is only written once a login completes, so a
+                  //first login interrupted after this point -- a disconnect, a restart, a slow
+                  //query -- leaves the rows written and the timestamps still equal. The next attempt
+                  //takes this branch again, the insert violates certification_pkey (or
+                  //shortcut_avatar_id_slot_key), the whole future fails, and the client is answered
+                  //with ActionResultMessage.Fail. That state cannot recover on its own: the login has
+                  //to succeed to update lastLogin, and lastLogin is what would stop it retrying the
+                  //failing insert, so the character is permanently unloadable. Ignoring the conflict
+                  //makes the initialisation repeatable, which is what it always needed to be.
                   val inits = for {
                     _ <- ctx.run(
                       liftQuery(
                         basicLoginCertifications.map { cert => persistence.Certification(cert.value, avatarId) }.toList
-                      ).foreach(c => query[persistence.Certification].insertValue(c))
+                      ).foreach(c => query[persistence.Certification].insertValue(c).onConflictIgnore)
                     )
                     _ <- ctx.run(
                       liftQuery(
                         List(persistence.Shortcut(avatarId, 0, 0, "medkit"))
-                      ).foreach(c => query[persistence.Shortcut].insertValue(c))
+                      ).foreach(c => query[persistence.Shortcut].insertValue(c).onConflictIgnore)
                     )
                   } yield true
                   inits.onComplete {
@@ -1401,6 +1428,26 @@ class AvatarActor(
             session.get.player.GUID,
             PlanetsideAttribute(session.get.player.GUID, 53, if (lfs) 1 else 0)
           )
+          Behaviors.same
+
+        case ForceRecall() =>
+          // The session owns zoning; this actor only holds the reference to it. Reuse the very same
+          // message the player's own `/recall` produces, so an administrator-driven recall and a
+          // voluntary one are indistinguishable to the rest of the server.
+          sessionActor ! SessionActor.Recall()
+          log.info(s"${avatar.name} was recalled to sanctuary by an administrator")
+          Behaviors.same
+
+        case ForceZone(zoneId, position) =>
+          sessionActor ! SessionActor.SetZone(zoneId, position)
+          log.info(s"${avatar.name} was sent to $zoneId by an administrator")
+          Behaviors.same
+
+        case SetModePermissions(canSpectate, canGm) =>
+          // avatarCopy also writes through to the session's player, so the `avatar.permissions`
+          // checks scattered through the chat and zoning logic see the new value immediately.
+          avatarCopy(avatar.copy(permissions = ModePermissions(canSpectate, canGm)))
+          log.info(s"${avatar.name} permissions set by an administrator: spectate=$canSpectate gm=$canGm")
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>

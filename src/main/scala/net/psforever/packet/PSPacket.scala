@@ -81,6 +81,21 @@ object PlanetSidePacketFlags extends Marshallable[PlanetSidePacketFlags] {
 
 object PacketHelpers {
 
+  /**
+    * Prefix of the failure an opcode table raises when the opcode itself is recognised but nobody has
+    * worked out the layout behind it yet.
+    *
+    * This is the difference Packet Review turns on: "we have never charted this packet" is a specimen
+    * worth keeping, whereas "this packet is charted and these particular bytes did not fit it" is a
+    * bug or a malformed client. Both arrive as an `Err`, so without a marker the two are only
+    * separable by reading English, which is exactly the sort of thing that rots. Keeping the wording
+    * in one place lets both opcode tables raise it and [[isUnimplemented]] recognise it.
+    */
+  final val NoDecoderMessage: String = "Could not find a marshaller for"
+
+  /** Whether a decode failure means "no layout known" rather than "the bytes did not fit". */
+  def isUnimplemented(err: Err): Boolean = err.messageWithContext.startsWith(NoDecoderMessage)
+
   /** Used in certain instances where Codec defintions are stubbed out */
   def emptyCodec[T](instance: T) = {
     def to(pkt: T)    = HNil

@@ -98,6 +98,23 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       .orElse(containerBehavior)
       .orElse(environmentBehavior)
       .orElse {
+        // The PSF-HTTP API can find a live Player through its zone, but not the typed AvatarActor that
+        // owns the avatar record; this control actor holds that reference, so it relays.
+        case Player.SetModePermissions(canSpectate, canGm) =>
+          avatarActor ! AvatarActor.SetModePermissions(canSpectate, canGm)
+
+        case Player.SetExperience(bepDelta, cep) =>
+          // Both of these persist on the way through, so whoever sent this must not also write the
+          // rows itself or the change lands twice.
+          bepDelta.foreach { delta => avatarActor ! AvatarActor.SetBep(delta) }
+          cep.foreach { total => avatarActor ! AvatarActor.SetCep(total) }
+
+        case Player.ForceRecall() =>
+          avatarActor ! AvatarActor.ForceRecall()
+
+        case Player.ForceZone(zoneId, position) =>
+          avatarActor ! AvatarActor.ForceZone(zoneId, position)
+
         case Player.Die(Some(reason)) =>
           if (player.isAlive) {
             //primary death
