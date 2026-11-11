@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.environment.interaction.common.Watery.
 import net.psforever.objects.sourcing.{SourceEntry, UniquePlayer}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.packets.{ImplantAction, ObjectCreateMessage}
+import net.psforever.packet.game.packets.{ImplantAction, ObjectCreateMessage, PlayerStateMessage}
 import net.psforever.packet.game.objectcreate.{ConstructorData, DroppedItemData, ObjectCreateMessageParent, PlacementData}
 import net.psforever.services.base.message.{EventMessage, EventResponse, ObjectDelete, SelfRespondingEvent}
 import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideGUID, TransactionType, Vector3}
@@ -112,7 +112,36 @@ object AvatarAction {
                                 is_cloaked: Boolean,
                                 spectator: Boolean,
                                 weaponInHand: Boolean
-                              ) extends SelfRespondingEvent
+                              ) extends SelfRespondingEvent {
+    /* The event bus delivers this one instance to every subscriber, so the draw it calls for
+       is built once and shared; `PlayerStateMessage` then encodes itself only once. */
+    @volatile private var drawn: Option[PlayerStateMessage] = None
+
+    /** How every other player in range draws this update for the player `guid`. */
+    def drawnAs(guid: PlanetSideGUID): PlayerStateMessage = {
+      drawn match {
+        case Some(msg) if msg.guid == guid =>
+          msg
+        case _ =>
+          //racing recipients may each build one; that only costs the encoding this saves
+          val msg = PlayerStateMessage(
+            guid,
+            pos,
+            vel,
+            facingYaw,
+            facingPitch,
+            facingYawUpper,
+            timestamp = 0,
+            is_crouching,
+            is_jumping,
+            jump_thrust,
+            is_cloaked
+          )
+          drawn = Some(msg)
+          msg
+      }
+    }
+  }
 
   final case class PickupItem(item: Equipment, unk: Int = 0) extends EventMessage {
     def response(): EventResponse = {
