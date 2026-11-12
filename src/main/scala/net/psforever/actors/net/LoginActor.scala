@@ -33,6 +33,10 @@ object LoginActor {
 
   final case class ReceptionistListing(listing: Receptionist.Listing) extends Command
 
+  private val gameTestServerAddressLocal = new InetSocketAddress(InetAddress.getByName(Config.app.local), Config.app.world.port)
+  private val gameTestServerAddressPublic = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
+  private val localHostAddress = new InetSocketAddress("127.0.0.1", Config.app.world.port)
+
   /**
    * What does a token do?
    * No one knows.
@@ -78,6 +82,26 @@ object LoginActor {
     //remove color codes from the server name - look for '\\#' followed by six characters or numbers
     name.replaceAll("\\\\#[\\da-fA-F]{6}","")
   }
+
+  /**
+   * Selects the appropriate host address for transfer to world server.
+   * This is a workaround for cases of local connections not working
+   * properly when using a router that lacks Hairpin NAT support.
+   * @param ipAddress the IP address of the connecting client in string form
+   * @return the appropriate host address
+   */
+  private def selectHostAddress(ipAddress: String): InetSocketAddress = {
+    val address = InetAddress.getByName(ipAddress)
+    if (address.isLoopbackAddress()) {
+      localHostAddress
+    }
+    else if (address.isSiteLocalAddress()) {
+      gameTestServerAddressLocal
+    }
+    else {
+      gameTestServerAddressPublic
+    }
+  }
 }
 
 class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
@@ -96,7 +120,6 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   private var port: Int                 = 0
 
   private val serverName: String = Config.app.world.serverName
-  private val gameTestServerAddress = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
 
   private val bcryptRounds = 12
 
@@ -152,7 +175,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       updateServerList()
 
     case SocketPane.NextPort(_, _, portNum) =>
-      val address = gameTestServerAddress.getAddress.getHostAddress
+      val address = LoginActor.selectHostAddress(ipAddress).getAddress.getHostAddress
       log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
       val response = ConnectToWorldMessage(serverName, address, portNum)
       context.become(idlingBehavior)
@@ -165,7 +188,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
   private def waitingForServerTransferBehavior: Receive = persistentSetupMixinBehavior.orElse {
     case SocketPane.NextPort(_, _, portNum) =>
-      val address = gameTestServerAddress.getAddress.getHostAddress
+      val address = LoginActor.selectHostAddress(ipAddress).getAddress.getHostAddress
       log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
       val response = ConnectToWorldMessage(serverName, address, portNum)
       context.become(idlingBehavior)
@@ -498,7 +521,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
             serverName,
             WorldStatus.Up,
             Config.app.world.serverType,
-            Vector(WorldConnectionInfo(gameTestServerAddress)), //todo ideally, ask for info from SocketPane
+            Vector(WorldConnectionInfo(LoginActor.selectHostAddress(ipAddress))), //todo ideally, ask for info from SocketPane
             PlanetSideEmpire.VS
           )
         )
