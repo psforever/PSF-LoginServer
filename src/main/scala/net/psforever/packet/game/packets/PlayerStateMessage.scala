@@ -4,7 +4,8 @@ package net.psforever.packet.game.packets
 import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import net.psforever.types.{Angular, PlanetSideGUID, Vector3}
-import scodec.Codec
+import scodec.{Attempt, Codec}
+import scodec.bits.BitVector
 import scodec.codecs._
 import shapeless.{::, HNil}
 
@@ -60,7 +61,11 @@ final case class PlayerStateMessage(
 ) extends PlanetSideGamePacket {
   type Packet = PlayerStateMessage
   def opcode = GamePacketOpcode.PlayerStateMessage
-  def encode = PlayerStateMessage.encode(this)
+  /* A relayed movement update is one instance shared by every player in range
+     (see `AvatarAction.PlayerState.drawnAs`), so it is encoded once and the compacted
+     bits are reused by each recipient's middleware instead of re-encoded per recipient. */
+  private lazy val encoded: Attempt[BitVector] = PlayerStateMessage.encode(this).map(_.compact)
+  def encode: Attempt[BitVector] = encoded
 }
 
 object PlayerStateMessage extends Marshallable[PlayerStateMessage] {
