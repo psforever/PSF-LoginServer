@@ -568,7 +568,7 @@ object GlobalDefinitionsMiscellaneous {
     bfr_door.Name = "bfr_door"
     bfr_door.Damageable = false
     bfr_door.Repairable = false
-    //bfr_door.VehicleCreationZOffset = -4.5f
+    bfr_door.VehicleCreationZOffset = -4.5f //game_objects.adb.lst: bfr_door vehiclecreationzoffset -4.5
     bfr_door.VehicleCreationZOrientOffset = 0f //90f
     bfr_door.killBox = VehicleSpawnPadDefinition.prepareBfrShedKillBox(
       radius = 10f,

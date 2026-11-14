@@ -181,7 +181,8 @@ object VehicleSpawnPadDefinition {
                              requiredButUnused: Boolean
                            ): (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = {
     cylinderKillBox(
-      Vector3(0,radius,0).Rz(pad.Orientation.z + pad.Definition.VehicleCreationZOrientOffset) + pad.Position,
+      //the vehicle is created at the pad's height plus its creation offset (below the door for the shed); the region follows the vehicle
+      Vector3(0,radius,0).Rz(pad.Orientation.z + pad.Definition.VehicleCreationZOrientOffset) + pad.Position + Vector3.z(pad.Definition.VehicleCreationZOffset),
       radius,
       aboveLimit
     )
