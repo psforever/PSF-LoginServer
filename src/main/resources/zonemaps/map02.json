@@ -1658,7 +1658,7 @@
     "AbsX": 1844.26123,
     "AbsY": 2981.075,
     "AbsZ": 44.07155,
-    "Yaw": 0.0,
+    "Yaw": 135.0,
     "GUID": 150,
     "MapID": null,
     "IsChildObject": true
@@ -1671,7 +1671,7 @@
     "AbsX": 2466.46924,
     "AbsY": 3839.852,
     "AbsZ": 46.81211,
-    "Yaw": 0.0,
+    "Yaw": 225.0,
     "GUID": 151,
     "MapID": null,
     "IsChildObject": true
@@ -1684,7 +1684,7 @@
     "AbsX": 3302.925,
     "AbsY": 5366.261,
     "AbsZ": 36.6494446,
-    "Yaw": 0.0,
+    "Yaw": 45.0,
     "GUID": 152,
     "MapID": null,
     "IsChildObject": true
@@ -1710,7 +1710,7 @@
     "AbsX": 3456.00342,
     "AbsY": 4085.91357,
     "AbsZ": 35.4287033,
-    "Yaw": 0.0,
+    "Yaw": 316.0,
     "GUID": 154,
     "MapID": null,
     "IsChildObject": true
@@ -1723,7 +1723,7 @@
     "AbsX": 4004.46924,
     "AbsY": 6089.852,
     "AbsZ": 44.895546,
-    "Yaw": 0.0,
+    "Yaw": 225.0,
     "GUID": 155,
     "MapID": null,
     "IsChildObject": true
@@ -1736,7 +1736,7 @@
     "AbsX": 4450.479,
     "AbsY": 2547.479,
     "AbsZ": 36.0390739,
-    "Yaw": 0.0,
+    "Yaw": 225.0,
     "GUID": 156,
     "MapID": null,
     "IsChildObject": true
@@ -1749,7 +1749,7 @@
     "AbsX": 4490.925,
     "AbsY": 3422.26123,
     "AbsZ": 33.92109,
-    "Yaw": 0.0,
+    "Yaw": 45.0,
     "GUID": 157,
     "MapID": null,
     "IsChildObject": true
@@ -1762,7 +1762,7 @@
     "AbsX": 5374.893,
     "AbsY": 3485.228,
     "AbsZ": 33.3229256,
-    "Yaw": 0.0,
+    "Yaw": 90.0,
     "GUID": 158,
     "MapID": null,
     "IsChildObject": true
@@ -1775,7 +1775,7 @@
     "AbsX": 5746.35156,
     "AbsY": 2836.775,
     "AbsZ": 42.5822449,
-    "Yaw": 0.0,
+    "Yaw": 317.0,
     "GUID": 159,
     "MapID": null,
     "IsChildObject": true
@@ -1788,7 +1788,7 @@
     "AbsX": 6752.521,
     "AbsY": 2262.479,
     "AbsZ": 134.815277,
-    "Yaw": 0.0,
+    "Yaw": 135.0,
     "GUID": 160,
     "MapID": null,
     "IsChildObject": true
@@ -1801,7 +1801,7 @@
     "AbsX": 1847.3075,
     "AbsY": 2989.67334,
     "AbsZ": 40.9954758,
-    "Yaw": 0.0,
+    "Yaw": 90.0,
     "GUID": 161,
     "MapID": null,
     "IsChildObject": true
@@ -1814,7 +1814,7 @@
     "AbsX": 2475.06885,
     "AbsY": 3836.80884,
     "AbsZ": 43.73604,
-    "Yaw": 0.0,
+    "Yaw": 180.0,
     "GUID": 162,
     "MapID": null,
     "IsChildObject": true
@@ -1840,7 +1840,7 @@
     "AbsX": 3316.07544,
     "AbsY": 3106.85962,
     "AbsZ": 42.0091934,
-    "Yaw": 0.0,
+    "Yaw": 315.0,
     "GUID": 164,
     "MapID": null,
     "IsChildObject": true
@@ -1853,7 +1853,7 @@
     "AbsX": 3452.806,
     "AbsY": 4077.37036,
     "AbsZ": 32.35263,
-    "Yaw": 0.0,
+    "Yaw": 271.0,
     "GUID": 165,
     "MapID": null,
     "IsChildObject": true
@@ -1866,7 +1866,7 @@
     "AbsX": 4013.06885,
     "AbsY": 6086.809,
     "AbsZ": 41.8194733,
-    "Yaw": 0.0,
+    "Yaw": 180.0,
     "GUID": 166,
     "MapID": null,
     "IsChildObject": true
@@ -1879,7 +1879,7 @@
     "AbsX": 4459.07764,
     "AbsY": 2544.43286,
     "AbsZ": 32.963,
-    "Yaw": 0.0,
+    "Yaw": 180.0,
     "GUID": 167,
     "MapID": null,
     "IsChildObject": true
@@ -1905,7 +1905,7 @@
     "AbsX": 5370.96729,
     "AbsY": 3493.46216,
     "AbsZ": 30.2468529,
-    "Yaw": 0.0,
+    "Yaw": 45.0,
     "GUID": 169,
     "MapID": null,
     "IsChildObject": true
@@ -1918,7 +1918,7 @@
     "AbsX": 5743.007,
     "AbsY": 2828.288,
     "AbsZ": 39.5061722,
-    "Yaw": 0.0,
+    "Yaw": 272.0,
     "GUID": 170,
     "MapID": null,
     "IsChildObject": true
@@ -1931,7 +1931,7 @@
     "AbsX": 6755.56738,
     "AbsY": 2271.07739,
     "AbsZ": 131.7392,
-    "Yaw": 0.0,
+    "Yaw": 90.0,
     "GUID": 171,
     "MapID": null,
     "IsChildObject": true
