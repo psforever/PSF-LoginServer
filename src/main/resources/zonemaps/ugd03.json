@@ -2642,27 +2642,27 @@
     "Id": 264,
     "ObjectName": "vanu_equipment_term_10220",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 69,
     "AbsX": 780.019958,
     "AbsY": 670.639954,
     "AbsZ": 112.67,
     "Yaw": 126.0,
     "GUID": 213,
     "MapID": 10220,
-    "IsChildObject": false
+    "IsChildObject": true
   },
   {
     "Id": 367,
     "ObjectName": "vanu_equipment_term_10343",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 69,
     "AbsX": 1318.37988,
     "AbsY": 909.649963,
     "AbsZ": 59.3,
     "Yaw": 11.0,
     "GUID": 214,
     "MapID": 10343,
-    "IsChildObject": false
+    "IsChildObject": true
   },
   {
     "Id": 279,
