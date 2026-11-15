@@ -4,6 +4,7 @@ package actor.base
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
 import com.typesafe.config.ConfigFactory
+import net.psforever.objects.Default
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -16,6 +17,7 @@ abstract class ActorTest(sys: ActorSystem = ActorSystem("system", ConfigFactory.
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll {
+  Default(sys)
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
