@@ -1,6 +1,6 @@
 # PSForever Licensing
 
-The PSForever project as a whole is licensed under the **GNU Affero General Public License, version 3 or later** ([AGPL-3.0-or-later](LICENSES/AGPL-3.0-or-later.txt)).
+The PSForever project as a whole is licensed under the **GNU Affero General Public License, version 3 or later** ([AGPL-3.0-or-later](LICENSES/AGPL-3.0-or-later.md)).
 
 ---
 
@@ -22,5 +22,5 @@ Under **Section 13 of both the GNU GPLv3 and GNU AGPLv3** (*"Remote Network Inte
 
 ## License Texts
 
-- [GNU Affero General Public License v3 (AGPL-3.0-or-later)](LICENSES/AGPL-3.0-or-later.txt)
+- [GNU Affero General Public License v3 (AGPL-3.0-or-later)](LICENSES/AGPL-3.0-or-later.md)
 - [GNU General Public License v3 (GPL-3.0-only)](LICENSES/GPL-3.0-only.md)
