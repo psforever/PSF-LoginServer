@@ -2,13 +2,14 @@ package objects
 
 import akka.actor.ActorRef
 import akka.testkit.TestProbe
-import base.ActorTest
+import base.{ActorTest, EventEnvelopeAssertions}
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.aura.{Aura, AuraEffectBehavior}
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.environment.interaction.RespondsToZoneEnvironment
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.objects.zones.{Zone, ZoneMap}
@@ -164,11 +165,11 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
     }
 
     obj.allowInteraction = false
-    val msg2 = testProbe.receiveOne(max = 250 milliseconds)
-    msg2 match {
-      case RespondsToZoneEnvironment.StopTimer(EnvironmentAttribute.Water) => true
-      case _ => assert(InteractsWithZoneEnvironmentTest.fail, "")
-    }
+    val resetMsgs = EventEnvelopeAssertions.drain(testProbe, 1.second)
+    assert(
+      resetMsgs.contains(RespondsToZoneEnvironment.StopTimer(EnvironmentAttribute.Water)),
+      s"expected a water stop timer, got $resetMsgs"
+    )
 
     obj.zoneInteractions()
     testProbe.expectNoMessage(max = 500 milliseconds)
@@ -178,9 +179,9 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
     val testProbe = TestProbe()
     val obj = InteractsWithZoneEnvironmentTest.testObject()
     obj.Zone = testZone
+    obj.allowInteraction = false //the reset before the actor is probed is not part of the test
     obj.Actor = testProbe.ref
 
-    obj.allowInteraction = false
     obj.Position = Vector3(1, 1, 2.7f)
     obj.zoneInteractions()
     testProbe.expectNoMessage(max = 500 milliseconds)
@@ -200,6 +201,7 @@ object InteractsWithZoneEnvironmentTest {
   def testObject(): PlanetSideServerObject with InteractsWithZone = {
     val p = new Player(Avatar(1, "test", PlanetSideEmpire.VS, CharacterSex.Male, 1, CharacterVoice.Mute))
     p.GUID = PlanetSideGUID(1)
+    p.WhichSide = Sidedness.OutsideOf
     p.Spawn()
     p
   }
