@@ -4,7 +4,7 @@ package objects
 import akka.actor.{ActorRef, Props}
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.testkit.TestProbe
-import base.{ActorTest, FreedContextActorTest}
+import base.{ActorTest, EventEnvelopeAssertions, FreedContextActorTest}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ballistics._
@@ -35,7 +35,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
-import net.psforever.packet.game.packets.DamageWithPositionMessage
+import net.psforever.packet.game.packets.{DamageWithPositionMessage, PlanetsideAttributeMessage}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.support.TurretUpgrader
@@ -552,23 +552,31 @@ class DamageableAmenityTest extends ActorTest {
       assert(!term.Destroyed)
 
       term.Actor ! Vitality.Damage(applyDamageTo)
-      val msg1234 = avatarProbe.receiveN(4, 3000 milliseconds)
-      msg1234.head match {
-        case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => ()
-        case _                                                                                            => assert(false)
-      }
-      msg1234(1) match {
-        case MessageEnvelope("test", _, AvatarAction.Destroy(PlanetSideGUID(2), _, _, Vector3(1, 0, 0))) => ()
-        case _                                                                                             => assert(false)
-      }
-      msg1234(2) match {
-        case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 50, 1)) => ()
-        case _                                                                                             => assert(false)
-      }
-      msg1234(3) match {
-        case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 51, 1)) => ()
-        case _                                                                                             => assert(false)
-      }
+      val msg1234 = EventEnvelopeAssertions.drain(avatarProbe)
+      assert(
+        EventEnvelopeAssertions.contains(msg1234) {
+          case ("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
+          case _                                                         => false
+        }
+      )
+      assert(
+        EventEnvelopeAssertions.contains(msg1234) {
+          case ("test", _, AvatarAction.Destroy(PlanetSideGUID(2), _, _, Vector3(1, 0, 0))) => true
+          case _                                                                             => false
+        }
+      )
+      assert(
+        EventEnvelopeAssertions.containsPacket(msg1234) {
+          case PlanetsideAttributeMessage(PlanetSideGUID(2), 50, 1) => true
+          case _                                                    => false
+        }
+      )
+      assert(
+        EventEnvelopeAssertions.containsPacket(msg1234) {
+          case PlanetsideAttributeMessage(PlanetSideGUID(2), 51, 1) => true
+          case _                                                    => false
+        }
+      )
       assert(term.Health <= term.Definition.DamageDestroysAt)
       assert(term.Destroyed)
     }
@@ -638,12 +646,12 @@ class DamageableMountableDamageTest extends ActorTest {
       assert(mech.Health == mech.Definition.DefaultHealth)
 
       mech.Actor ! Vitality.Damage(applyDamageTo)
-      val msg1_3 = avatarProbe.receiveN(2, 5000 milliseconds)
+      val msg1_3 = EventEnvelopeAssertions.drain(avatarProbe)
       val msg2   = activityProbe.receiveOne(5000 milliseconds)
       assert(
-        msg1_3.head match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
-          case _                                                                                            => false
+        EventEnvelopeAssertions.contains(msg1_3) {
+          case ("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
+          case _                                                         => false
         }
       )
       assert(
@@ -656,14 +664,9 @@ class DamageableMountableDamageTest extends ActorTest {
         }
       )
       assert(
-        msg1_3(1) match {
-          case MessageEnvelope(
-                "TestCharacter2",
-                _,
-                SendResponse(Seq(DamageWithPositionMessage(_, Vector3(2, 2, 2))))
-              ) =>
-            true
-          case _ => false
+        EventEnvelopeAssertions.containsPacket(msg1_3) {
+          case DamageWithPositionMessage(_, Vector3(2, 2, 2)) => true
+          case _                                              => false
         }
       )
     }
@@ -830,7 +833,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
       turret.Actor ! Vitality.Damage(applyDamageTo)
       val msg12 = vehicleProbe.receiveOne(500 milliseconds)
       val msg3  = activityProbe.receiveOne(500 milliseconds)
-      val msg4  = avatarProbe.receiveOne(500 milliseconds)
+      val msg4  = EventEnvelopeAssertions.drain(avatarProbe)
       assert(
         msg12 match {
           case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
@@ -847,14 +850,9 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
         }
       )
       assert(
-        msg4 match {
-          case MessageEnvelope(
-                "TestCharacter2",
-                _,
-                SendResponse(Seq(DamageWithPositionMessage(_, Vector3(2, 2, 2))))
-              ) =>
-            true
-          case _ => false
+        EventEnvelopeAssertions.containsPacket(msg4) {
+          case DamageWithPositionMessage(_, Vector3(2, 2, 2)) => true
+          case _                                              => false
         }
       )
       assert(turret.Health < turret.Definition.DefaultHealth)
@@ -1070,39 +1068,52 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
       assert(!turret.Destroyed)
 
       turret.Actor ! Vitality.Damage(applyDamageToB) //destroy
-      val msg12_4 = avatarProbe.receiveN(3, 500 milliseconds)
+      val msg12_4 = EventEnvelopeAssertions.drain(avatarProbe)
       player1Probe.expectNoMessage(500 milliseconds)
-      val msg3  = player2Probe.receiveOne(200 milliseconds)
-      val msg56 = vehicleProbe.receiveN(2, 200 milliseconds)
-      msg12_4.head match {
-        case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => ;
-        case _ =>
-          assert(false, s"DamageableWeaponTurretDestructionTest-1: ${msg12_4.head}")
-      }
-      msg12_4(1) match {
-        case MessageEnvelope("test", _, AvatarAction.Destroy(PlanetSideGUID(2), _, _, Vector3(1, 0, 0))) => ;
-        case _ =>
-          assert(false, s"DamageableWeaponTurretDestructionTest-2: ${msg12_4(1)}")
-      }
-      msg3 match {
-        case Player.Die(_) => ()
-        case _ =>
-          assert(false, s"DamageableWeaponTurretDestructionTest-3: player not dead - $msg3")
-      }
-      msg12_4(2) match {
-        case MessageEnvelope("test", _, ObjectDelete(PlanetSideGUID(5), _)) => ;
-        case _ =>
-          assert(false, s"DamageableWeaponTurretDestructionTest-4: ${msg12_4(2)}")
-      }
-      msg56.head match {
-        case TurretEnvelope(SupportActor.ClearSpecific(List(t), _)) if turret eq t => ;
-        case _ =>
-          assert(false, s"DamageableWeaponTurretDestructionTest-5: ${msg56.head}")
-      }
-      msg56(1) match {
-        case TurretEnvelope(TurretUpgrader.AddTask(t, _, TurretUpgrade.None, _)) if t eq turret => ()
-        case _ => assert(false, s"DamageableWeaponTurretDestructionTest-6: ${msg56(1)}")
-      }
+      val msg3  = EventEnvelopeAssertions.drain(player2Probe)
+      val msg56 = EventEnvelopeAssertions.drain(vehicleProbe)
+      assert(
+        EventEnvelopeAssertions.contains(msg12_4) {
+          case ("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
+          case _                                                         => false
+        },
+        s"DamageableWeaponTurretDestructionTest-1: $msg12_4"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(msg12_4) {
+          case ("test", _, AvatarAction.Destroy(PlanetSideGUID(2), _, _, Vector3(1, 0, 0))) => true
+          case _                                                                             => false
+        },
+        s"DamageableWeaponTurretDestructionTest-2: $msg12_4"
+      )
+      assert(
+        msg3.exists {
+          case Player.Die(_) => true
+          case _             => false
+        },
+        s"DamageableWeaponTurretDestructionTest-3: player not dead - $msg3"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(msg12_4) {
+          case ("test", _, ObjectDelete(PlanetSideGUID(5), _)) => true
+          case _                                               => false
+        },
+        s"DamageableWeaponTurretDestructionTest-4: $msg12_4"
+      )
+      assert(
+        msg56.exists {
+          case TurretEnvelope(SupportActor.ClearSpecific(List(t), _)) if turret eq t => true
+          case _                                                                      => false
+        },
+        s"DamageableWeaponTurretDestructionTest-5: $msg56"
+      )
+      assert(
+        msg56.exists {
+          case TurretEnvelope(TurretUpgrader.AddTask(t, _, TurretUpgrade.None, _)) if t eq turret => true
+          case _                                                                                  => false
+        },
+        s"DamageableWeaponTurretDestructionTest-6: $msg56"
+      )
       assert(turret.Health <= turret.Definition.DamageDestroysAt)
       assert(!turret.Jammed)
       assert(turret.Destroyed)
@@ -1182,7 +1193,7 @@ class DamageableVehicleDamageTest extends ActorTest {
       atv.Actor ! Vitality.Damage(applyDamageTo)
       val msg12   = vehicleProbe.receiveN(2, 200 milliseconds)
       val msg3    = activityProbe.receiveOne(200 milliseconds)
-      val msg4   = avatarProbe.receiveOne(200 milliseconds)
+      val msg4    = EventEnvelopeAssertions.drain(avatarProbe)
       assert(
         msg12.head match {
           case MessageEnvelope(_, _, PlanetsideAttribute(PlanetSideGUID(1), 68, _)) => true
@@ -1205,14 +1216,9 @@ class DamageableVehicleDamageTest extends ActorTest {
         }
       )
       assert(
-        msg4 match {
-          case MessageEnvelope(
-            "TestCharacter2",
-            _,
-            SendResponse(Seq(DamageWithPositionMessage(9, Vector3(2, 0, 0))))
-          ) =>
-            true
-          case _ => false
+        EventEnvelopeAssertions.containsPacket(msg4) {
+          case DamageWithPositionMessage(9, Vector3(2, 0, 0)) => true
+          case _                                              => false
         }
       )
       assert(atv.Health < atv.Definition.DefaultHealth)
@@ -1320,7 +1326,7 @@ class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
     lodestar.Actor ! Vitality.Damage(applyDamageTo)
     val msg12   = vehicleProbe.receiveN(2, 500 milliseconds)
     val msg3    = activityProbe.receiveOne(500 milliseconds)
-    val msg45   = avatarProbe.receiveN(2,500 milliseconds)
+    val msg45   = EventEnvelopeAssertions.drain(avatarProbe)
     msg12.head match {
       case MessageEnvelope(_, _, PlanetsideAttribute(PlanetSideGUID(1), 68, _)) => ;
       case _                                                                                                        => assert(false)
@@ -1336,22 +1342,18 @@ class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
           activity.location == Vector3(1, 0, 0))
       case _ => assert(false)
     }
-    msg45.head match {
-      case MessageEnvelope(
-            "TestCharacter2",
-            _,
-            SendResponse(Seq(DamageWithPositionMessage(400, Vector3(2, 0, 0))))
-          ) => ;
-      case _ => assert(false)
-    }
-    msg45(1) match {
-      case MessageEnvelope(
-            "TestCharacter3",
-            _,
-            SendResponse(Seq(DamageWithPositionMessage(0, Vector3(2, 0, 0))))
-          ) => ;
-      case _ => assert(false)
-    }
+    assert(
+      EventEnvelopeAssertions.containsPacket(msg45) {
+        case DamageWithPositionMessage(400, Vector3(2, 0, 0)) => true
+        case _                                                => false
+      }
+    )
+    assert(
+      EventEnvelopeAssertions.containsPacket(msg45) {
+        case DamageWithPositionMessage(0, Vector3(2, 0, 0)) => true
+        case _                                              => false
+      }
+    )
     assert(lodestar.Health < lodestar.Definition.DefaultHealth)
     assert(lodestar.Shields == 0)
     assert(atv.Health == atv.Definition.DefaultHealth)
