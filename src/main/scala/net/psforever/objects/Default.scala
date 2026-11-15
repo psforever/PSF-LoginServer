@@ -39,18 +39,31 @@ object Default {
   }
   @volatile private var defaultRef: ActorRef = ActorRef.noSender
   @volatile private var defaultRefSystem: ActorSystem = _
+  private val defaultActors = scala.collection.mutable.Map.empty[ActorSystem, ActorRef]
 
   /**
     * Instigate the default actor.
     * A new default actor is created whenever the requested `ActorSystem` is not the one
     * that owns the cached reference. Tests create and shut down one `ActorSystem` per
     * suite, so without this check later suites would keep sending to a dead actor.
+    * Each system keeps its own actor, so rebinding to a system that already has one
+    * does not try to create a second actor with the same name.
     * @param sys the actor universe under which this default actor will exist
     * @return the new default actor
     */
   def apply(sys: ActorSystem): ActorRef = synchronized {
     if (defaultRef == ActorRef.noSender || (defaultRefSystem ne sys)) {
-      defaultRef = sys.actorOf(Props[DefaultActor](), name = s"system-default-actor")
+      defaultRef = defaultActors.getOrElseUpdate(
+        sys, {
+          val ref = sys.actorOf(Props[DefaultActor](), name = "system-default-actor")
+          sys.registerOnTermination {
+            Default.synchronized {
+              defaultActors.remove(sys)
+            }
+          }
+          ref
+        }
+      )
       defaultRefSystem = sys
     }
     defaultRef
