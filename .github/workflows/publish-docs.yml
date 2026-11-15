@@ -1,30 +1,50 @@
 name: Publish Docs
+
 on:
   push:
     branches:
       - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-docs-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   docs:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-      - name: Cache SBT
-        uses: actions/cache@v2
+        uses: actions/checkout@v4
+
+      - name: Set up JDK and sbt
+        uses: coursier/setup-action@v1
+        with:
+          jvm: adopt:11
+          apps: sbt
+
+      - name: Cache sbt and coursier
+        uses: actions/cache@v4
         with:
           path: |
+            ~/.cache/coursier
             ~/.ivy2/cache
             ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup Scala
-        uses: olafurpg/setup-scala@v13
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt', 'project/build.properties', 'project/plugins.sbt') }}
+          restore-keys: |
+            ${{ runner.os }}-sbt-
+
       - name: Build docs
         run: sbt docs/unidoc
+
       - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@4.1.5
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: gh-pages
-          FOLDER: docs/target/scala-2.13/unidoc
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          folder: docs/target/scala-2.13/unidoc
+          clean: true
