@@ -37,16 +37,21 @@ object Default {
       case msg => context.system.deadLetters ! DeadLetter(msg, sender(), self)
     }
   }
-  private var defaultRef: ActorRef = ActorRef.noSender
+  @volatile private var defaultRef: ActorRef = ActorRef.noSender
+  @volatile private var defaultRefSystem: ActorSystem = _
 
   /**
     * Instigate the default actor.
+    * A new default actor is created whenever the requested `ActorSystem` is not the one
+    * that owns the cached reference. Tests create and shut down one `ActorSystem` per
+    * suite, so without this check later suites would keep sending to a dead actor.
     * @param sys the actor universe under which this default actor will exist
     * @return the new default actor
     */
-  def apply(sys: ActorSystem): ActorRef = {
-    if (defaultRef == ActorRef.noSender) {
+  def apply(sys: ActorSystem): ActorRef = synchronized {
+    if (defaultRef == ActorRef.noSender || (defaultRefSystem ne sys)) {
       defaultRef = sys.actorOf(Props[DefaultActor](), name = s"system-default-actor")
+      defaultRefSystem = sys
     }
     defaultRef
   }
@@ -55,11 +60,12 @@ object Default {
 
   object typed {
     import akka.actor.typed.scaladsl.adapter._
-    private val defaultTypedRef: Typed.ActorRef[Any] = defaultRef.toTyped[Any]
+    private def defaultTypedRef: Typed.ActorRef[Any] = defaultRef.toTyped[Any]
 
     /**
      * A copy of the default actor
      * but promoted into a typed actor that accepts any kind of message.
+     * Resolved on each access so it follows `Default.apply` re-binding.
      */
     final def Actor: Typed.ActorRef[Any] = defaultTypedRef
   }

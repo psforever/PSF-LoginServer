@@ -220,6 +220,7 @@ object VehicleSpawnPadControlTest {
     guid.register(vehicle, "test-pool")
     guid.register(weapon, "test-pool")
     guid.register(weapon.AmmoSlot.Box, "test-pool")
+    guid.register(terminal, "test-pool")
     val zone = new Zone("test-zone", map, 0) {
       override def SetupNumberPools(): Unit = {}
     }

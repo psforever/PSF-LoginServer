@@ -1,12 +1,13 @@
 // Copyright (c) 2020 PSForever
 package objects
 
-import akka.actor.DeadLetter
+import akka.actor.{ActorSystem, DeadLetter}
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects.Default
 import org.specs2.mutable.Specification
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class DefaultTest extends Specification {
@@ -45,4 +46,24 @@ class DefaultTest extends Specification {
 object DefaultActorTest {
   //due to being a singleton, the original original value of the Default.Actor is cached here
   val Original = Default.Actor
+}
+
+class DefaultActorRebindingTest extends ActorTest {
+  "Default.apply" should {
+    "create a new default actor when the ActorSystem changes" in {
+      val first = Default.Actor
+      val other = ActorSystem("default-rebinding-test")
+      try {
+        val rebound = Default(other)
+        assert(rebound != first)
+        assert(Default.Actor == rebound)
+        // Calling apply again with the same system must not create another actor.
+        assert(Default(other) == rebound)
+      } finally {
+        Await.ready(other.terminate(), 10.seconds)
+        // Leave the shared singleton bound to the suite's live system.
+        Default(system)
+      }
+    }
+  }
 }
