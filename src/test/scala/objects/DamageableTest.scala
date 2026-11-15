@@ -986,11 +986,13 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn()
   player1.Position = Vector3(2, 2, 2)
+  player1.Zone = zone
   val player1Probe: TestProbe = TestProbe()
   player1.Actor = player1Probe.ref
   val player2: Player =
     Player(Avatar(1, "TestCharacter2", PlanetSideEmpire.NC, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=4
   player2.Spawn()
+  player2.Zone = zone
   val player2Probe: TestProbe = TestProbe()
   player2.Actor = player2Probe.ref
 
@@ -1068,10 +1070,10 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
       assert(!turret.Destroyed)
 
       turret.Actor ! Vitality.Damage(applyDamageToB) //destroy
-      val msg12_4 = EventEnvelopeAssertions.drain(avatarProbe)
+      val msg12_4 = EventEnvelopeAssertions.drain(avatarProbe, 10.seconds, 2.seconds)
       player1Probe.expectNoMessage(500 milliseconds)
-      val msg3  = EventEnvelopeAssertions.drain(player2Probe)
-      val msg56 = EventEnvelopeAssertions.drain(vehicleProbe)
+      val msg3  = EventEnvelopeAssertions.drain(player2Probe, 10.seconds, 2.seconds)
+      val msg56 = EventEnvelopeAssertions.drain(vehicleProbe, 10.seconds, 2.seconds)
       assert(
         EventEnvelopeAssertions.contains(msg12_4) {
           case ("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
