@@ -5,7 +5,7 @@ import akka.actor.Props
 import akka.testkit.TestProbe
 import base.FreedContextActorTest
 import net.psforever.actors.zone.BuildingActor
-import net.psforever.actors.zone.building.{FacilityLogic, MajorFacilityLogic}
+import net.psforever.actors.zone.building.MajorFacilityLogic
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.guid.NumberPoolHub
@@ -24,7 +24,7 @@ import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player, Tool, Vehicle}
 import net.psforever.services.galaxy.GalaxyService
-import net.psforever.services.{InterstellarClusterService, ServiceManager}
+import net.psforever.services.{InterstellarClusterService, Service, ServiceManager}
 import net.psforever.types._
 
 import scala.collection.concurrent.TrieMap
@@ -66,7 +66,7 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
   terminal.Actor = context.actorOf(Props(classOf[TerminalControl], terminal), name = "test-terminal")
   silo.NtuCapacitor = 1000
   silo.Actor = system.actorOf(Props(classOf[ResourceSiloControl], silo), "test-silo")
-  silo.Actor ! "startup"
+  silo.Actor ! Service.Startup
 
   val wep_fmode  = weapon.FireMode
   val wep_prof   = wep_fmode.Add
@@ -90,8 +90,15 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
       assert(terminal.Health == terminal.MaxHealth)
       terminal.Actor ! Vitality.Damage(applyDamageTo)
 
-      avatarProbe.receiveOne(max = 1000 milliseconds) //health update event
-      assert(terminal.Health < terminal.MaxHealth)
+      //the silo and building may emit status updates before the terminal reports the damage
+      var damaged = false
+      var tries = 0
+      while (!damaged && tries < 10) {
+        avatarProbe.receiveOne(max = 1000 milliseconds)
+        tries += 1
+        damaged = terminal.Health < terminal.MaxHealth
+      }
+      assert(damaged)
       var i = 0 //safety counter
       while(terminal.Health < terminal.MaxHealth && i < 100) {
         i += 1
@@ -133,8 +140,9 @@ class AutoRepairFacilityIntegrationGiveNtuTest extends FreedContextActorTest {
   terminal.Actor = context.actorOf(Props(classOf[TerminalControl], terminal), name = "test-terminal")
   terminal.Health = 0
   terminal.Destroyed = true
+  silo.NtuCapacitor = 0
   silo.Actor = system.actorOf(Props(classOf[ResourceSiloControl], silo), "test-silo")
-  silo.Actor ! "startup"
+  silo.Actor ! Service.Startup
 
   "AutoRepair" should {
     "should activate and trade NTU frpom the silo only when NTU is made available" in {
@@ -190,6 +198,7 @@ class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest 
     GlobalDefinitions.cryo_facility
   )
   buildingMap += 6 -> building
+  zone.blockMap.addTo(building)
   building.Actor = context.spawn(BuildingActor(zone, building, MajorFacilityLogic), "integ-fac-test-building-control").toClassic
   building.Invalidate()
 
@@ -211,8 +220,9 @@ class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest 
   terminal.Actor = context.actorOf(Props(classOf[TerminalControl], terminal), name = "test-terminal")
   terminal.Health = 0
   terminal.Destroyed = true
+  silo.NtuCapacitor = 0
   silo.Actor = system.actorOf(Props(classOf[ResourceSiloControl], silo), "test-silo")
-  silo.Actor ! "startup"
+  silo.Actor ! Service.Startup
 
   "AutoRepair" should {
     "should activate and trade NTU from the silo only when NTU is made available from an ANT" in {
@@ -221,7 +231,7 @@ class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest 
       assert(terminal.Health == 0)
       assert(terminal.Destroyed)
       avatarProbe.expectNoMessage(max = 1000 milliseconds) //nothing
-      silo.Actor ! CommonMessages.Use(player) //then ...
+      silo.Actor ! CommonMessages.Use(player, Some(ant)) //then ...
 
       avatarProbe.receiveOne(max = 1000 milliseconds) //health update event
       assert(terminal.Health < terminal.MaxHealth)
@@ -282,6 +292,7 @@ class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends Free
     GlobalDefinitions.cryo_facility
   )
   buildingMap += 6 -> building
+  zone.blockMap.addTo(building)
   building.Actor = context.spawn(BuildingActor(zone, building, MajorFacilityLogic), "integ-fac-test-building-control").toClassic
   building.Invalidate()
 
@@ -304,8 +315,9 @@ class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends Free
   building.Amenities = silo
   terminal.Actor = context.actorOf(Props(classOf[TerminalControl], terminal), name = "test-terminal")
   terminal.Health = 1 //not yet destroyed, but one shot away from it
+  silo.NtuCapacitor = 0
   silo.Actor = system.actorOf(Props(classOf[ResourceSiloControl], silo), "test-silo")
-  silo.Actor ! "startup"
+  silo.Actor ! Service.Startup
 
   val wep_fmode  = weapon.FireMode
   val wep_prof   = wep_fmode.Add
@@ -333,7 +345,7 @@ class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends Free
       while(avatarProbe.receiveOne(max = 1000 milliseconds) != null) { /* health loss event(s) + state updates */ }
       assert(terminal.Destroyed)
       avatarProbe.expectNoMessage(max = 1000 milliseconds) //nothing
-      silo.Actor ! CommonMessages.Use(player) //then ...
+      silo.Actor ! CommonMessages.Use(player, Some(ant)) //then ...
 
       avatarProbe.receiveOne(max = 1000 milliseconds) //health update event
       assert(terminal.Health < terminal.MaxHealth)
@@ -384,6 +396,7 @@ class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedCon
     GlobalDefinitions.cryo_facility
   )
   buildingMap += 6 -> building
+  zone.blockMap.addTo(building)
   building.Actor = context.spawn(BuildingActor(zone, building, MajorFacilityLogic), "integ-fac-test-building-control").toClassic
   building.Invalidate()
 
@@ -406,8 +419,9 @@ class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedCon
   building.Amenities = silo
   terminal.Actor = context.actorOf(Props(classOf[TerminalControl], terminal), name = "test-terminal")
   terminal.Health = 1 //not yet destroyed, but one shot away from it
+  silo.NtuCapacitor = 0
   silo.Actor = system.actorOf(Props(classOf[ResourceSiloControl], silo), "test-silo")
-  silo.Actor ! "startup"
+  silo.Actor ! Service.Startup
 
   val wep_fmode  = weapon.FireMode
   val wep_prof   = wep_fmode.Add
@@ -435,7 +449,7 @@ class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedCon
       while(avatarProbe.receiveOne(max = 1000 milliseconds) != null) { /* health loss event(s) + state updates */ }
       assert(terminal.Destroyed)
       avatarProbe.expectNoMessage(max = 1000 milliseconds) //nothing
-      silo.Actor ! CommonMessages.Use(player) //then ...
+      silo.Actor ! CommonMessages.Use(player, Some(ant)) //then ...
 
       avatarProbe.receiveOne(max = 1000 milliseconds) //health update event
       assert(terminal.Health < terminal.MaxHealth)
