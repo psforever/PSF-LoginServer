@@ -249,4 +249,7 @@ coming soon.~~
   - Join the #code channel and ask any questions you have there
 
 ## License
-GNU GPLv3. See LICENSE.md for the full copy.
+PSForever is licensed under the **GNU Affero General Public License v3 or later (AGPL-3.0-or-later)**.
+Historic contributions remain under **GNU GPLv3**; the combined program is governed pursuant to Section 13 of GPLv3 and AGPLv3.
+
+See [LICENSE.md](LICENSE.md) and the [`LICENSES/`](LICENSES/) folder for full license terms and compatibility details.
