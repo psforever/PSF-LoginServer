@@ -134,25 +134,30 @@ class SocketActor(
           message match {
             case Udp.Bound(_) => Behaviors.same
             case Udp.Received(data, remote) =>
-              incomingTimes(remote) = System.currentTimeMillis()
-              val ref = packetActors.get(remote) match {
-                case Some(_ref) => _ref
-                case None =>
-                  val connectionId = randomUUID.toString
-                  val ref = context.spawn(
-                    MiddlewareActor(udpCommandAdapter, remote, nextPlan, connectionId),
-                    s"middleware-$connectionId",
-                    /* crypto, bundling and reordering for one connection, isolated onto the
-                       world-session pool. The dispatcher is selected here at the spawn site
-                       because this is a typed actor, which config-based deployment in
-                       akka.conf does not apply to. */
-                    ActorTags(s"uuid=$connectionId").withDispatcherFromConfig("world-session")
-                  )
-                  context.watch(ref)
-                  packetActors(remote) = ref
-                  ref
+              if (data.length == 9 && (data(0) & 0xFF) == 0x1A) {
+                // World server ping probe from server select screen: reflect the exact 9 bytes back immediately
+                socket ! Udp.Send(data, remote)
+              } else {
+                incomingTimes(remote) = System.currentTimeMillis()
+                val ref = packetActors.get(remote) match {
+                  case Some(_ref) => _ref
+                  case None =>
+                    val connectionId = randomUUID.toString
+                    val ref = context.spawn(
+                      MiddlewareActor(udpCommandAdapter, remote, nextPlan, connectionId),
+                      s"middleware-$connectionId",
+                      /* crypto, bundling and reordering for one connection, isolated onto the
+                         world-session pool. The dispatcher is selected here at the spawn site
+                         because this is a typed actor, which config-based deployment in
+                         akka.conf does not apply to. */
+                      ActorTags(s"uuid=$connectionId").withDispatcherFromConfig("world-session")
+                    )
+                    context.watch(ref)
+                    packetActors(remote) = ref
+                    ref
+                }
+                ref ! MiddlewareActor.Receive(data.toByteVector)
               }
-              ref ! MiddlewareActor.Receive(data.toByteVector)
               Behaviors.same
 
             case _ =>

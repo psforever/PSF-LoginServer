@@ -48,7 +48,7 @@ object GamePacketOpcode extends Enumeration {
   // 0x18
   ObjectCreateMessage,      // PPT_OBJECTCREATEDETAILED
   ObjectDeleteMessage,      //
-  PingMsg,                  //
+  WorldPingMessage,         //
   VehicleStateMessage,      //
   FrameVehicleStateMessage, //
   GenericObjectStateMsg,    //
@@ -339,7 +339,7 @@ object GamePacketOpcode extends Enumeration {
       // 0x18
       case 0x18 => packets.ObjectCreateDetailedMessage.decode
       case 0x19 => packets.ObjectDeleteMessage.decode
-      case 0x1a => packets.PingMsg.decode
+      case 0x1a => packets.WorldPingMessage.decode
       case 0x1b => packets.VehicleStateMessage.decode
       case 0x1c => packets.FrameVehicleStateMessage.decode
       case 0x1d => packets.GenericObjectStateMsg.decode
