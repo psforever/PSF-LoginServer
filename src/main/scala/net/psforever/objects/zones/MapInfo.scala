@@ -458,21 +458,21 @@ object MapEnvironment {
 
   /** HART denial fields for the New Conglomerate sanctuary */
   final val map11Environment: List[PieceOfEnvironment] =
-    hartGantryDenialFields(PlanetSideGUID(840), Vector3(2258, 5538, 65.20142f), hartMountPoints) ++
-    hartGantryDenialFields(PlanetSideGUID(841), Vector3(4152, 6070, 43.8766136f), hartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(840), Vector3(2258, 5538, 65.40142f), hartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(841), Vector3(4152, 6070, 44.0766144f), hartMountPoints) ++
     specialHartGantryDenialFields(PlanetSideGUID(842))
 
   /** HART denial fields for the Terran Republic sanctuary */
   final val map12Environment: List[PieceOfEnvironment] =
-    hartGantryDenialFields(PlanetSideGUID(808), Vector3(2922, 5230, 35.9989929f), hartMountPoints) ++
-    hartGantryDenialFields(PlanetSideGUID(809), Vector3(3006, 2984, 34.919342f), hartMountPoints) ++
-    hartGantryDenialFields(PlanetSideGUID(810), Vector3(5232, 3908, 35.9291039f), hartMountPoints)
+    hartGantryDenialFields(PlanetSideGUID(808), Vector3(2922, 5230, 36.1989937f), hartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(809), Vector3(3006, 2984, 35.1193428f), hartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(810), Vector3(5232, 3908, 36.1291046f), hartMountPoints)
 
   /** HART denial fields for the Vanu Sovereignty sanctuary */
   final val map13Environment: List[PieceOfEnvironment] =
-    hartGantryDenialFields(PlanetSideGUID(786), Vector3(2978, 4834, 56.085392f), vsHartMountPoints) ++
-    hartGantryDenialFields(PlanetSideGUID(787), Vector3(3688, 2808, 90.85312f), vsHartMountPoints) ++
-    hartGantryDenialFields(PlanetSideGUID(788), Vector3(5610, 4238, 103.228859f), vsHartMountPoints)
+    hartGantryDenialFields(PlanetSideGUID(786), Vector3(2978, 4834, 56.2853928f), vsHartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(787), Vector3(3688, 2808, 91.0531158f), vsHartMountPoints) ++
+    hartGantryDenialFields(PlanetSideGUID(788), Vector3(5610, 4238, 103.428856f), vsHartMountPoints)
 
   /** common map edge kill planes; may be defunct eventually */
   final val dim1024MapEdgeKillPlanes: List[PieceOfEnvironment] = MapEnvironment.zoneMapEdgeKillPlane(
@@ -561,8 +561,8 @@ object MapEnvironment {
     * @return a list of environmental representations
     */
   def specialHartGantryDenialFields(obbasemesh: PlanetSideGUID): List[PieceOfEnvironment] = {
-    val lower: Float  = 74.902668f
-    val upper: Float  = 86.246418f
+    val lower: Float  = 75.102668f
+    val upper: Float  = 86.446418f
     val radius: Float = 6.5f
     //downstairs lobbies are listed before upstairs lobbies to ensure they are tested first
     List(
