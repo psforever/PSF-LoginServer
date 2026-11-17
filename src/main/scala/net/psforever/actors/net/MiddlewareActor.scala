@@ -364,6 +364,11 @@ class MiddlewareActor(
             PacketCoding.decodePacket(msg) match {
               case Successful(packet) =>
                 packet match {
+                  case worldPing: WorldPingMessage =>
+                    // reflect the world ping packet back to the sender
+                    send(worldPing)
+                    Behaviors.same
+
                   case _: ChangeFireModeMessage =>
                     log.trace(s"What is this packet that just arrived? $msg")
                     //ignore

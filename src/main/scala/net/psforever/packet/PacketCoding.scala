@@ -2,9 +2,9 @@
 package net.psforever.packet
 
 import java.security.{Key, Security}
-
 import javax.crypto.Cipher
 import javax.crypto.spec.RC5ParameterSpec
+import net.psforever.packet.game.packets.WorldPingMessage
 import net.psforever.packet.reset.ResetSequence
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits._
@@ -88,6 +88,8 @@ object PacketCoding {
             val payload = hex"00".bits ++ encryptedPayload.bits
             Successful(normalSecuredFlags ++ sequence ++ payload)
           }
+      case packet: WorldPingMessage =>
+        encodePacket(packet)
       case packet: PlanetSideGamePacket =>
         encodePacket(packet)
           .flatMap { _payload =>
