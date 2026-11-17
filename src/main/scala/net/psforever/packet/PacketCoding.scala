@@ -90,6 +90,9 @@ object PacketCoding {
           }
       case packet: WorldPingMessage =>
         encodePacket(packet)
+          .flatMap { _payload =>
+            Successful(_payload)
+          }
       case packet: PlanetSideGamePacket =>
         encodePacket(packet)
           .flatMap { _payload =>
