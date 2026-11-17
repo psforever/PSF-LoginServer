@@ -25,7 +25,7 @@ import net.psforever.packet.crypto.{ClientChallengeXchg, ClientFinished, ServerC
 import net.psforever.packet.game.packets._
 import net.psforever.packet.crypto._
 import net.psforever.packet.PacketCoding.CryptoCoding
-import net.psforever.packet.game.packets.{ChangeFireModeMessage, CharacterInfoMessage, ChatMsg, KeepAliveMessage, PingMsg, PropertyOverrideMessage, SquadDetailDefinitionUpdateMessage}
+import net.psforever.packet.game.packets.{ChangeFireModeMessage, CharacterInfoMessage, ChatMsg, KeepAliveMessage, PropertyOverrideMessage, SquadDetailDefinitionUpdateMessage}
 import net.psforever.packet.reset.ResetSequence
 import net.psforever.util.{Config, DiffieHellman, Md5Mac}
 
@@ -364,9 +364,9 @@ class MiddlewareActor(
             PacketCoding.decodePacket(msg) match {
               case Successful(packet) =>
                 packet match {
-                  case ping: PingMsg =>
-                    // reflect the packet back to the sender
-                    send(ping)
+                  case worldPing: WorldPingMessage =>
+                    // reflect the world ping packet back to the sender
+                    send(worldPing)
                     Behaviors.same
 
                   case _: ChangeFireModeMessage =>
