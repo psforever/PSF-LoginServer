@@ -5,7 +5,7 @@ import akka.actor.{ActorRef => ClassicActorRef}
 import akka.actor.typed.ActorRef
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.TestProbe
-import base.ActorTest
+import base.{ActorTest, EventEnvelopeAssertions}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.avatar.{Avatar, Certification, PlayerControl}
 import net.psforever.objects.ballistics._
@@ -22,7 +22,7 @@ import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
-import net.psforever.packet.game.packets.{DestroyMessage, InventoryStateMessage, RepairMessage}
+import net.psforever.packet.game.packets.{ChatMsg, DestroyMessage, InventoryStateMessage, RepairMessage}
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope
@@ -67,10 +67,10 @@ class PlayerControlHealTest extends ActorTest {
       assert(originalHealth < player2.MaxHealth)
 
       player2.Actor ! CommonMessages.Use(player1, Some(tool))
-      val msg_avatar = avatarProbe.receiveN(4, 500 milliseconds)
+      val msg_avatar = EventEnvelopeAssertions.drain(avatarProbe)
       assert(
-        msg_avatar.head match {
-          case MessageEnvelope(
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case (
                 "TestCharacter1",
                 _,
                 SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
@@ -80,31 +80,21 @@ class PlayerControlHealTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(1) match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
-          case _                                                                                            => false
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case ("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
+          case _                                                         => false
         }
       )
       assert(
-        msg_avatar(2) match {
-          case MessageEnvelope(
-              "TestCharacter2",
-              _,
-              PlanetsideAttribute(PlanetSideGUID(2), 55, 1)
-            ) =>
-            true
-          case _ => false
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case ("TestCharacter2", _, PlanetsideAttribute(PlanetSideGUID(2), 55, 1)) => true
+          case _                                                                   => false
         }
       )
       assert(
-        msg_avatar(3) match {
-          case MessageEnvelope(
-                "TestCharacter1",
-                _,
-                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
-              ) =>
-            true
-          case _ => false
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case ("TestCharacter1", _, SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))) => true
+          case _                                                                            => false
         }
       )
       val raisedHealth = player2.Health
@@ -148,10 +138,10 @@ class PlayerControlHealSelfTest extends ActorTest {
       assert(originalHealth < player1.MaxHealth)
 
       player1.Actor ! CommonMessages.Use(player1, Some(tool))
-      val msg_avatar1 = avatarProbe.receiveN(2, 500 milliseconds)
+      val msg_avatar1 = EventEnvelopeAssertions.drain(avatarProbe)
       assert(
-        msg_avatar1.head match {
-          case MessageEnvelope(
+        EventEnvelopeAssertions.contains(msg_avatar1) {
+          case (
                 "TestCharacter1",
                 _,
                 SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
@@ -161,9 +151,9 @@ class PlayerControlHealSelfTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar1(1) match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(1), 0, _)) => true
-          case _                                                                                            => false
+        EventEnvelopeAssertions.contains(msg_avatar1) {
+          case ("test", _, PlanetsideAttribute(PlanetSideGUID(1), 0, _)) => true
+          case _                                                         => false
         }
       )
       val raisedHealth = player1.Health
@@ -172,10 +162,10 @@ class PlayerControlHealSelfTest extends ActorTest {
 
       player1.Position = Vector3(10, 0, 0) //trying to move away from oneself doesn't work
       player1.Actor ! CommonMessages.Use(player1, Some(tool))
-      val msg_avatar2 = avatarProbe.receiveN(2, 500 milliseconds)
+      val msg_avatar2 = EventEnvelopeAssertions.drain(avatarProbe)
       assert(
-        msg_avatar2.head match {
-          case MessageEnvelope(
+        EventEnvelopeAssertions.contains(msg_avatar2) {
+          case (
                 "TestCharacter1",
                 _,
                 SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
@@ -184,10 +174,12 @@ class PlayerControlHealSelfTest extends ActorTest {
           case _ => false
         }
       )
+      //the final application reports completion through a self-hit message instead of another attribute update
       assert(
-        msg_avatar2(1) match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(1), 0, _)) => true
-          case _                                                                                            => false
+        EventEnvelopeAssertions.contains(msg_avatar2) {
+          case ("TestCharacter1", _, SendResponse(Seq(ChatMsg(_, _, _, text, _)))) =>
+            text.startsWith("@SelfHitHealedMessage")
+          case _ => false
         }
       )
       assert(player1.Health > raisedHealth)
@@ -233,10 +225,10 @@ class PlayerControlRepairTest extends ActorTest {
       assert(originalArmor < player2.MaxArmor)
 
       player2.Actor ! CommonMessages.Use(player1, Some(tool))
-      val msg_avatar = avatarProbe.receiveN(5, 1000 milliseconds)
+      val msg_avatar = EventEnvelopeAssertions.drain(avatarProbe)
       assert(
-        msg_avatar.head match {
-          case MessageEnvelope(
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case (
                 "TestCharacter1",
                 _,
                 SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
@@ -246,42 +238,21 @@ class PlayerControlRepairTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(1) match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 4, _)) => true
-          case _                                                                                            => false
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case ("test", _, PlanetsideAttribute(PlanetSideGUID(2), 4, _)) => true
+          case _                                                         => false
         }
       )
       assert(
-        msg_avatar(2) match {
-          case MessageEnvelope(
-              "TestCharacter2",
-              _,
-              PlanetsideAttribute(PlanetSideGUID(2), 56, 1)
-            ) =>
-            true
-          case _ => false
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case ("TestCharacter2", _, PlanetsideAttribute(PlanetSideGUID(2), 56, 1)) => true
+          case _                                                                   => false
         }
       )
       assert(
-        msg_avatar(3) match {
-          case MessageEnvelope(
-                "TestCharacter1",
-                _,
-                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
-              ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        msg_avatar(4) match {
-          case MessageEnvelope(
-                "TestCharacter2",
-                _,
-                PlanetsideAttribute(PlanetSideGUID(2), 56, 1)
-              ) =>
-            true
-          case _ => false
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case ("TestCharacter1", _, SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))) => true
+          case _                                                                            => false
         }
       )
       assert(player2.Armor > originalArmor)
@@ -290,7 +261,13 @@ class PlayerControlRepairTest extends ActorTest {
       val fixedArmor = player2.Armor
       player1.Position = Vector3(10, 0, 0) //moved more than 5m away
       player2.Actor ! CommonMessages.Use(player1, Some(tool))
-      avatarProbe.expectNoMessage(500 milliseconds)
+      val outOfRange = EventEnvelopeAssertions.drain(avatarProbe)
+      assert(
+        !EventEnvelopeAssertions.contains(outOfRange) {
+          case (_, _, SendResponse(Seq(RepairMessage(_, _)))) => true
+          case _                                              => false
+        }
+      )
       assert(fixedArmor == player2.Armor)
     }
   }
@@ -327,10 +304,10 @@ class PlayerControlRepairSelfTest extends ActorTest {
       assert(originalArmor < player1.MaxArmor)
 
       player1.Actor ! CommonMessages.Use(player1, Some(tool))
-      val msg_avatar1 = avatarProbe.receiveN(2, 500 milliseconds)
+      val msg_avatar1 = EventEnvelopeAssertions.drain(avatarProbe)
       assert(
-        msg_avatar1.head match {
-          case MessageEnvelope(
+        EventEnvelopeAssertions.contains(msg_avatar1) {
+          case (
                 "TestCharacter1",
                 _,
                 SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
@@ -340,9 +317,9 @@ class PlayerControlRepairSelfTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar1(1) match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(1), 4, _)) => true
-          case _                                                                                            => false
+        EventEnvelopeAssertions.contains(msg_avatar1) {
+          case ("test", _, PlanetsideAttribute(PlanetSideGUID(1), 4, _)) => true
+          case _                                                         => false
         }
       )
       val fixedArmor = player1.Armor
@@ -351,10 +328,10 @@ class PlayerControlRepairSelfTest extends ActorTest {
 
       player1.Position = Vector3(10, 0, 0) //trying to move away from oneself doesn't work
       player1.Actor ! CommonMessages.Use(player1, Some(tool))
-      val msg_avatar2 = avatarProbe.receiveN(2, 500 milliseconds)
+      val msg_avatar2 = EventEnvelopeAssertions.drain(avatarProbe)
       assert(
-        msg_avatar2.head match {
-          case MessageEnvelope(
+        EventEnvelopeAssertions.contains(msg_avatar2) {
+          case (
                 "TestCharacter1",
                 _,
                 SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
@@ -363,10 +340,12 @@ class PlayerControlRepairSelfTest extends ActorTest {
           case _ => false
         }
       )
+      //the final application reports completion through a self-hit message instead of another attribute update
       assert(
-        msg_avatar2(1) match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(1), 4, _)) => true
-          case _                                                                                            => false
+        EventEnvelopeAssertions.contains(msg_avatar2) {
+          case ("TestCharacter1", _, SendResponse(Seq(ChatMsg(_, _, _, text, _)))) =>
+            text.startsWith("@SelfHitHealedMessage")
+          case _ => false
         }
       )
       assert(player1.Armor > fixedArmor)
@@ -433,13 +412,13 @@ class PlayerControlDamageTest extends ActorTest {
       assert(player2.Health == player2.Definition.DefaultHealth)
       assert(player2.Armor == player2.MaxArmor)
       player2.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar   = avatarProbe.receiveN(3, 500 milliseconds)
+      val msg_avatar   = EventEnvelopeAssertions.drain(avatarProbe)
       val msg_stamina  = probe.receiveOne(500 milliseconds)
       val msg_activity = activityProbe.receiveOne(200 milliseconds)
       assert(
-        msg_avatar.head match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 4, _)) => true
-          case _                                                                                            => false
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case ("test", _, PlanetsideAttribute(PlanetSideGUID(2), 4, _)) => true
+          case _                                                         => false
         }
       )
       assert(
@@ -449,9 +428,9 @@ class PlayerControlDamageTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(1) match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
-          case _ => false
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case ("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
+          case _                                                         => false
         }
       )
       assert(
@@ -464,14 +443,9 @@ class PlayerControlDamageTest extends ActorTest {
         }
       )
       assert(
-        msg_avatar(2) match {
-          case MessageEnvelope(
-                "TestCharacter2",
-                PlanetSideGUID(1),
-                HintsAtAttacker(PlanetSideGUID(2))
-              ) =>
-            true
-          case _ => false
+        EventEnvelopeAssertions.contains(msg_avatar) {
+          case ("TestCharacter2", PlanetSideGUID(2), HintsAtAttacker(PlanetSideGUID(1))) => true
+          case _                                                                        => false
         }
       )
       assert(player2.Health < player2.Definition.DefaultHealth)

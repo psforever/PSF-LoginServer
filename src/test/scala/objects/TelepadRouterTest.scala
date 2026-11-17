@@ -4,7 +4,7 @@ package objects
 import akka.actor.{ActorRef, Props}
 import akka.actor.typed.scaladsl.adapter._
 import akka.testkit.TestProbe
-import base.{ActorTest, FreedContextActorTest}
+import base.{ActorTest, EventEnvelopeAssertions, FreedContextActorTest}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem, TelepadLike}
@@ -15,8 +15,6 @@ import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.packets.{DeployableIcon, DeployableInfo, DeploymentAction, GenericObjectActionMessage, ObjectCreateMessage}
-import net.psforever.services.base.envelope.MessageEnvelope
-import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalAction
 import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
 
@@ -47,39 +45,52 @@ class TelepadDeployableNoRouterTest extends ActorTest {
       assert(deployableList.isEmpty, "no-router telepad deployable test - deployable list is not empty")
       zone.Deployables ! Zone.Deployable.Build(telepad)
 
-      val eventsMsgs = eventsProbe.receiveN(4, 10.seconds)
-      eventsMsgs.head match {
-        case MessageEnvelope("test", _, LocalAction.DeployItem(obj)) =>
-          assert(obj eq telepad, "no-router telepad deployable testt - not same telepad")
-        case _ =>
-          assert( false, "no-router telepad deployable test - wrong deploy message")
-      }
-      eventsMsgs(1) match {
-        case MessageEnvelope(
-          "NEUTRAL",
-          _,
-          LocalAction.DeployableMapIcon(
-            DeploymentAction.Build,
-            DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
-          )
-        )      => ;
-        case _ => assert(false, "no-router telepad deployable test - no icon or wrong icon")
-      }
-      eventsMsgs(2) match {
-        case MessageEnvelope("test", _, LocalAction.EliminateDeployable(`telepad`, PlanetSideGUID(1), Vector3.Zero, 2)) => ;
-        case _ => assert(false, "no-router telepad deployable test - not eliminating deployable")
-      }
-      eventsMsgs(3) match {
-        case MessageEnvelope(
-          "NEUTRAL",
-          _,
-          LocalAction.DeployableMapIcon(
-            DeploymentAction.Dismiss,
-            DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
-          )
-        )      => ;
-        case _ => assert(false, "no-router telepad deployable test - no icon or wrong icon cleared")
-      }
+      val eventsMsgs = EventEnvelopeAssertions.drain(eventsProbe, 12.seconds, 3.seconds)
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case ("test", _, LocalAction.DeployItem(obj)) => obj eq telepad
+          case _                                        => false
+        },
+        s"no-router telepad deployable test - wrong deploy message: $eventsMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case (
+                "NEUTRAL",
+                _,
+                LocalAction.DeployableMapIcon(
+                  DeploymentAction.Build,
+                  DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
+                )
+              ) =>
+            true
+          case _ => false
+        },
+        s"no-router telepad deployable test - no icon or wrong icon: $eventsMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case ("test", _, LocalAction.EliminateDeployable(obj, PlanetSideGUID(1), Vector3.Zero, 2)) =>
+            obj eq telepad
+          case _ => false
+        },
+        s"no-router telepad deployable test - not eliminating deployable: $eventsMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case (
+                "NEUTRAL",
+                _,
+                LocalAction.DeployableMapIcon(
+                  DeploymentAction.Dismiss,
+                  DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
+                )
+              ) =>
+            true
+          case _ => false
+        },
+        s"no-router telepad deployable test - no icon or wrong icon cleared: $eventsMsgs"
+      )
       assert(deployableList.isEmpty, "no-router telepad deployable test - deployable is being tracked")
     }
   }
@@ -116,41 +127,53 @@ class TelepadDeployableNoActivationTest extends ActorTest {
       assert(deployableList.isEmpty, "no-activate telepad deployable test - deployable list is not empty")
       zone.Deployables ! Zone.Deployable.Build(telepad)
 
-      val eventsMsgs = eventsProbe.receiveN(4, 10.seconds)
-      eventsMsgs.head match {
-        case MessageEnvelope("test", _, LocalAction.DeployItem(obj)) =>
-          assert(obj eq telepad, "no-activate telepad deployable testt - not same telepad")
-        case _ =>
-          assert( false, "no-activate telepad deployable test - wrong deploy message")
-      }
-      eventsMsgs(1) match {
-        case MessageEnvelope(
-          "NEUTRAL",
-          _,
-          LocalAction.DeployableMapIcon(
-            DeploymentAction.Build,
-            DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
-          )
-        )      => ;
-        case _ =>
-          assert( false, "no-activate telepad deployable test - no icon or wrong icon")
-      }
-      eventsMsgs(2) match {
-        case MessageEnvelope("test", _, LocalAction.EliminateDeployable(`telepad`, PlanetSideGUID(1), Vector3.Zero, 2)) => ;
-        case _ => assert(false, "no-activate telepad deployable test - not eliminating deployable")
-      }
-      eventsMsgs(3) match {
-        case MessageEnvelope(
-          "NEUTRAL",
-          _,
-          LocalAction.DeployableMapIcon(
-            DeploymentAction.Dismiss,
-            DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
-          )
-        )      => ;
-        case _ => assert(false, "no-activate telepad deployable test - no icon or wrong icon")
-      }
-      routerProbe.expectNoMessage(100.millisecond)
+      val eventsMsgs = EventEnvelopeAssertions.drain(eventsProbe, 12.seconds, 3.seconds)
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case ("test", _, LocalAction.DeployItem(obj)) => obj eq telepad
+          case _                                        => false
+        },
+        s"no-activate telepad deployable test - wrong deploy message: $eventsMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case (
+                "NEUTRAL",
+                _,
+                LocalAction.DeployableMapIcon(
+                  DeploymentAction.Build,
+                  DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
+                )
+              ) =>
+            true
+          case _ => false
+        },
+        s"no-activate telepad deployable test - no icon or wrong icon: $eventsMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case ("test", _, LocalAction.EliminateDeployable(obj, PlanetSideGUID(1), Vector3.Zero, 2)) =>
+            obj eq telepad
+          case _ => false
+        },
+        s"no-activate telepad deployable test - not eliminating deployable: $eventsMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case (
+                "NEUTRAL",
+                _,
+                LocalAction.DeployableMapIcon(
+                  DeploymentAction.Dismiss,
+                  DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
+                )
+              ) =>
+            true
+          case _ => false
+        },
+        s"no-activate telepad deployable test - no icon or wrong icon: $eventsMsgs"
+      )
+      routerProbe.expectNoMessage(500.milliseconds)
       assert(deployableList.isEmpty, "no-activate telepad deployable test - deployable is being tracked")
     }
   }
@@ -188,29 +211,37 @@ class TelepadDeployableAttemptTest extends ActorTest {
       assert(deployableList.isEmpty, "link attempt telepad deployable test - deployable list is not empty")
       zone.Deployables ! Zone.Deployable.Build(telepad)
 
-      val eventsMsgs = eventsProbe.receiveN(2, 10.seconds)
-      val routerMsgs = routerProbe.receiveN(1, 10.seconds)
-      eventsMsgs.head match {
-        case MessageEnvelope("test", _, LocalAction.DeployItem(obj)) =>
-          assert(obj eq telepad, "link attempt telepad deployable testt - not same telepad")
-        case _ =>
-          assert( false, "link attempt telepad deployable test - wrong deploy message")
-      }
-      eventsMsgs(1) match {
-        case MessageEnvelope(
-          "NEUTRAL",
-          _,
-          LocalAction.DeployableMapIcon(
-            DeploymentAction.Build,
-            DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
-          )
-        )      => ;
-        case _ => assert(false, "link attempt telepad deployable test - no icon or wrong icon")
-      }
-      routerMsgs.head match {
-        case TelepadLike.RequestLink(tpad) if tpad eq telepad => ;
-        case _ => assert(false, "link attempt telepad deployable test - did not try to link")
-      }
+      val eventsMsgs = EventEnvelopeAssertions.drain(eventsProbe, 12.seconds, 3.seconds)
+      val routerMsgs = EventEnvelopeAssertions.drain(routerProbe, 10.seconds, 2.seconds)
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case ("test", _, LocalAction.DeployItem(obj)) => obj eq telepad
+          case _                                        => false
+        },
+        s"link attempt telepad deployable test - wrong deploy message: $eventsMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case (
+                "NEUTRAL",
+                _,
+                LocalAction.DeployableMapIcon(
+                  DeploymentAction.Build,
+                  DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
+                )
+              ) =>
+            true
+          case _ => false
+        },
+        s"link attempt telepad deployable test - no icon or wrong icon: $eventsMsgs"
+      )
+      assert(
+        routerMsgs.exists {
+          case TelepadLike.RequestLink(tpad) => tpad eq telepad
+          case _                             => false
+        },
+        s"link attempt telepad deployable test - did not try to link: $routerMsgs"
+      )
       assert(deployableList.contains(telepad), "link attempt telepad deployable test - deployable list is not empty")
     }
   }
@@ -262,82 +293,47 @@ class TelepadDeployableResponseFromRouterTest extends FreedContextActorTest {
       assert(deployableList.isEmpty, "link to router test - deployable list is not empty")
       zone.Deployables ! Zone.Deployable.Build(telepad)
 
-      val eventsMsgs = eventsProbe.receiveN(9, 10.seconds)
-      eventsMsgs.head match {
-        case MessageEnvelope("test", _, LocalAction.DeployItem(obj)) =>
-          assert(obj eq telepad, "link to router test - not same telepad")
-        case _ =>
-          assert( false, "link to router test - wrong deploy message")
-      }
-      eventsMsgs(1) match {
-        case MessageEnvelope(
-          "NEUTRAL",
-          _,
-          LocalAction.DeployableMapIcon(
-            DeploymentAction.Build,
-            DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
-          )
-        )      => ;
-        case _ => assert(false, "link to router test - no icon or wrong icon")
-      }
-      eventsMsgs(2) match {
-        case MessageEnvelope(
-          "test",
-          _,
-          SendResponse(Seq(
-            ObjectCreateMessage(_, 744, PlanetSideGUID(3), Some(ObjectCreateMessageParent(PlanetSideGUID(2), 2)), _)
-          ))
-        ) => ;
-        case _ => assert(false, "link to router test - did not create the internal router telepad (1)")
-      }
-      eventsMsgs(3) match {
-        case MessageEnvelope(
-          "test",
-          _,
-          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(3), 27)))
-        ) => ;
-        case _ => assert(false, "link to router test - did not create the internal router telepad (2)")
-      }
-      eventsMsgs(4) match {
-        case MessageEnvelope(
-          "test",
-          _,
-          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(3), 30)))
-        ) => ;
-        case _ => assert(false, "link to router test - did not create the internal router telepad (3)")
-      }
-      eventsMsgs(5) match {
-        case MessageEnvelope(
-          "test",
-          _,
-          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(3), 27)))
-        ) => ;
-        case _ => assert(false, "link to router test - did not link the internal telepad (1)")
-      }
-      eventsMsgs(6) match {
-        case MessageEnvelope(
-          "test",
-          _,
-          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(3), 28)))
-        ) => ;
-        case _ => assert(false, "link to router test - did not link the internal telepad (2)")
-      }
-      eventsMsgs(7) match {
-        case MessageEnvelope(
-          "test",
-          _,
-          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(1), 27)))
-        ) => ;
-        case _ => assert(false, "link to router test - did not link the telepad (1)")
-      }
-      eventsMsgs(8) match {
-        case MessageEnvelope(
-          "test",
-          _,
-          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(1), 28)))
-        ) => ;
-        case _ => assert(false, "link to router test - did not link the telepad (2)")
-      }
+      val eventsMsgs = EventEnvelopeAssertions.drain(eventsProbe, 12.seconds, 3.seconds)
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case ("test", _, LocalAction.DeployItem(obj)) => obj eq telepad
+          case _                                        => false
+        },
+        s"link to router test - wrong deploy message: $eventsMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(eventsMsgs) {
+          case (
+                "NEUTRAL",
+                _,
+                LocalAction.DeployableMapIcon(
+                  DeploymentAction.Build,
+                  DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
+                )
+              ) =>
+            true
+          case _ => false
+        },
+        s"link to router test - no icon or wrong icon: $eventsMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.containsPacket(eventsMsgs) {
+          case ObjectCreateMessage(_, 744, PlanetSideGUID(3), Some(ObjectCreateMessageParent(PlanetSideGUID(2), 2)), _) =>
+            true
+          case _ => false
+        },
+        s"link to router test - did not create the internal router telepad: $eventsMsgs"
+      )
+      def containsAction(guid: PlanetSideGUID, action: Int): Boolean =
+        EventEnvelopeAssertions.containsPacket(eventsMsgs) {
+          case GenericObjectActionMessage(`guid`, `action`) => true
+          case _                                            => false
+        }
+      assert(containsAction(PlanetSideGUID(3), 27), s"link to router test - did not create the internal router telepad: $eventsMsgs")
+      assert(containsAction(PlanetSideGUID(3), 30), s"link to router test - did not create the internal router telepad: $eventsMsgs")
+      assert(containsAction(PlanetSideGUID(3), 28), s"link to router test - did not link the internal telepad: $eventsMsgs")
+      assert(containsAction(PlanetSideGUID(1), 27), s"link to router test - did not link the telepad: $eventsMsgs")
+      assert(containsAction(PlanetSideGUID(1), 28), s"link to router test - did not link the telepad: $eventsMsgs")
       assert(telepad.Active, "link to router test - telepad not active when expected")
       assert(internal.Active, "link to router test - router internals active not active when expected (2)")
       assert(deployableList.contains(telepad), "link to router test - deployable list is not empty")
