@@ -42,12 +42,12 @@ class BaseVirusTest extends Specification {
     }
 
     "look up virus by Long ID" in {
-      BaseVirus(0L) must beSome(BaseVirus.UnlockDoors)
-      BaseVirus(1L) must beSome(BaseVirus.DisableLatticeBenefits)
-      BaseVirus(2L) must beSome(BaseVirus.NTUDrain)
-      BaseVirus(3L) must beSome(BaseVirus.DisableRadar)
-      BaseVirus(4L) must beSome(BaseVirus.AccessEquipmentTerms)
-      BaseVirus(8L) must beSome(BaseVirus.NoVirus)
+      BaseVirus(0L) must beSome(BaseVirus.UnlockDoors: BaseVirus)
+      BaseVirus(1L) must beSome(BaseVirus.DisableLatticeBenefits: BaseVirus)
+      BaseVirus(2L) must beSome(BaseVirus.NTUDrain: BaseVirus)
+      BaseVirus(3L) must beSome(BaseVirus.DisableRadar: BaseVirus)
+      BaseVirus(4L) must beSome(BaseVirus.AccessEquipmentTerms: BaseVirus)
+      BaseVirus(8L) must beSome(BaseVirus.NoVirus: BaseVirus)
       BaseVirus(99L) must beNone
       BaseVirus(0xFFFFFFFFL) must beNone
     }
