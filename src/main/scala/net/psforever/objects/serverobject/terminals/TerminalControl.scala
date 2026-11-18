@@ -2,6 +2,8 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.ActorRef
+import net.psforever.objects.Player
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.{GlobalDefinitions, SimpleItem, Tool}
 import net.psforever.objects.serverobject.CommonMessages
@@ -45,40 +47,33 @@ class TerminalControl(term: Terminal)
           TerminalControl.Dispatch(sender(), term, Terminal.TerminalMessage(player, msg, term.Request(player, msg)))
 
         case CommonMessages.Use(player, Some(item: SimpleItem))
-          if item.Definition == GlobalDefinitions.remote_electronics_kit =>
-          //TODO setup certifications check
-          term.Owner match {
-            case b: Building if (b.Faction != player.Faction || b.CaptureTerminalIsHacked) && term.HackedBy.isEmpty =>
+          if item.Definition == GlobalDefinitions.remote_electronics_kit &&
+            TerminalControl.CanHack(player, term) =>
               //order terminals are 90 / 1, or 60 / ?
               sender() ! CommonMessages.Progress(
                 GenericHackables.GetHackSpeed(player, term),
                 GenericHackables.FinishHacking(term, player, hackValue = -1, hackClearValue = -1),
                 GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID)
               )
-            case _ => ()
-          }
+
         case CommonMessages.UploadVirus(player, Some(item: Tool), virus)
-          if item.Definition == GlobalDefinitions.trek && BaseVirus(virus).exists(_ != BaseVirus.NoVirus) =>
-          term.Owner match {
-            case b: Building if b.Faction != player.Faction =>
+          if item.Definition == GlobalDefinitions.trek &&
+            BaseVirus(virus).exists(_ != BaseVirus.NoVirus) &&
+              TerminalControl.CanUploadVirus(player, term) =>
               sender() ! CommonMessages.Progress(
                 1.66f,
                 GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus),
                 GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID)
               )
-            case _ => ()
-          }
+
         case CommonMessages.RemoveVirus(player, Some(item: Equipment))
-          if item.Definition == GlobalDefinitions.remote_electronics_kit => // || item.Definition == GlobalDefinitions.trek =>
-          term.Owner match {
-            case b: Building if b.virusId != BaseVirus.NoVirus.id =>
+          if item.Definition == GlobalDefinitions.remote_electronics_kit &&
+            TerminalControl.CanRemoveVirus(player, term) =>
               sender() ! CommonMessages.Progress(
                 1.66f,
                 GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus = BaseVirus.NoVirus.id),
                 GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID)
               )
-            case _ => ()
-          }
         case _ => ()
       }
 
@@ -134,6 +129,70 @@ class TerminalControl(term: Terminal)
 }
 
 object TerminalControl {
+  private val BasicHackCerts: Set[Certification] = Set(
+    Certification.Hacking,
+    Certification.AdvancedHacking,
+    Certification.ExpertHacking,
+    Certification.ElectronicsExpert
+  )
+
+  private val AdvancedHackCerts: Set[Certification] = Set(
+    Certification.AdvancedHacking,
+    Certification.ExpertHacking,
+    Certification.ElectronicsExpert
+  )
+
+  private val VirusInstallCerts: Set[Certification] = Set(
+    Certification.DataCorruption,
+    Certification.ElectronicsExpert
+  )
+
+  private val VirusRemoveCerts: Set[Certification] = Set(
+    Certification.ExpertHacking,
+    Certification.ElectronicsExpert
+  )
+
+  private def CanHack(player: Player, term: Terminal): Boolean = {
+    val certs = player.avatar.certifications
+    val hasCert = term.Definition match {
+      case GlobalDefinitions.cert_terminal |
+           GlobalDefinitions.medical_terminal |
+           GlobalDefinitions.implant_terminal_interface =>
+        certs.intersect(BasicHackCerts).nonEmpty
+      case _ =>
+        certs.intersect(AdvancedHackCerts).nonEmpty
+    }
+    hasCert && (term.Owner match {
+      case b: Building =>
+        (b.Faction != player.Faction || b.CaptureTerminalIsHacked) && term.HackedBy.isEmpty
+      case _ =>
+        false
+    })
+  }
+
+  private def CanUploadVirus(player: Player, term: Terminal): Boolean = {
+    val hasCert = player.avatar.certifications.intersect(VirusInstallCerts).nonEmpty
+    val isValidTerminal = term.Definition == GlobalDefinitions.main_terminal
+    hasCert && isValidTerminal && (term.Owner match {
+      case b: Building =>
+        b.Faction != player.Faction
+      case _ =>
+        false
+    })
+  }
+
+  private def CanRemoveVirus(player: Player, term: Terminal): Boolean = {
+    val hasCert = player.avatar.certifications.intersect(VirusRemoveCerts).nonEmpty
+    val isValidTerminal = term.Definition == GlobalDefinitions.main_terminal
+    hasCert && isValidTerminal && (term.Owner match {
+      case b: Building =>
+        b.Faction == player.Faction && b.virusId != BaseVirus.NoVirus.id
+      case _ =>
+        false
+    })
+  }
+
+
   def Dispatch(sender: ActorRef, terminal: Terminal, msg: Terminal.TerminalMessage): Unit = {
     msg.response match {
       case Terminal.NoDeal() => sender ! msg
