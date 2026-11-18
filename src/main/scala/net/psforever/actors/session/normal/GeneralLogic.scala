@@ -342,7 +342,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleUseItem(pkt: UseItemMessage): Unit = {
-    val equipment = ops.findContainedEquipment(pkt.item_used_guid) match {
+    val equipment = ops.findContainedEquipment(pkt.itemUsedGUID) match {
       case (o @ Some(_), a) if a.exists(_.isInstanceOf[Tool]) =>
         sessionLogic.shooting.FindEnabledWeaponsToHandleWeaponFireAccountability(o, a.collect { case w: Tool => w })._2.headOption
       case (Some(_), a) =>
@@ -350,7 +350,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case _ =>
         None
     }
-    sessionLogic.validObject(pkt.object_guid, decorator = "UseItem") match {
+    sessionLogic.validObject(pkt.objectGUID, decorator = "UseItem") match {
       case Some(door: Door) =>
         ops.handleUseDoor(door, equipment)
       case Some(resourceSilo: ResourceSilo) =>

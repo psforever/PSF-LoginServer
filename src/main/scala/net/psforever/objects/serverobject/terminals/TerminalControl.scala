@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.ActorRef
+import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.{GlobalDefinitions, SimpleItem, Tool}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
@@ -9,7 +10,7 @@ import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableAmenity}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
-import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.serverobject.structures.{BaseVirus, Building, PoweredAmenityControl}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.packets.HackState1
 import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope}
@@ -57,9 +58,9 @@ class TerminalControl(term: Terminal)
             case _ => ()
           }
         case CommonMessages.UploadVirus(player, Some(item: Tool), virus)
-          if item.Definition == GlobalDefinitions.trek =>
+          if item.Definition == GlobalDefinitions.trek && BaseVirus(virus).exists(_ != BaseVirus.NoVirus) =>
           term.Owner match {
-            case _: Building =>
+            case b: Building if b.Faction != player.Faction =>
               sender() ! CommonMessages.Progress(
                 1.66f,
                 GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus),
@@ -67,13 +68,13 @@ class TerminalControl(term: Terminal)
               )
             case _ => ()
           }
-        case CommonMessages.RemoveVirus(player, Some(item: SimpleItem))
-          if item.Definition == GlobalDefinitions.remote_electronics_kit =>
+        case CommonMessages.RemoveVirus(player, Some(item: Equipment))
+          if item.Definition == GlobalDefinitions.remote_electronics_kit => // || item.Definition == GlobalDefinitions.trek =>
           term.Owner match {
-            case _: Building =>
+            case b: Building if b.virusId != BaseVirus.NoVirus.id =>
               sender() ! CommonMessages.Progress(
                 1.66f,
-                GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus=8L),
+                GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus = BaseVirus.NoVirus.id),
                 GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID)
               )
             case _ => ()

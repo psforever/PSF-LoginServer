@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.hackable
 
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.dome.ForceDomeControl
-import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.{Amenity, BaseVirus, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
@@ -204,19 +204,19 @@ object GenericHackables {
           if (tplayer.Faction == target.Faction) {
             //clear virus
             val currVirus = building.virusId
-            building.virusId = 8
+            building.virusId = BaseVirus.NoVirus.id
             building.virusInstalledBy = None
             zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(target))
             zone.LocalEvents ! MessageEnvelope(
               zone.id,
               SendResponse(GenericObjectActionMessage(target.GUID, 60))
             )
-            currVirus match {
-              case 0L =>
+            BaseVirus.withValueOpt(currVirus.toInt) match {
+              case Some(BaseVirus.UnlockDoors) =>
                 building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
                   zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(iff))
                 }
-              case 4L =>
+              case Some(BaseVirus.AccessEquipmentTerms) =>
                 building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach { term =>
                   zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(term))
                 }
@@ -226,81 +226,69 @@ object GenericHackables {
           }
           else {
             //install virus
-            val currVirus = building.virusId
-            //clear previous virus unlocks to prevent virus stacking
-            currVirus match {
-              case 0L =>
-                if (virus != 0) {
-                  building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
-                    zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(iff))
-                  }
+            BaseVirus(virus) match {
+              case Some(baseVirus) if baseVirus != BaseVirus.NoVirus =>
+                val currVirus = building.virusId
+                //clear previous virus unlocks to prevent virus stacking
+                BaseVirus.withValueOpt(currVirus.toInt) match {
+                  case Some(BaseVirus.UnlockDoors) if baseVirus != BaseVirus.UnlockDoors =>
+                    building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
+                      zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(iff))
+                    }
+                  case Some(BaseVirus.AccessEquipmentTerms) if baseVirus != BaseVirus.AccessEquipmentTerms =>
+                    building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach { term =>
+                      zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(term))
+                    }
+                  case _ => ()
                 }
-              case 4L =>
-                if (virus != 4) {
-                  building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach { term =>
-                    zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(term))
-                  }
+
+                val installedVirusDuration = baseVirus.durationSeconds
+                val hackState = baseVirus.hackState
+
+                building.virusId = baseVirus.id
+                building.virusInstalledBy = Some(tplayer.Faction.id)
+                zone.LocalEvents ! MessageEnvelope(
+                  zoneId,
+                  pguid,
+                  LocalAction.TriggerSound(TriggeredSound.TREKSuccessful, tplayer.Position, 30, 0.49803925f)
+                )
+                zone.LocalEvents ! HackEntityEnvelope(
+                  zoneId,
+                  pguid,
+                  LocalAction.HackObject(target.GUID, installedVirusDuration.toLong, hackState),
+                  HackClearActor.ObjectIsHacked(target, zone, hackClearValue, hackState, installedVirusDuration)
+                )
+                zone.LocalEvents ! MessageEnvelope(
+                  zone.id,
+                  SendResponse(GenericObjectActionMessage(target.GUID, 61), GenericObjectActionMessage(target.GUID, 58))
+                )
+                //amenities if applicable
+                baseVirus match {
+                  case BaseVirus.UnlockDoors =>
+                    building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
+                      iff.HackedBy = tplayer
+                      zone.LocalEvents ! HackEntityEnvelope(
+                        zoneId,
+                        pguid,
+                        LocalAction.HackObject(iff.GUID, hackValue.toLong, HackState7.Unk8),
+                        HackClearActor.ObjectIsHacked(iff, zone, hackClearValue, HackState7.Unk8, installedVirusDuration)
+                      )
+                    }
+                  case BaseVirus.AccessEquipmentTerms =>
+                    building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach { term =>
+                      term.HackedBy = tplayer
+                      zone.LocalEvents ! HackEntityEnvelope(
+                        zoneId,
+                        pguid,
+                        LocalAction.HackObject(term.GUID, hackValue.toLong, HackState7.Unk8),
+                        HackClearActor.ObjectIsHacked(term, zone, hackClearValue, HackState7.Unk8, installedVirusDuration)
+                      )
+                    }
+                  case _ => ()
                 }
+                building.Actor ! BuildingActor.MapUpdate()
               case _ => ()
             }
-            val virusLength: Map[Long, Int] = Map(
-              0L -> 3600,
-              1L -> 900,
-              2L -> 3600,
-              3L -> 900,
-              4L -> 120
-            )
-            val installedVirusDuration = virusLength(virus)
-            val hackStateMap: Map[Long, HackState7] = Map(
-              0L -> HackState7.UnlockDoors,
-              1L -> HackState7.DisableLatticeBenefits,
-              2L -> HackState7.NTUDrain,
-              3L -> HackState7.DisableRadar,
-              4L -> HackState7.AccessEquipmentTerms
-            )
-            val hackState = hackStateMap.getOrElse(virus, HackState7.Unk8)
-            building.virusId = virus
-            building.virusInstalledBy = Some(tplayer.Faction.id)
-            zone.LocalEvents ! MessageEnvelope(
-              zoneId,
-              pguid,
-              LocalAction.TriggerSound(TriggeredSound.TREKSuccessful, tplayer.Position, 30, 0.49803925f)
-            )
-            zone.LocalEvents ! HackEntityEnvelope(
-              zoneId,
-              pguid,
-              LocalAction.HackObject(target.GUID, installedVirusDuration.toLong, hackState),
-              HackClearActor.ObjectIsHacked(target, zone, hackClearValue, hackState, installedVirusDuration)
-            )
-            zone.LocalEvents ! MessageEnvelope(
-              zone.id,
-              SendResponse(GenericObjectActionMessage(target.GUID, 61), GenericObjectActionMessage(target.GUID, 58))
-            )
-            //amenities if applicable
-            virus match {
-              case 0L =>
-                building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach{ iff =>
-                  iff.HackedBy = tplayer
-                  zone.LocalEvents ! HackEntityEnvelope(
-                    zoneId,
-                    pguid,
-                    LocalAction.HackObject(target.GUID, hackValue.toLong, HackState7.Unk8),
-                    HackClearActor.ObjectIsHacked(target, zone, hackClearValue, HackState7.Unk8, installedVirusDuration)
-                  )
-                }
-              case 4L =>
-                building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach{ term =>
-                  term.HackedBy = tplayer
-                  zone.LocalEvents ! HackEntityEnvelope(
-                    zoneId,
-                    pguid,
-                    LocalAction.HackObject(term.GUID, hackValue.toLong, HackState7.Unk8),
-                    HackClearActor.ObjectIsHacked(target, zone, hackClearValue, HackState7.Unk8, installedVirusDuration)
-                  )
-                }
-              case _ => ()
-            }
-            building.Actor ! BuildingActor.MapUpdate()
           }
         case Failure(_) =>
           log.warn(s"Virus action failed on target: ${target.Definition.Name}@${target.GUID.guid}")
