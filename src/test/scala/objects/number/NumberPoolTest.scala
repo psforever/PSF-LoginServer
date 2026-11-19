@@ -204,7 +204,7 @@ class NumberPoolTest extends Specification {
 
     }
 
-    "get a free number that represents half of the largest delta" in {
+    "get the lowest free number when several low numbers are defined" in {
       val map = mutable.LongMap[String]()
       map += 5L -> "test" //5 is defined; think, -1 :: 5 :: 11
       map += 4L -> "test" //4 is defined; think, -1 :: 4 :: 5 :: 11
@@ -215,6 +215,67 @@ class NumberPoolTest extends Specification {
         case _ =>
           ko
       }
+    }
+
+    "get successive numbers, stepping over those defined" in {
+      val map = mutable.LongMap[String]()
+      map ++= Seq(1L -> "test", 2L -> "test", 4L -> "test")
+      val obj = GenericPool(map, max = 11, poolName = "generic")
+      (1 to 4).map(_ => obj.Get().get) mustEqual Seq(3, 5, 6, 7)
+    }
+
+    "step over numbers defined after construction" in {
+      val map = mutable.LongMap[String]()
+      val obj = GenericPool(map, max = 11, poolName = "generic")
+      obj.Get().get mustEqual 1
+      map ++= Seq(2L -> "test", 3L -> "test") //another pool takes 2 and 3
+      obj.Get().get mustEqual 4
+    }
+
+    "reuse the lowest returned number" in {
+      val map = mutable.LongMap[String]()
+      val obj = GenericPool(map, max = 11, poolName = "generic")
+      (1 to 5).foreach(_ => obj.Get())
+      obj.Return(4) mustEqual true
+      obj.Return(2) mustEqual true
+      obj.Get().get mustEqual 2
+      obj.Get().get mustEqual 4
+      obj.Get().get mustEqual 6
+    }
+
+    "fail when every number is taken, then succeed after a return" in {
+      val map = mutable.LongMap[String]()
+      val obj = GenericPool(map, max = 4, poolName = "generic") //numbers 1, 2, 3
+      (1 to 3).map(_ => obj.Get().get) mustEqual Seq(1, 2, 3)
+      obj.Get().isFailure mustEqual true
+      obj.Return(2) mustEqual true
+      obj.Get().get mustEqual 2
+      obj.Get().isFailure mustEqual true
+    }
+
+    "always get the lowest free number over a random sequence of operations" in {
+      val max = 1024
+      val map = mutable.LongMap[String]()
+      val obj = GenericPool(map, max, poolName = "generic")
+      val rng = new scala.util.Random(1400)
+      def expectedLowest: Option[Int] = (1 until max).find(n => !map.contains(n.toLong))
+      val mismatches = (1 to 5000).flatMap { step =>
+        rng.nextInt(10) match {
+          case r if r < 5 => //draw
+            val expected = expectedLowest
+            val got      = obj.Get().toOption
+            if (got != expected) Some(s"step $step: got $got, expected $expected") else None
+          case 9 => //another pool takes a free number
+            val n = (1 + rng.nextInt(max - 1)).toLong
+            if (!map.contains(n)) map += n -> "test"
+            None
+          case _ => //return one of ours
+            val held = obj.Numbers
+            if (held.nonEmpty) obj.Return(held(rng.nextInt(held.size)))
+            None
+        }
+      }
+      mismatches must beEmpty
     }
   }
 }
