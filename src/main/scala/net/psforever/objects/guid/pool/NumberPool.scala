@@ -8,6 +8,13 @@ import scala.util.Try
 trait NumberPool {
   def Numbers: List[Int]
 
+  /**
+    * The index of `number` in this pool, which is what a `SpecificSelector` takes to select it.
+    * @param number the number
+    * @return its index, or -1 if it is not in this pool
+    */
+  def IndexOf(number: Int): Int = Numbers.indexOf(number)
+
   def Count: Int
 
   def Selector: NumberSelector

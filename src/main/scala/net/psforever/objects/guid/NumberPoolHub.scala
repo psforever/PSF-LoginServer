@@ -216,7 +216,7 @@ class NumberPoolHub(private val source: NumberSource) {
         import net.psforever.objects.guid.selector.SpecificSelector
         val specific = new SpecificSelector
         pool.Selector = specific
-        specific.SelectionIndex = pool.Numbers.indexOf(number)
+        specific.SelectionIndex = pool.IndexOf(number)
         pool.Get()
         pool.Selector = slctr
         register_GetAvailableNumberFromSource(number)

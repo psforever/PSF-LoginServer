@@ -2,7 +2,7 @@
 package objects.number
 
 import net.psforever.objects.guid.pool.{ExclusivePool, GenericPool, SimplePool}
-import net.psforever.objects.guid.selector.SpecificSelector
+import net.psforever.objects.guid.selector.{RandomSelector, SpecificSelector}
 import org.specs2.mutable.Specification
 
 import scala.collection.mutable
@@ -130,6 +130,54 @@ class NumberPoolTest extends Specification {
         catch { case _: Exception => ko }
       })
       ok
+    }
+
+    "fail to construct with a negative number" in {
+      new ExclusivePool(-1 :: 0 :: 1 :: Nil) must throwA[IllegalArgumentException]
+      new ExclusivePool(3 :: -1 :: 7 :: Nil) must throwA[IllegalArgumentException]
+    }
+
+    "fail to construct with duplicate numbers" in {
+      new ExclusivePool(3 :: 7 :: 3 :: Nil) must throwA[IllegalArgumentException]
+    }
+
+    "enumerate its numbers in the order given, contiguous or not" in {
+      new ExclusivePool((10 to 20).toList).Numbers mustEqual (10 to 20).toList
+      val scattered = List(40, 3, 17, 25, 4)
+      new ExclusivePool(scattered).Numbers mustEqual scattered
+    }
+
+    "find the index of each of its numbers, and -1 for any other, contiguous or not" in {
+      val contiguous = new ExclusivePool((10 to 20).toList)
+      (10 to 20).map(contiguous.IndexOf) mustEqual (0 to 10)
+      Seq(-1, 0, 9, 21, Int.MaxValue).map(contiguous.IndexOf) mustEqual Seq(-1, -1, -1, -1, -1)
+      val scattered = List(40, 3, 17, 25, 4)
+      val pool      = new ExclusivePool(scattered)
+      scattered.map(pool.IndexOf) mustEqual scattered.indices.toList
+      Seq(-1, 0, 5, 18, 41, Int.MaxValue).map(pool.IndexOf) mustEqual Seq(-1, -1, -1, -1, -1, -1)
+    }
+
+    "get and return every number of a pool that is not contiguous" in {
+      val scattered = List(40, 3, 17, 25, 4)
+      val obj       = new ExclusivePool(scattered)
+      obj.Selector = new RandomSelector
+      val drawn = scattered.map(_ => obj.Get().get)
+      drawn.sorted mustEqual scattered.sorted
+      obj.Get().isFailure mustEqual true
+      obj.Count mustEqual scattered.size
+      drawn.forall(obj.Return) mustEqual true
+      obj.Count mustEqual 0
+      obj.Return(5) mustEqual false //not in the pool
+    }
+
+    "get a specific number through a SpecificSelector, contiguous or not" in {
+      Seq((10 to 20).toList, List(40, 3, 17, 25, 4)).forall { numbers =>
+        val obj      = new ExclusivePool(numbers)
+        val specific = new SpecificSelector
+        obj.Selector = specific
+        specific.SelectionIndex = obj.IndexOf(numbers(3))
+        obj.Get() == Success(numbers(3))
+      } mustEqual true
     }
   }
 
