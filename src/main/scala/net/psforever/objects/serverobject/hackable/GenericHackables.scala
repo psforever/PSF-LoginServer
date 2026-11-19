@@ -271,6 +271,10 @@ object GenericHackables {
                     zone.id,
                     SendResponse(GenericObjectActionMessage(target.GUID, 61))
                   )
+                  zone.LocalEvents ! MessageEnvelope(
+                    s"${tplayer.Faction}",
+                    SendResponse(GenericObjectActionMessage(target.GUID, 59))
+                  )
                   building.Actor ! BuildingActor.ScheduleVirusAlert(baseVirus.id, target.GUID)
                   //amenities if applicable
                   baseVirus match {
