@@ -9,8 +9,6 @@ import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.avatar.AvatarBot
 
-import scala.collection.mutable.ListBuffer
-
 /**
   * The collections of entities in a sector conglomerate.
   */
@@ -74,7 +72,7 @@ trait SectorTraits {
   * @tparam A the type of object that will be the entities stored in the list
   */
 class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a == b) {
-  private val internalList: ListBuffer[A] = ListBuffer[A]()
+  private var internalList: List[A] = Nil
 
   /**
     * Insert the entity into the list as long as it cannot be found in the list
@@ -84,7 +82,7 @@ class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a == b) {
     */
   def addTo(elem: A): List[A] = {
     internalList.indexWhere { item => eqFunc(elem, item) } match {
-      case -1 => internalList.addOne(elem)
+      case -1 => internalList = internalList :+ elem
       case _  => ;
     }
     list
@@ -99,7 +97,7 @@ class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a == b) {
   def removeFrom(elem: A): List[A] = {
     internalList.indexWhere { item => eqFunc(elem, item) } match {
       case -1    => ;
-      case index => internalList.remove(index)
+      case index => internalList = internalList.patch(index, Nil, 1)
     }
     list
   }
@@ -108,7 +106,7 @@ class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a == b) {
     * Cast this specialized list of entities into a conventional list of entities.
     * @return a conventional list of entities
     */
-  def list: List[A] = internalList.toList
+  def list: List[A] = internalList
 }
 
 /**
