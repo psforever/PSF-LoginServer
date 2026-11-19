@@ -175,7 +175,10 @@ object TerminalControl {
     val isValidTerminal = term.Definition == GlobalDefinitions.main_terminal
     hasCert && isValidTerminal && (term.Owner match {
       case b: Building =>
-        b.Faction != player.Faction
+        b.Faction != player.Faction && (
+          b.virusId == BaseVirus.NoVirus.id ||
+          b.virusInstallTime.forall(t => System.currentTimeMillis() - t >= 120000L)
+        )
       case _ =>
         false
     })

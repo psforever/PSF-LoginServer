@@ -37,6 +37,7 @@ class Building(
   private var participationFunc: ParticipationLogic = NoParticipation
   var virusId: Long                           = 8 // 8 default = no virus
   var virusInstalledBy: Option[Int]           = None // faction id
+  var virusInstallTime: Option[Long]          = None
   var hasCavernLockBenefit: Boolean           = false
   super.Zone_=(zone)
   super.GUID_=(PlanetSideGUID(building_guid)) //set

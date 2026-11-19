@@ -135,6 +135,7 @@ class HackClearActor() extends Actor {
     val building = target.asInstanceOf[Terminal].Owner.asInstanceOf[Building]
     building.virusId = 8
     building.virusInstalledBy = None
+    building.virusInstallTime = None
     val msg = GenericObjectAction(target.GUID, 60)
     val events = building.Zone.AvatarEvents
     events ! BundledEnvelope(building.PlayersInSOI.map { player => MessageEnvelope(player.Name, msg) })
