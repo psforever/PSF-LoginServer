@@ -207,6 +207,7 @@ object GenericHackables {
             building.virusId = BaseVirus.NoVirus.id
             building.virusInstalledBy = None
             building.virusInstallTime = None
+            building.virusInformedDefenders = false
             zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(target))
             zone.LocalEvents ! MessageEnvelope(
               zone.id,
@@ -254,6 +255,7 @@ object GenericHackables {
                   building.virusId = baseVirus.id
                   building.virusInstalledBy = Some(tplayer.Faction.id)
                   building.virusInstallTime = Some(System.currentTimeMillis())
+                  building.virusInformedDefenders = false
                   zone.LocalEvents ! MessageEnvelope(
                     zoneId,
                     pguid,
@@ -267,8 +269,9 @@ object GenericHackables {
                   )
                   zone.LocalEvents ! MessageEnvelope(
                     zone.id,
-                    SendResponse(GenericObjectActionMessage(target.GUID, 61), GenericObjectActionMessage(target.GUID, 58))
+                    SendResponse(GenericObjectActionMessage(target.GUID, 61))
                   )
+                  building.Actor ! BuildingActor.ScheduleVirusAlert(baseVirus.id, target.GUID)
                   //amenities if applicable
                   baseVirus match {
                     case BaseVirus.UnlockDoors =>
