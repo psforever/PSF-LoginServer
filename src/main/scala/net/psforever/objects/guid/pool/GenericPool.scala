@@ -7,7 +7,7 @@ import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 class GenericPool(
-                   private val hub: mutable.LongMap[String],
+                   private val hub: NumberPoolNames,
                    private val max: Int,
                    private val poolName: String
                  ) extends NumberPool {
@@ -80,7 +80,7 @@ object GenericPool {
     * @return a `GenericPool` entity
     */
   def apply(
-             hub: mutable.LongMap[String],
+             hub: NumberPoolNames,
              max: Int,
              poolName: String
            ): GenericPool =

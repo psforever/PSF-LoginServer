@@ -3,7 +3,7 @@ package net.psforever.objects.guid
 
 import net.psforever.objects.entity.{IdentifiableEntity, NoGUIDException}
 import net.psforever.objects.guid.key.{AvailabilityPolicy, LoanedKey}
-import net.psforever.objects.guid.pool.{ExclusivePool, GenericPool, NumberPool}
+import net.psforever.objects.guid.pool.{ExclusivePool, GenericPool, NumberPool, NumberPoolNames}
 import net.psforever.objects.guid.source.NumberSource
 import net.psforever.types.PlanetSideGUID
 
@@ -23,7 +23,7 @@ import scala.util.{Failure, Success, Try}
 class NumberPoolHub(private val source: NumberSource) {
   import scala.collection.mutable
   private val hash: mutable.HashMap[String, NumberPool] = mutable.HashMap[String, NumberPool]()
-  private val bigpool: mutable.LongMap[String]          = mutable.LongMap[String]()
+  private val bigpool: NumberPoolNames                   = new NumberPoolNames(source.size)
   hash += "generic" -> GenericPool(bigpool, source.size, poolName = "generic")
 
   /**

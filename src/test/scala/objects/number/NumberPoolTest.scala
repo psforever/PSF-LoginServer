@@ -1,11 +1,10 @@
 // Copyright (c) 2017 PSForever
 package objects.number
 
-import net.psforever.objects.guid.pool.{ExclusivePool, GenericPool, SimplePool}
+import net.psforever.objects.guid.pool.{ExclusivePool, GenericPool, NumberPoolNames, SimplePool}
 import net.psforever.objects.guid.selector.{RandomSelector, SpecificSelector}
 import org.specs2.mutable.Specification
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Success
 
@@ -181,14 +180,67 @@ class NumberPoolTest extends Specification {
     }
   }
 
+  "NumberPoolNames" should {
+    "hold nothing at first" in {
+      val names = new NumberPoolNames(size = 10)
+      (0 until 10).exists(n => names.contains(n)) mustEqual false
+      names.get(3) mustEqual None
+      names.keys.isEmpty mustEqual true
+      names(3) must throwA[NoSuchElementException]
+    }
+
+    "record, find, and remove the pool of a number" in {
+      val names = new NumberPoolNames(size = 10)
+      names += 3L -> "ammo"
+      names += 4L -> "tools"
+      names += 5L -> "ammo"
+      names.get(3) mustEqual Some("ammo")
+      names.get(4) mustEqual Some("tools")
+      names(5) mustEqual "ammo"
+      names.keys.toList mustEqual List(3L, 4L, 5L)
+      names -= 4
+      names.contains(4) mustEqual false
+      names.keys.toList mustEqual List(3L, 5L)
+      names += 4L -> "ammo"
+      names.get(4) mustEqual Some("ammo")
+    }
+
+    "replace a number's pool" in {
+      val names = new NumberPoolNames(size = 10)
+      names += 3L -> "ammo"
+      names += 3L -> "tools"
+      names.get(3) mustEqual Some("tools")
+    }
+
+    "find nothing, and ignore writes, outside of its range" in {
+      val names = new NumberPoolNames(size = 10)
+      names ++= Seq(-1L -> "ammo", 10L -> "ammo", Long.MaxValue -> "ammo")
+      names.contains(-1) mustEqual false
+      names.contains(10) mustEqual false
+      names.get(Long.MaxValue) mustEqual None
+      names.keys.isEmpty mustEqual true
+      names -= 10 //no failure
+      ok
+    }
+
+    "tell 255 pool names apart, and refuse a 256th" in {
+      val names = new NumberPoolNames(size = 300)
+      (0 until 255).foreach(n => names += n.toLong -> s"pool$n")
+      (0 until 255).forall(n => names.get(n).contains(s"pool$n")) mustEqual true
+      (names += 255L -> "one too many") must throwA[IllegalStateException]
+      names += 255L -> "pool7" //a known name is fine
+      names.get(255) mustEqual Some("pool7")
+    }
+  }
+
   "GenericPool" should {
     "construct" in {
-      GenericPool(mutable.LongMap[String](), max = 11, poolName = "generic")
+      GenericPool(new NumberPoolNames(size = 1024), max = 11, poolName = "generic")
       ok
     }
 
     "get a provided number" in {
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Numbers.isEmpty mustEqual true
       obj.Selector.asInstanceOf[SpecificSelector].SelectionIndex = 5
@@ -204,7 +256,7 @@ class NumberPoolTest extends Specification {
     }
 
     "return a number" in {
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Selector.asInstanceOf[SpecificSelector].SelectionIndex = 5
       obj.Get()
@@ -216,7 +268,7 @@ class NumberPoolTest extends Specification {
     }
 
     "block on numbers that are already defined" in {
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       map += 5L -> "test" //5 is defined
       val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Numbers.isEmpty mustEqual true
@@ -230,7 +282,7 @@ class NumberPoolTest extends Specification {
     }
 
     "get a free number on own if none provided" in {
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Get() match {
         case Success(number) =>
@@ -241,7 +293,7 @@ class NumberPoolTest extends Specification {
     }
 
     "get a free number that is not already defined" in {
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       map += 5L -> "test" //5 is defined; think, -1 :: 5 :: 11
       val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Get() match {
@@ -253,7 +305,7 @@ class NumberPoolTest extends Specification {
     }
 
     "get the lowest free number when several low numbers are defined" in {
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       map += 5L -> "test" //5 is defined; think, -1 :: 5 :: 11
       map += 4L -> "test" //4 is defined; think, -1 :: 4 :: 5 :: 11
       val obj = GenericPool(map, max = 11, poolName = "generic")
@@ -266,14 +318,14 @@ class NumberPoolTest extends Specification {
     }
 
     "get successive numbers, stepping over those defined" in {
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       map ++= Seq(1L -> "test", 2L -> "test", 4L -> "test")
       val obj = GenericPool(map, max = 11, poolName = "generic")
       (1 to 4).map(_ => obj.Get().get) mustEqual Seq(3, 5, 6, 7)
     }
 
     "step over numbers defined after construction" in {
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       val obj = GenericPool(map, max = 11, poolName = "generic")
       obj.Get().get mustEqual 1
       map ++= Seq(2L -> "test", 3L -> "test") //another pool takes 2 and 3
@@ -281,7 +333,7 @@ class NumberPoolTest extends Specification {
     }
 
     "reuse the lowest returned number" in {
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       val obj = GenericPool(map, max = 11, poolName = "generic")
       (1 to 5).foreach(_ => obj.Get())
       obj.Return(4) mustEqual true
@@ -292,7 +344,7 @@ class NumberPoolTest extends Specification {
     }
 
     "fail when every number is taken, then succeed after a return" in {
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       val obj = GenericPool(map, max = 4, poolName = "generic") //numbers 1, 2, 3
       (1 to 3).map(_ => obj.Get().get) mustEqual Seq(1, 2, 3)
       obj.Get().isFailure mustEqual true
@@ -303,7 +355,7 @@ class NumberPoolTest extends Specification {
 
     "always get the lowest free number over a random sequence of operations" in {
       val max = 1024
-      val map = mutable.LongMap[String]()
+      val map = new NumberPoolNames(size = 1024)
       val obj = GenericPool(map, max, poolName = "generic")
       val rng = new scala.util.Random(1400)
       def expectedLowest: Option[Int] = (1 until max).find(n => !map.contains(n.toLong))
