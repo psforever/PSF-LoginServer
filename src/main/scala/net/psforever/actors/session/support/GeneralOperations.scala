@@ -5,6 +5,7 @@ import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import net.psforever.objects.avatar.AvatarBot
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
@@ -906,7 +907,15 @@ class GeneralOperations(
    * @param unk2 na
    */
   def hackObject(targetGuid: PlanetSideGUID, unk1: Long, unk2: HackState7): Unit = {
-    sendResponse(HackMessage(HackState1.Unk0, targetGuid, player_guid=Default.GUID0, progress=100, unk1.toFloat, HackState.Hacked, unk2))
+    val hackEmpire = player.Zone.GUID(targetGuid) match {
+      case Some(term: Terminal) if term.Definition == GlobalDefinitions.main_terminal =>
+        HackState1.withValueOpt(player.Faction.id).getOrElse(HackState1.Unk0)
+      case Some(hackable: Hackable) =>
+        HackState1.withValueOpt(hackable.HackedBy.map(_.hackerFaction.id).getOrElse(0)).getOrElse(HackState1.Unk0)
+      case _ =>
+        HackState1.Unk0
+    }
+    sendResponse(HackMessage(hackEmpire, targetGuid, player_guid=Default.GUID0, progress=100, unk1.toFloat, HackState.Hacked, unk2))
   }
 
   /**
