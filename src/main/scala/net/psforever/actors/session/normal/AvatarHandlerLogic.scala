@@ -522,7 +522,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       sessionLogic.zoning.spawn.reviveTimer.cancel()
       sessionLogic.zoning.spawn.reviveTimer = Default.Cancellable
       if (player.death_by == 0) {
-        sessionLogic.zoning.spawn.randomRespawn(300.seconds)
+        sessionLogic.zoning.spawn.randomRespawn(300.seconds, releaseFirst = true)
       } else {
         sessionLogic.zoning.spawn.HandleReleaseAvatar(player, continent)
       }

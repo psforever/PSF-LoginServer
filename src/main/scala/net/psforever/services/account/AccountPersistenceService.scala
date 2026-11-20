@@ -366,7 +366,12 @@ class PersistenceMonitor(
     * but should be uncommon.
     */
   def PerformLogout(): Unit = {
-    (inZone.Players.find(p => p.name == name), inZone.AllPlayers.find(p => p.Name == name)) match {
+    //a released avatar has no player in the zone, so the zone cannot name it; the live player list still can
+    (
+      inZone.Players.find(p => p.name == name)
+        .orElse(LivePlayerList.WorldPopulation({ case (_, a: Avatar) => a.name == name }).headOption),
+      inZone.AllPlayers.find(p => p.Name == name)
+    ) match {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
         //in case the player is holding the llu and disconnects
         player.Zone.AvatarEvents ! MessageEnvelope(player.Name, AvatarAction.DropSpecialItem())
