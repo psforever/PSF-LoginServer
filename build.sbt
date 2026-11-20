@@ -96,7 +96,11 @@ lazy val psforever = (project in file("."))
   .settings(
     name := "psforever",
     // Copy all tests from Test -> QuietTest (we're only changing the run options)
-    inConfig(QuietTest)(Defaults.testTasks)
+    inConfig(QuietTest)(Defaults.testTasks),
+    // Root `clean` cleans every project
+    clean := clean
+      .dependsOn(Seq("server", "decodePackets", "client", "docs").map(p => LocalProject(p) / clean): _*)
+      .value
   )
 
 lazy val server = (project in file("server"))
