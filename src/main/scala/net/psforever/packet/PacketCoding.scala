@@ -81,7 +81,7 @@ object PacketCoding {
     packet match {
       case _: PlanetSideGamePacket | _: PlanetSideControlPacket if crypto.isDefined =>
         encodePacket(packet)
-          .flatMap { _payload => crypto.get.encrypt(_payload.bytes) }
+          .flatMap { _payload => crypto.get.encrypt(FastBits.toByteVector(_payload)) }
           .flatMap { encryptedPayload =>
             // these encrypted packets need to be aligned to 4 bytes before encryption/decryption
             // first byte are flags, second is the sequence, and third is the pad
