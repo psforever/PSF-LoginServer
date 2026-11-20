@@ -27,6 +27,7 @@ import net.psforever.packet.crypto._
 import net.psforever.packet.PacketCoding.CryptoCoding
 import net.psforever.packet.game.packets.{ChangeFireModeMessage, CharacterInfoMessage, ChatMsg, KeepAliveMessage, PropertyOverrideMessage, SquadDetailDefinitionUpdateMessage}
 import net.psforever.packet.reset.ResetSequence
+import net.psforever.types.PlanetSideGUID
 import net.psforever.util.{Config, DiffieHellman, Md5Mac}
 
 /**
@@ -212,6 +213,10 @@ class MiddlewareActor(
 
   /** Queue of outgoing packets ready for sending */
   private val outQueueBundled: mutable.Queue[PlanetSidePacket] = mutable.Queue()
+
+  /** Outgoing packets sent unreliably, the latest for each object:
+    * a newer one supersedes it, so the older is never sent */
+  private val outUnreliable: mutable.LinkedHashMap[PlanetSideGUID, PlayerStateMessage] = mutable.LinkedHashMap()
 
   /** Latest outbound sequence number */
   private var outSequence: Int = -1
@@ -525,6 +530,8 @@ class MiddlewareActor(
           Behaviors.same
 
         case ProcessQueue =>
+          // the timer that sent this has fired; it is not cancelled, but it is no longer running
+          packetProcessor = Default.Cancellable
           processQueue()
           Behaviors.same
 
@@ -658,6 +665,11 @@ class MiddlewareActor(
       case packet: KeepAliveMessage =>
         send(packet)
 
+      case packet: PlayerStateMessage =>
+        // Unreliable: the next one supersedes it, so it skips the queue, SMP history, and resends
+        outUnreliable.update(packet.guid, packet)
+        retimePacketProcessorIfNotRunning()
+
       case _ =>
         /* Compact immediately to a byte array, freeing the SCodec packet tree objects */
         PacketCoding.encodePacket(packet).map(FastBits.compact) match {
@@ -690,6 +702,49 @@ class MiddlewareActor(
     while (budget > 0 && (outQueueBundled.nonEmpty || outQueue.nonEmpty)) {
       processOutQueueBundle()
       budget -= 1
+    }
+    flushUnreliable()
+    retimePacketProcessorIfNotRunningIfWork()
+  }
+
+  /**
+    * Send the waiting unreliable packets, bundled into `MultiPacketEx` up to the MTU.
+    * Each bundle goes out on its own, outside of a `SlottedMetaPacket`:
+    * no subslot, no retransmit history, no resends.
+    */
+  private def flushUnreliable(): Unit = {
+    if (outUnreliable.nonEmpty) {
+      val maxLength = (MTU - 6) * 8L // the same room as reliable bundles leave
+      val bundle    = mutable.ArrayBuffer[(PlayerStateMessage, ByteVector)]()
+      var length    = 0L
+      outUnreliable.valuesIterator.foreach { packet =>
+        PacketCoding.encodePacket(packet) match {
+          case Successful(bits) =>
+            val bytes       = FastBits.toByteVector(bits)
+            val entryLength = bytes.size * 8 + (if (bytes.size < 0xff) 8L else 24L) // plus MultiPacketEx size field
+            if (bundle.nonEmpty && length + entryLength > maxLength) {
+              sendUnreliableBundle(bundle)
+              bundle.clear()
+              length = 0L
+            }
+            bundle += ((packet, bytes))
+            length += entryLength
+          case Failure(cause) =>
+            log.error(s"Could not encode $packet: ${cause.message}")
+        }
+      }
+      outUnreliable.clear()
+      if (bundle.nonEmpty) {
+        sendUnreliableBundle(bundle)
+      }
+    }
+  }
+
+  private def sendUnreliableBundle(bundle: collection.Seq[(PlayerStateMessage, ByteVector)]): Unit = {
+    if (bundle.size == 1) {
+      send(bundle.head._1)
+    } else {
+      send(MultiPacketEx(bundle.iterator.map(_._2).toVector))
     }
   }
 
@@ -1143,7 +1198,7 @@ class MiddlewareActor(
    * cancel, then restart, the timer for processing outbound packets.
    */
   private def retimePacketProcessorIfWork(): Unit = {
-    if (outQueueBundled.nonEmpty || outQueue.nonEmpty || inReorderQueue.nonEmpty) {
+    if (outQueueBundled.nonEmpty || outQueue.nonEmpty || outUnreliable.nonEmpty || inReorderQueue.nonEmpty) {
       retimePacketProcessor()
     }
   }
