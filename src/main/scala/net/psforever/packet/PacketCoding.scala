@@ -114,7 +114,8 @@ object PacketCoding {
           .flatMap { encryptedPayload =>
             //uncommon, so it's fine to not cache these flags (above)
             val flags = PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.ResetSequence, secured = true)).require
-            Successful(flags ++ sequence ++ encryptedPayload.bits)
+            // the same 4-byte alignment as above: flags, sequence, and a pad byte (which decoding skips)
+            Successful(flags ++ sequence ++ hex"00".bits ++ encryptedPayload.bits)
           }
       case _ =>
         Failure(Err(s"can not marshal $packet, sequence? $sequence, crypto state? ${crypto.isDefined}"))
