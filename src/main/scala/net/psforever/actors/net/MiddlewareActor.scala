@@ -817,7 +817,7 @@ class MiddlewareActor(
       in(packet)
       processInReorderQueue()
     } else if (sequence < inSequence) { //expedite this packet
-      inReorderQueue.filterInPlace(_.sequence == sequence)
+      inReorderQueue.filterInPlace(_.sequence != sequence) // drop only a queued copy of this packet
       in(packet)
       inReorderQueueFunc = inReorderQueueTest
       inReorderQueueTest()
