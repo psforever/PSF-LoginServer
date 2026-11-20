@@ -659,7 +659,8 @@ class MiddlewareActor(
         send(packet)
 
       case _ =>
-        PacketCoding.encodePacket(packet) match {
+        /* Compact immediately to a byte array, freeing the SCodec packet tree objects */
+        PacketCoding.encodePacket(packet).map(FastBits.compact) match {
           case Successful(payload)
             if System.currentTimeMillis() - lastOutboundEventTime > packetOutboundDelay =>
             outQueue.enqueue((packet, payload))
@@ -747,7 +748,7 @@ class MiddlewareActor(
         } else {
           PacketCoding.encodePacket(MultiPacketEx(bundle.toVector.map(_.bytes))) match {
             case Successful(data) =>
-              outQueueBundled.enqueue(smp(slot = 0, data.bytes))
+              outQueueBundled.enqueue(smp(slot = 0, FastBits.toByteVector(data)))
               sendFirstBundle()
             case Failure(cause) =>
               log.error(s"could not bundle $bundle: ${cause.message}")
@@ -1094,7 +1095,7 @@ class MiddlewareActor(
   private def send(packet: PlanetSidePacket, sequence: Option[Int], crypto: Option[CryptoCoding]): ByteVector = {
     PacketCoding.marshalPacket(packet, sequence, crypto) match {
       case Successful(bits) =>
-        val bytes = bits.toByteVector
+        val bytes = FastBits.toByteVector(bits)
         socket ! Udp.Send(bytes.toByteString, sender)
         bytes
       case Failure(e) =>
