@@ -22,7 +22,7 @@ import java.security.MessageDigest
 import org.joda.time.LocalDateTime
 
 import scala.collection.mutable
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -122,6 +122,9 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   private val serverName: String = Config.app.world.serverName
 
   private val bcryptRounds = 12
+
+  /** bcrypt is slow on purpose; it gets its own threads so logins cannot starve the shared pool */
+  private val bcrypt: ExecutionContext = context.system.dispatchers.lookup("bcrypt-dispatcher")
 
   override def preStart(): Unit = {
     super.preStart()
@@ -248,18 +251,20 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
         case None =>
           if (Config.app.login.createMissingAccounts) {
             // generate bcrypted passwords
-            val bcryptedPassword = LoginActor.generateNewPassword(username, password, bcryptRounds)
-            val passhash = password.bcryptBounded(bcryptRounds)
-            // save bcrypted password hash to DB
-            ctx.run(
-              query[persistence.Account]
-                .insert(
-                  _.password -> lift(bcryptedPassword),
-                  _.passhash -> lift(passhash),
-                  _.username -> lift(username)
-                )
-                .returningGenerated(_.id)
-            ) flatMap { id => ctx.run(query[persistence.Account].filter(_.id == lift(id))) } map { accounts =>
+            Future {
+              (LoginActor.generateNewPassword(username, password, bcryptRounds), password.bcryptBounded(bcryptRounds))
+            }(bcrypt) flatMap { case (bcryptedPassword, passhash) =>
+              // save bcrypted password hash to DB
+              ctx.run(
+                query[persistence.Account]
+                  .insert(
+                    _.password -> lift(bcryptedPassword),
+                    _.passhash -> lift(passhash),
+                    _.username -> lift(username)
+                  )
+                  .returningGenerated(_.id)
+              )
+            } flatMap { id => ctx.run(query[persistence.Account].filter(_.id == lift(id))) } map { accounts =>
               Some(accounts.head)
             }
           } else {
@@ -268,12 +273,19 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
           }
       }
 
+      // remember: this is the in client "StagingTest" login handling
+      // the password is send in clear and needs to be checked against the "old" (only bcrypted) passhash
+      // if there ever is a way to update the password in the future passhash and password need be updated
+      passwordMatches <- accountOption match {
+        case Some(account) =>
+          Future(password.isBcryptedBounded(account.passhash))(bcrypt)
+        case None =>
+          Future.successful(false)
+      }
+
       login <- accountOption match {
         case Some(account) =>
-          // remember: this is the in client "StagingTest" login handling
-          // the password is send in clear and needs to be checked against the "old" (only bcrypted) passhash
-          // if there ever is a way to update the password in the future passhash and password need be updated
-          (account.inactive, password.isBcryptedBounded(account.passhash)) match {
+          (account.inactive, passwordMatches) match {
             case (false, true) =>
               accountIntermediary ! StoreAccountData(newToken, Account(account.id, account.username, account.gm))
               val future = ctx.run(
@@ -289,13 +301,14 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
               if (account.password == "") {
                 // generate bcrypted password
                 // use username as provided by the user (db entry could be wrong), that is the way the launcher does it
-                val bcryptedPassword = LoginActor.generateNewPassword(username, password, bcryptRounds)
-                // update account, set password
-                ctx.run(
-                  query[persistence.Account]
-                    .filter(_.username == lift(account.username))
-                    .update(_.password -> lift(bcryptedPassword))
-                )
+                Future(LoginActor.generateNewPassword(username, password, bcryptRounds))(bcrypt) foreach { bcryptedPassword =>
+                  // update account, set password
+                  ctx.run(
+                    query[persistence.Account]
+                      .filter(_.username == lift(account.username))
+                      .update(_.password -> lift(bcryptedPassword))
+                  )
+                }
               }
               loginSuccessfulResponse(username, newToken)
               context.become(displayingServerListBehavior)
