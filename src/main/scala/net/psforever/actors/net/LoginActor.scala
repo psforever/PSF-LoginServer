@@ -84,6 +84,22 @@ object LoginActor {
   }
 
   /**
+   * Make a client-supplied value safe for one log line: no control characters (a newline would forge a line),
+   * no quotes (the value is quoted), and a bounded length.
+   * @param value original value
+   * @return value fit for a log line
+   */
+  /**
+   * Login events have a logger of their own, so the logging configuration can give them a file of their own
+   * (`logs/psforever-login.log`, for tools like fail2ban).
+   */
+  private val loginEventLog = org.log4s.getLogger("LoginEvents")
+
+  private def sanitizeLogValue(value: String): String = {
+    value.take(64).map { c => if (c.isControl || c == '"') '?' else c }
+  }
+
+  /**
    * Selects the appropriate host address for transfer to world server.
    * This is a workaround for cases of local connections not working
    * properly when using a router that lacks Hairpin NAT support.
@@ -125,6 +141,21 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
   /** bcrypt is slow on purpose; it gets its own threads so logins cannot starve the shared pool */
   private val bcrypt: ExecutionContext = context.system.dispatchers.lookup("bcrypt-dispatcher")
+
+  /**
+   * Log one login event. Every event has the same shape, so they can be searched or fed to tools like fail2ban:
+   * `login event=<event> method=<password|token> account="<name>" ip=<address> port=<port>`.
+   * Tokens are never logged; for two hours, a token is as good as a password.
+   * @param event what happened: `success`, `created`, or a failure such as `bad-password`
+   * @param method `password` or `token`
+   * @param account the account name, as the client gave it or as the database has it; `""` when it is not known
+   * @param failure `true` logs at warning level, `false` at info
+   */
+  private def loginEvent(event: String, method: String, account: String, failure: Boolean): Unit = {
+    val line =
+      s"""login event=$event method=$method account="${LoginActor.sanitizeLogValue(account)}" ip=$ipAddress port=$port"""
+    if (failure) LoginActor.loginEventLog.warn(line) else LoginActor.loginEventLog.info(line)
+  }
 
   override def preStart(): Unit = {
     super.preStart()
@@ -205,7 +236,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
     pkt match {
       case LoginMessage(majorVersion, minorVersion, buildDate, username, _, Some(token), revision) =>
         val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
-        log.debug(s"New login UN:$username Token:$token. $clientVersion")
+        log.debug(s"New login UN:$username (token). $clientVersion")
         accountLoginWithToken(token)
 
       case LoginMessage(majorVersion, minorVersion, buildDate, username, password, None, revision) =>
@@ -265,6 +296,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
                   .returningGenerated(_.id)
               )
             } flatMap { id => ctx.run(query[persistence.Account].filter(_.id == lift(id))) } map { accounts =>
+              loginEvent("created", "password", accounts.head.username, failure = false)
               Some(accounts.head)
             }
           } else {
@@ -310,6 +342,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
                   )
                 }
               }
+              loginEvent("success", "password", account.username, failure = false)
               loginSuccessfulResponse(username, newToken)
               context.become(displayingServerListBehavior)
               updateServerListTask =
@@ -345,7 +378,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
           // token expires after 2 hours
           // new connections and players leaving a world server will return to desktop
           if (LocalDateTime.now().isAfter(account.tokenCreated.get.plusHours(2))) {
-            loginFailureResponseTokenExpired(token, newToken)
+            loginFailureResponseTokenExpired(account.username, newToken)
             Future.successful(None)
           } else {
             Future.successful(Some(account))
@@ -410,7 +443,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   private def loginSuccessfulResponseWithToken(username: String, token: String, newToken: String): Unit = {
-    log.info(s"User $username logged in using token $token")
+    loginEvent("success", "token", username, failure = false)
     loginSuccessfulResponse(username, newToken)
   }
 
@@ -420,7 +453,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   private def loginFailurePasswordResponse(username: String, token: String): Unit = {
-    log.warning(s"Failed login to account $username")
+    loginEvent("bad-password", "password", username, failure = true)
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         token,
@@ -435,7 +468,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   private def loginFailureResponseToken(token: String, newToken: String): Unit = {
-    log.warning(s"Failed login using unknown token $token")
+    loginEvent("unknown-token", "token", "", failure = true)
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,
@@ -449,8 +482,8 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
     )
   }
 
-  private def loginFailureResponseTokenExpired(token: String, newToken: String): Unit = {
-    log.warning(s"Failed login using expired token $token")
+  private def loginFailureResponseTokenExpired(username: String, newToken: String): Unit = {
+    loginEvent("expired-token", "token", username, failure = true)
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,
@@ -465,7 +498,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   private def loginFailureResponse(username: String, token: String): Unit = {
-    log.warning(s"DB problem username: $username")
+    loginEvent("unknown-account", "password", username, failure = true)
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         token,
@@ -480,7 +513,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   private def loginFailureResponseToken(username: String, token: String, newToken: String): Unit = {
-    log.warning(s"DB problem username $username token: $token")
+    loginEvent("token-mismatch", "token", username, failure = true)
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,
@@ -495,7 +528,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   private def loginAccountFailureResponse(username: String, token: String): Unit = {
-    log.warning(s"Account $username inactive")
+    loginEvent("inactive-account", "password", username, failure = true)
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         token,
@@ -510,7 +543,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   private def loginAccountFailureResponseToken(username: String, token: String, newToken: String): Unit = {
-    log.warning(s"Account $username inactive token: $token ")
+    loginEvent("inactive-account", "token", username, failure = true)
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,
