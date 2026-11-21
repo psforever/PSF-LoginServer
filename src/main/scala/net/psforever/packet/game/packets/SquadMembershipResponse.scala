@@ -22,7 +22,7 @@ import scodec.codecs._
   * @param role_name an optional role text accompanying an `Invite` (consumed by the recipient's invite prompt);
   *                  only ever written to the wire for an `Invite` response
   * <br>
-  * `request_type` (enum value) / `unk5` state (`false`/`true`)<br>
+  * `request_type` (enum value) / `is_sender` state (`false`/`true`)<br>
   * ----------------------------------------<br>
   *  - `Invite` (0)<br>
   * false => [PROMPT] "`player_name` has invited you into a squad." [YES/NO]<br>

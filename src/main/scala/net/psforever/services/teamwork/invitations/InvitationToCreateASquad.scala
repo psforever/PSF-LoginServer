@@ -26,11 +26,11 @@ final case class InvitationToCreateASquad(futureSquadLeader: Player)
   ): Unit = {
     manager.publish(
       invitedPlayer,
-      SquadResponse.Membership(SquadResponseType.Invite, inviterCharId, Some(invitedPlayer), futureSquadLeader.Name, unk5 = false)
+      SquadResponse.Membership(SquadResponseType.Invite, inviterCharId, Some(invitedPlayer), futureSquadLeader.Name, is_sender = false)
     )
     manager.publish(
       inviterCharId,
-      SquadResponse.Membership(SquadResponseType.Invite, invitedPlayer, Some(inviterCharId), futureSquadLeader.Name, unk5 = true)
+      SquadResponse.Membership(SquadResponseType.Invite, invitedPlayer, Some(inviterCharId), futureSquadLeader.Name, is_sender = true)
     )
   }
 
@@ -54,11 +54,11 @@ final case class InvitationToCreateASquad(futureSquadLeader: Player)
                 case (_, line) if manager.joinSquad(player, features, line) =>
                   manager.publish(
                     leaderCharId,
-                    SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), "", unk5 = false)
+                    SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), "", is_sender = false)
                   )
                   manager.publish(
                     invitedPlayer,
-                    SquadResponse.Membership(SquadResponseType.Accept, leaderCharId, Some(invitedPlayer), player.Name, unk5 = true)
+                    SquadResponse.Membership(SquadResponseType.Accept, leaderCharId, Some(invitedPlayer), player.Name, is_sender = true)
                   )
                   //all invitations involving the invited person must be cancelled due to the nature of this acceptance
                   manager.cleanUpQueuedInvitesForPlayer(invitedPlayer)
@@ -107,11 +107,11 @@ final case class InvitationToCreateASquad(futureSquadLeader: Player)
     doRejection(manager, player, rejectingPlayer)
     manager.publish(
       rejectingPlayer,
-      SquadResponse.Membership(SquadResponseType.Reject, rejectingPlayer, Some(invitingPlayerCharId), "", unk5 = true)
+      SquadResponse.Membership(SquadResponseType.Reject, rejectingPlayer, Some(invitingPlayerCharId), "", is_sender = true)
     )
     manager.publish(
       invitingPlayerCharId,
-      SquadResponse.Membership(SquadResponseType.Reject, invitingPlayerCharId, Some(rejectingPlayer), player.Name, unk5 = false)
+      SquadResponse.Membership(SquadResponseType.Reject, invitingPlayerCharId, Some(rejectingPlayer), player.Name, is_sender = false)
     )
     manager.publish(
       invitingPlayerCharId,

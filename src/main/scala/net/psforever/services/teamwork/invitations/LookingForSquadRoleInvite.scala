@@ -28,7 +28,7 @@ final case class LookingForSquadRoleInvite(squadLeader: Member, features: SquadF
   ): Unit = {
     manager.publish(
       invitedPlayer,
-      SquadResponse.Membership(SquadResponseType.Invite, invitedPlayer, Some(squadLeader.CharId), squadLeader.Name, unk5 = false)
+      SquadResponse.Membership(SquadResponseType.Invite, invitedPlayer, Some(squadLeader.CharId), squadLeader.Name, is_sender = false, Some(features.Squad.Membership(position).Role).orElse(None))
     )
   }
 
@@ -46,9 +46,9 @@ final case class LookingForSquadRoleInvite(squadLeader: Member, features: SquadF
     ) {
       //join this squad
       //manager.acceptanceMessages(invitedPlayer, requestee.CharId, requestee.Name)
-      val msg = SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), player.Name, unk5 = false)
+      val msg = SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), player.Name, is_sender = false)
       manager.publish(leaderCharId, msg)
-      manager.publish(invitedPlayer, msg.copy(unk5 = true))
+      manager.publish(invitedPlayer, msg.copy(is_sender = true))
 //      manager.publish(
 //        invitedPlayer,
 //        SquadResponse.SquadRelatedComment(s"You have accepted ${squadLeader.Name}'s request to join a squad.")

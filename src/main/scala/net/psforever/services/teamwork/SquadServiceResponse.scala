@@ -44,20 +44,21 @@ object SquadResponse {
       request_type: SquadResponseType.Value,
       unk1: Int,
       unk2: Int,
-      unk3: Long,
-      unk4: Option[Long],
+      char_id: Long,
+      other_id: Option[Long],
       player_name: String,
-      unk5: Boolean,
-      unk6: Option[Option[String]]
+      is_sender: Boolean,
+      role_name: Option[Option[String]]
   )                                                                                           extends Response //see SquadMembershipResponse
   object Membership {
     def apply(
-               requestType: SquadResponseType.Value,
-               unk3: Long,
-               unk4: Option[Long],
-               playerName: String,
-               unk5: Boolean
-             ): Membership = new Membership(requestType, unk1 = 0, unk2 = 0, unk3, unk4, playerName, unk5, Some(None))
+      requestType: SquadResponseType.Value,
+      char_id: Long,
+      other_id: Option[Long],
+      playerName: String,
+      is_sender: Boolean,
+      role_name: Option[String] = None
+    ): Membership = new Membership(requestType, unk1 = 0, unk2 = 0, char_id, other_id, playerName, is_sender, Some(role_name))
   }
 
   final case class WantsSquadPosition(leader_char_id: Long, bid_name: String)                 extends Response

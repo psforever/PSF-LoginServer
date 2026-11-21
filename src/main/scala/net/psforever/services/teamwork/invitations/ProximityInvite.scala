@@ -33,7 +33,7 @@ final case class ProximityInvite(squadLeader: Member, features: SquadFeatures, p
         invitedPlayer,
         Some(squadLeader.CharId),
         squadLeader.Name,
-        unk5 = false
+        is_sender = false
       )
     )
   }
@@ -54,7 +54,7 @@ final case class ProximityInvite(squadLeader: Member, features: SquadFeatures, p
     ) {
       //join this squad
       //manager.acceptanceMessages(invitingPlayer, invitedPlayer, player.Name)
-      val msg = SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), player.Name, unk5 = false)
+      val msg = SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), player.Name, is_sender = false)
       manager.publish(leaderCharId, msg)
       manager.publish(invitedPlayer, msg.copy(unk5 = true))
       //clean up invitations specifically for this squad and this position
