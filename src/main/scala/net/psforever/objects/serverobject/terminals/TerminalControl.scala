@@ -6,7 +6,7 @@ import net.psforever.objects.Player
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.{GlobalDefinitions, SimpleItem, Tool}
-import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableAmenity}
@@ -60,10 +60,11 @@ class TerminalControl(term: Terminal)
           if item.Definition == GlobalDefinitions.trek &&
             BaseVirus(virus).exists(_ != BaseVirus.NoVirus) &&
               TerminalControl.CanUploadVirus(player, term) =>
+              term.activeVirusUploaders.put(player.GUID, player)
               sender() ! CommonMessages.Progress(
                 1.66f,
-                GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus),
-                GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID)
+                () => GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus)(),
+                GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID, TerminalControl.EndVirusUploadProgress)(_)
               )
 
         case CommonMessages.RemoveVirus(player, Some(item: Equipment))
@@ -71,8 +72,8 @@ class TerminalControl(term: Terminal)
             TerminalControl.CanRemoveVirus(player, term) =>
               sender() ! CommonMessages.Progress(
                 1.66f,
-                GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus = BaseVirus.NoVirus.id),
-                GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID)
+                () => GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus = BaseVirus.NoVirus.id)(),
+                GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID, TerminalControl.EndVirusRemoveProgress)(_)
               )
         case _ => ()
       }
@@ -170,7 +171,7 @@ object TerminalControl {
     })
   }
 
-  private def CanUploadVirus(player: Player, term: Terminal): Boolean = {
+  def CanUploadVirus(player: Player, term: Terminal): Boolean = {
     val hasCert = player.avatar.certifications.intersect(VirusInstallCerts).nonEmpty
     val isValidTerminal = term.Definition == GlobalDefinitions.main_terminal
     hasCert && isValidTerminal && (term.Owner match {
@@ -184,7 +185,7 @@ object TerminalControl {
     })
   }
 
-  private def CanRemoveVirus(player: Player, term: Terminal): Boolean = {
+  def CanRemoveVirus(player: Player, term: Terminal): Boolean = {
     val hasCert = player.avatar.certifications.intersect(VirusRemoveCerts).nonEmpty
     val isValidTerminal = term.Definition == GlobalDefinitions.main_terminal
     hasCert && isValidTerminal && (term.Owner match {
@@ -193,6 +194,26 @@ object TerminalControl {
       case _ =>
         false
     })
+  }
+
+  def EndVirusUploadProgress(target: PlanetSideServerObject, hacker: Player): Boolean = {
+    target match {
+      case term: Terminal =>
+        val shouldCancel = !term.activeVirusUploaders.contains(hacker.GUID) || !CanUploadVirus(hacker, term)
+        if (shouldCancel) {
+          term.activeVirusUploaders.remove(hacker.GUID)
+        }
+        shouldCancel
+      case _ => false
+    }
+  }
+
+  def EndVirusRemoveProgress(target: PlanetSideServerObject, hacker: Player): Boolean = {
+    target match {
+      case term: Terminal =>
+        !CanRemoveVirus(hacker, term)
+      case _ => false
+    }
   }
 
 

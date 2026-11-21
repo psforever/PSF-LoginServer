@@ -82,10 +82,10 @@ object GenericHackables {
     //hack state for progress bar visibility
     val (progressState, progressGrade) = if (progress <= 0L) {
       (HackState.Start, 0)
-    } else if (progress >= 100L) {
-      (HackState.Finished, 100)
     } else if (target.isMoving(test = 1f) || target.Destroyed || !target.HasGUID || additionalCancellationTests(target, hacker)) {
       (HackState.Cancelled, 0)
+    } else if (progress >= 100L) {
+      (HackState.Finished, 100)
     } else {
       (HackState.Ongoing, progress.toInt)
     }
@@ -203,6 +203,20 @@ object GenericHackables {
           val pguid    = tplayer.GUID
           if (tplayer.Faction == target.Faction) {
             //clear virus
+            target match {
+              case term: Terminal =>
+                val otherHackers = term.activeVirusUploaders.values.toList
+                term.activeVirusUploaders.clear()
+                otherHackers.foreach { other =>
+                  zone.AvatarEvents ! MessageEnvelope(
+                    other.Name,
+                    SendResponse(
+                      HackMessage(HackState1.Unk1, target.GUID, other.GUID, 0, 0L, HackState.Cancelled, HackState7.Unk8)
+                    )
+                  )
+                }
+              case _ => ()
+            }
             val currVirus = building.virusId
             building.virusId = BaseVirus.NoVirus.id
             building.virusInstalledBy = None
@@ -234,7 +248,32 @@ object GenericHackables {
                   building.virusInstallTime.forall(t => System.currentTimeMillis() - t >= 120000L)
                 if (!canInstall) {
                   log.warn(s"Player ${tplayer.Name} attempted to switch virus before 120s cooldown elapsed")
+                  target match {
+                    case term: Terminal =>
+                      term.activeVirusUploaders.remove(tplayer.GUID)
+                    case _ => ()
+                  }
+                  zone.AvatarEvents ! MessageEnvelope(
+                    tplayer.Name,
+                    SendResponse(
+                      HackMessage(HackState1.Unk1, target.GUID, tplayer.GUID, 0, 0L, HackState.Cancelled, HackState7.Unk8)
+                    )
+                  )
                 } else {
+                  target match {
+                    case term: Terminal =>
+                      val otherHackers = term.activeVirusUploaders.values.filterNot(_.GUID == tplayer.GUID).toList
+                      term.activeVirusUploaders.clear()
+                      otherHackers.foreach { other =>
+                        zone.AvatarEvents ! MessageEnvelope(
+                          other.Name,
+                          SendResponse(
+                            HackMessage(HackState1.Unk1, target.GUID, other.GUID, 0, 0L, HackState.Cancelled, HackState7.Unk8)
+                          )
+                        )
+                      }
+                    case _ => ()
+                  }
                   val currVirus = building.virusId
                   //clear previous virus unlocks to prevent virus stacking
                   BaseVirus.withValueOpt(currVirus.toInt) match {
@@ -307,6 +346,17 @@ object GenericHackables {
           }
         case Failure(_) =>
           log.warn(s"Virus action failed on target: ${target.Definition.Name}@${target.GUID.guid}")
+          target match {
+            case term: Terminal =>
+              term.activeVirusUploaders.remove(tplayer.GUID)
+            case _ => ()
+          }
+          target.Zone.AvatarEvents ! MessageEnvelope(
+            tplayer.Name,
+            SendResponse(
+              HackMessage(HackState1.Unk1, target.GUID, tplayer.GUID, 0, 0L, HackState.Cancelled, HackState7.Unk8)
+            )
+          )
       }
   }
 
