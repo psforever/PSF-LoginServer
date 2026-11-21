@@ -31,6 +31,9 @@ import org.log4s.MDC
 import scala.collection.mutable
 //
 import net.psforever.actors.net.MiddlewareActor
+import net.psforever.packet.game.packets.DisconnectMessage
+import net.psforever.util.Config
+import java.net.InetSocketAddress
 import net.psforever.actors.session.support.{ModeLogic, PlayerMode, SessionData}
 import net.psforever.objects.{Default, Player}
 import net.psforever.objects.avatar.Avatar
@@ -41,6 +44,9 @@ import net.psforever.types.Vector3
 
 object SessionActor {
   sealed trait Command
+
+  /** the same logger as `LoginActor`'s login events, so they share a file (see `logback.xml`) */
+  private val loginEventLog = org.log4s.getLogger("LoginEvents")
 
   private[session] final case class ServerLoaded()
 
@@ -117,7 +123,12 @@ object SessionActor {
   }
 }
 
-class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
+class SessionActor(
+                    middlewareActor: typed.ActorRef[MiddlewareActor.Command],
+                    connectionId: String,
+                    sessionId: Long,
+                    clientAddress: InetSocketAddress
+                  )
   extends Actor
     with MDCContextAware {
   MDC("connectionId") = connectionId
@@ -131,9 +142,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   private val commonHandlerLogic: CommonHandlerLogic = new CommonHandlerLogic(data, context)
 
+  /** this session counts against its address's world session limit; see `WorldSessionsPerAddress` */
+  private var admittedToWorld: Boolean = false
+
   override def postStop(): Unit = {
     clientKeepAlive.cancel()
     data.stop()
+    if (admittedToWorld) {
+      WorldSessionsPerAddress.release(clientAddress.getAddress)
+    }
   }
 
   def receive: Receive = startup
@@ -447,9 +464,34 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     }
   }
 
+  /**
+    * Turn away a world session because its address already has as many as it may have.
+    * The client shows the message in a text box and goes back to world select.
+    * @param limit the most world sessions an address may have
+    */
+  private def refuseWorldSession(limit: Int): Unit = {
+    SessionActor.loginEventLog.warn(
+      s"""login event=world-session-limit method=token account="" ip=${clientAddress.getAddress.getHostAddress} """ +
+        s"port=${clientAddress.getPort} limit=$limit"
+    )
+    middlewareActor ! MiddlewareActor.Send(
+      DisconnectMessage(
+        s"Your network address already has $limit connections to this server, the most allowed. " +
+          "Close one of them, wait a minute, then try again."
+      )
+    )
+    middlewareActor ! MiddlewareActor.Close()
+  }
+
   private def handleGamePkt: PlanetSideGamePacket => Unit = {
     case packet: ConnectToWorldRequestMessage =>
-      logic.general.handleConnectToWorldRequest(packet)
+      val limit = Config.app.network.session.maxWorldSessionsPerAddress
+      if (admittedToWorld || WorldSessionsPerAddress.tryAdmit(clientAddress.getAddress, limit)) {
+        admittedToWorld = true
+        logic.general.handleConnectToWorldRequest(packet)
+      } else {
+        refuseWorldSession(limit)
+      }
 
     case packet: MountVehicleCargoMsg =>
       logic.mountResponse.handleMountVehicleCargo(packet)

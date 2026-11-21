@@ -133,7 +133,7 @@ object Server {
         val uuid = randomUUID().toString
         val actor =
           context.actorOf(
-            classic.Props(new SessionActor(ref, connectionId, Session.getNewId())).withDispatcher("world-session"),
+            classic.Props(new SessionActor(ref, connectionId, Session.getNewId(), info)).withDispatcher("world-session"),
             s"session-$uuid"
           )
         Behaviors.receiveMessage(message => {
