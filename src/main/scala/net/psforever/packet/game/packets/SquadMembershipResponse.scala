@@ -17,9 +17,10 @@ import scodec.codecs._
   * @param other_id another squad member's unique identifier;
   *                 may be the same as `char_id`
   * @param player_name name of the player being affected, if applicable
-  * @param unk5 adjusts the nature of the request-type response based on the message recipient
-  * @param unk6 na;
-  *             the internal field, the `Option[String]`, never seems to be set
+  * @param is_sender if the message recipient is the initiator of the action;
+  *                  selects between the "you have ..." and the "player_name has ..." message variants
+  * @param role_name an optional role text accompanying an `Invite` (consumed by the recipient's invite prompt);
+  *                  only ever written to the wire for an `Invite` response
   * <br>
   * `request_type` (enum value) / `unk5` state (`false`/`true`)<br>
   * ----------------------------------------<br>
@@ -74,8 +75,8 @@ final case class SquadMembershipResponse(
     char_id: Long,
     other_id: Option[Long],
     player_name: String,
-    unk5: Boolean,
-    unk6: Option[Option[String]]
+    is_sender: Boolean,
+    role_name: Option[Option[String]]
 ) extends PlanetSideGamePacket {
   type Packet = SquadMembershipResponse
   def opcode = GamePacketOpcode.SquadMembershipResponse
@@ -84,14 +85,14 @@ final case class SquadMembershipResponse(
 
 object SquadMembershipResponse extends Marshallable[SquadMembershipResponse] {
   implicit val codec: Codec[SquadMembershipResponse] = (
-    "request_type" | SquadResponseType.codec >>:~ { d =>
+    "request_type" | SquadResponseType.codec >>:~ { responseType =>
       ("unk1" | uint(5)) ::
         ("unk2" | uint2) ::
         ("char_id" | uint32L) ::
-        ("other_id" | conditional(d != SquadResponseType.Disband && d != SquadResponseType.PlatoonDisband, uint32L)) ::
+        ("other_id" | conditional(responseType != SquadResponseType.Disband && responseType != SquadResponseType.PlatoonDisband, uint32L)) ::
         ("player_name" | PacketHelpers.encodedWideStringAligned(5)) ::
-        ("unk5" | bool) ::
-        conditional(d != SquadResponseType.Invite, optional(bool, "unk6" | PacketHelpers.encodedWideStringAligned(6)))
+        ("is_sender" | bool) ::
+        conditional(responseType == SquadResponseType.Invite, optional(bool, "role_name" | PacketHelpers.encodedWideStringAligned(6)))
     }
   ).as[SquadMembershipResponse]
 }

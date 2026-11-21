@@ -38,7 +38,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(1300870L) mustEqual true
           unk6 mustEqual "HofD"
           unk7 mustEqual false
-          unk8.isEmpty mustEqual true
+          unk8.isEmpty mustEqual false
         case _ =>
           ko
       }
@@ -54,7 +54,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(1004937L) mustEqual true
           unk6 mustEqual "SPOILERS"
           unk7 mustEqual true
-          unk8.isEmpty mustEqual true
+          unk8.isEmpty mustEqual false
         case _ =>
           ko
       }
@@ -70,7 +70,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(0L) mustEqual true
           unk6 mustEqual ""
           unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -86,7 +86,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(0L) mustEqual true
           unk6 mustEqual ""
           unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -102,7 +102,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(42771010L) mustEqual true
           unk6 mustEqual "VirusGiver"
           unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -118,7 +118,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(30736877L) mustEqual true
           unk6 mustEqual "VirusGiver"
           unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -134,7 +134,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(42771010L) mustEqual true
           unk6 mustEqual "HMFIC"
           unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -150,7 +150,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(42771010L) mustEqual true
           unk6 mustEqual "DAN1111"
           unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -166,7 +166,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(41607133L) mustEqual true
           unk6 mustEqual "SAraisVanu"
           unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -182,7 +182,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(41324011L) mustEqual true
           unk6 mustEqual "AirInjector"
           unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -198,7 +198,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(1176612L) mustEqual true
           unk6 mustEqual "CCRIDER"
           unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -214,7 +214,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(0L) mustEqual true
           unk6 mustEqual ""
           unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -230,7 +230,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(30910985L) mustEqual true
           unk6 mustEqual "Wizkid45"
           unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -246,7 +246,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(41578085L) mustEqual true
           unk6 mustEqual "Wizkid45"
           unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -262,7 +262,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(41605002L) mustEqual true
           unk6 mustEqual ""
           unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -278,7 +278,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(41578085L) mustEqual true
           unk6 mustEqual "Wizkid45"
           unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
@@ -294,7 +294,7 @@ class SquadMembershipResponseTest extends Specification {
           unk5.contains(41578085L) mustEqual true
           unk6 mustEqual "SAraisVanu"
           unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          unk8.contains(None) mustEqual false
         case _ =>
           ko
       }
