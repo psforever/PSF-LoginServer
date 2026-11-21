@@ -374,7 +374,9 @@ class MiddlewareActor(
                 Behaviors.same
 
               case _ =>
-                log.warn(s"Unexpected packet type $packet in start (before crypto)")
+                log.trace(s"Unexpected packet type $packet in start (before crypto)")
+                // connection could be spoofed, drop immediately
+                connectionClose()
                 Behaviors.same
             }
           case Failure(unmarshalError) =>
@@ -395,12 +397,14 @@ class MiddlewareActor(
                     Behaviors.same
 
                   case _ =>
-                    log.error(s"Unexpected non-crypto packet type $packet in start")
-                    Behaviors.same
+                    log.trace(s"Unexpected non-crypto packet type $packet in start")
+                    // connection could be spoofed, drop immediately
+                    connectionClose()
                 }
               case Failure(decodeError) =>
-                log.error(s"Could not decode packet in start: '$unmarshalError' / '$decodeError'")
-                Behaviors.same
+                log.trace(s"Could not decode packet in start: '$unmarshalError' / '$decodeError'")
+                // connection could be spoofed, drop immediately
+                connectionClose()
             }
         }
 
