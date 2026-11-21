@@ -329,6 +329,21 @@ class MiddlewareActor(
   /** how many time to repeat the request for a packet with a known missing subslot number */
   private val inSubslotMissingNumberOfAttempts: Int = Config.app.network.middleware.inSubslotMissingAttempts
 
+  /**
+    * The most missing subslots tracked at once. The subslot comes from the client, so without a bound
+    * one packet that skips ahead to 65535 would queue tens of thousands of resend requests,
+    * each sent every `inSubslotMissingDelay`. Real gaps are a few packets.
+    */
+  private val maxMissingSubslots: Int = 64
+
+  /** Track the subslots in `[from, until)` as missing, keeping the newest that fit under `maxMissingSubslots`. */
+  private def markSubslotsMissing(from: Int, until: Int): Unit = {
+    val room = maxMissingSubslots - inSubslotsMissing.size
+    (math.max(from, until - room) until until).foreach { s =>
+      inSubslotsMissing.addOne((s, inSubslotMissingNumberOfAttempts))
+    }
+  }
+
 //formerly, CryptoSessionActor
 
   def start(): Behavior[Command] = {
@@ -1016,9 +1031,7 @@ class MiddlewareActor(
       inSubslot = subslot
     } else if (subslot > inSubslot + 1) {
       in(PacketCoding.decodePacket(inner))
-      ((inSubslot + 1) until subslot).foreach { s =>
-        inSubslotsMissing.addOne((s, inSubslotMissingNumberOfAttempts))
-      } //request missing SMP's
+      markSubslotsMissing(inSubslot + 1, subslot) //request missing SMP's
       inSubslot = subslot
       activeSubslotsFunc = inSubslotMissingRequests
       askForMissingSubslots()
@@ -1065,9 +1078,7 @@ class MiddlewareActor(
       in(PacketCoding.decodePacket(inner))
       inSubslotsMissingRequestsFinished(slot)
     } else if (subslot > inSubslot + 1) {
-      ((inSubslot + 1) until subslot).foreach { s =>
-        inSubslotsMissing.addOne((s, inSubslotMissingNumberOfAttempts))
-      } //request missing SMP's
+      markSubslotsMissing(inSubslot + 1, subslot) //request missing SMP's
       inSubslot = subslot
       in(PacketCoding.decodePacket(inner))
     } else if (subslot == inSubslot + 1) {
