@@ -170,7 +170,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleUseItem(pkt: UseItemMessage): Unit = {
-    sessionLogic.validObject(pkt.object_guid, decorator = "UseItem") match {
+    sessionLogic.validObject(pkt.objectGUID, decorator = "UseItem") match {
       case Some(door: Door) =>
         ops.handleUseDoor(door, None)
       case Some(obj: TelepadDeployable) =>

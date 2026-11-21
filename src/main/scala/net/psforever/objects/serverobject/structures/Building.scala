@@ -37,6 +37,8 @@ class Building(
   private var participationFunc: ParticipationLogic = NoParticipation
   var virusId: Long                           = 8 // 8 default = no virus
   var virusInstalledBy: Option[Int]           = None // faction id
+  var virusInstallTime: Option[Long]          = None
+  var virusInformedDefenders: Boolean         = false
   var hasCavernLockBenefit: Boolean           = false
   super.Zone_=(zone)
   super.GUID_=(PlanetSideGUID(building_guid)) //set
@@ -224,7 +226,7 @@ class Building(
       (8, None)
     }
     else {
-      (virusId.toInt, Some(Additional3(inform_defenders=true, virusInstalledBy.getOrElse(3))))
+      (virusId.toInt, Some(Additional3(inform_defenders = virusInformedDefenders, virusInstalledBy.getOrElse(3))))
     }
     val forceDomeActive = ForceDome.exists(_.Energized)
 

@@ -9,16 +9,17 @@ import net.psforever.actors.zone.building._
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.packets.ContinentalLockUpdateMessage
+import net.psforever.packet.game.packets.{ContinentalLockUpdateMessage, GenericObjectActionMessage}
 import net.psforever.persistence
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.services.{InterstellarClusterService, ServiceManager}
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import net.psforever.util.Database.ctx
 import org.log4s.Logger
 
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 final case class BuildingControlDetails(
@@ -72,6 +73,10 @@ object BuildingActor {
   final case class ContinentalLock(zone: Zone) extends Command
 
   final case class HomeLockBenefits(msg: PlanetSideGamePacket) extends Command
+
+  final case class ScheduleVirusAlert(expectedVirusId: Long, termGuid: PlanetSideGUID) extends Command
+
+  final case class VirusAlertDelayed(expectedVirusId: Long, termGuid: PlanetSideGUID) extends Command
   /**
     * Set a facility affiliated to one faction to be affiliated to a different faction.
     * @param details building and event system references
@@ -256,6 +261,18 @@ class BuildingActor(
 
       case HomeLockBenefits(msg) =>
         details.galaxyService ! MessageEnvelope("", SendResponse(msg))
+        Behaviors.same
+
+      case ScheduleVirusAlert(expectedVirusId, termGuid) =>
+        context.scheduleOnce(30.seconds, context.self, VirusAlertDelayed(expectedVirusId, termGuid))
+        Behaviors.same
+
+      case VirusAlertDelayed(expectedVirusId, termGuid) =>
+        if (building.virusId == expectedVirusId) {
+          building.virusInformedDefenders = true
+          context.self ! MapUpdate()
+          zone.LocalEvents ! MessageEnvelope(zone.id, SendResponse(GenericObjectActionMessage(termGuid, 58)))
+        }
         Behaviors.same
     }
   }

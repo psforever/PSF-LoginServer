@@ -5,6 +5,7 @@ import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import net.psforever.objects.avatar.AvatarBot
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
@@ -906,7 +907,15 @@ class GeneralOperations(
    * @param unk2 na
    */
   def hackObject(targetGuid: PlanetSideGUID, unk1: Long, unk2: HackState7): Unit = {
-    sendResponse(HackMessage(HackState1.Unk0, targetGuid, player_guid=Default.GUID0, progress=100, unk1.toFloat, HackState.Hacked, unk2))
+    val hackEmpire = player.Zone.GUID(targetGuid) match {
+      case Some(term: Terminal) if term.Definition == GlobalDefinitions.main_terminal =>
+        HackState1.withValueOpt(player.Faction.id).getOrElse(HackState1.Unk0)
+      case Some(hackable: Hackable) =>
+        HackState1.withValueOpt(hackable.HackedBy.map(_.hackerFaction.id).getOrElse(0)).getOrElse(HackState1.Unk0)
+      case _ =>
+        HackState1.Unk0
+    }
+    sendResponse(HackMessage(hackEmpire, targetGuid, player_guid=Default.GUID0, progress=100, unk1.toFloat, HackState.Hacked, unk2))
   }
 
   /**
@@ -1226,10 +1235,10 @@ class GeneralOperations(
         sendResponse(msg)
         accessContainer(obj)
       }
-    } else if (!msg.unk3 && player.isAlive) { //potential kit use
-      (continent.GUID(msg.item_used_guid), kitToBeUsed) match {
+    } else if (!msg.weaponFireUse && player.isAlive) { //potential kit use
+      (continent.GUID(msg.itemUsedGUID), kitToBeUsed) match {
         case (Some(kit: Kit), None) =>
-          kitToBeUsed = Some(msg.item_used_guid)
+          kitToBeUsed = Some(msg.itemUsedGUID)
           player.Actor ! CommonMessages.Use(player, Some(kit))
         case (Some(_: Kit), Some(_)) | (None, Some(_)) =>
           //a kit is already queued to be used; ignore this request
@@ -1237,8 +1246,8 @@ class GeneralOperations(
         case (Some(item), _) =>
           log.error(s"UseItem: ${player.Name} looking for Kit to use, but found $item instead")
         case (None, None) =>
-          log.warn(s"UseItem: anticipated a Kit ${msg.item_used_guid} for ${player.Name}, but can't find it")              }
-    } else if (msg.object_id == ObjectClass.avatar && msg.unk3) {
+          log.warn(s"UseItem: anticipated a Kit ${msg.itemUsedGUID} for ${player.Name}, but can't find it")              }
+    } else if (msg.objectID == ObjectClass.avatar && msg.weaponFireUse) {
       equipment match {
         case Some(tool: Tool) if tool.Definition == GlobalDefinitions.bank =>
           obj.Actor ! CommonMessages.Use(player, equipment)
@@ -1252,8 +1261,8 @@ class GeneralOperations(
 
   def handleUseBot(obj: AvatarBot, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
     sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-    if (msg.unk3) {
-      msg.object_id match {
+    if (msg.weaponFireUse) {
+      msg.objectID match {
         case ObjectClass.avatar | ObjectClass.avatar_bot | ObjectClass.avatar_bot_agile | ObjectClass.avatar_bot_agile_no_weapon |
         ObjectClass.avatar_bot_max | ObjectClass.avatar_bot_max_no_weapon | ObjectClass.avatar_bot_reinforced |
         ObjectClass.avatar_bot_reinforced_no_weapon | ObjectClass.avatar_bot_standard | ObjectClass.avatar_bot_standard_no_weapon =>
@@ -1279,7 +1288,7 @@ class GeneralOperations(
         log.info(s"${player.Name} is accessing a locker")
         sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         val playerLocker = player.avatar.locker
-        sendResponse(msg.copy(object_guid = playerLocker.GUID, object_id = 456))
+        sendResponse(msg.copy(objectGUID = playerLocker.GUID, objectID = 456))
         accessContainer(playerLocker)
       case _ => ()
     }
@@ -1308,7 +1317,7 @@ class GeneralOperations(
   def handleUseFacilityTurret(obj: FacilityTurret, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
     equipment.foreach { item =>
       sendUseGeneralEntityMessage(obj, item)
-      obj.Actor ! CommonMessages.Use(player, Some((item, msg.unk2.toInt))) //try upgrade path
+      obj.Actor ! CommonMessages.Use(player, Some((item, msg.actionContext.toInt))) //try upgrade path
     }
   }
 
@@ -1337,7 +1346,7 @@ class GeneralOperations(
     equipment match {
       case Some(item) =>
         if (terminal.Definition == GlobalDefinitions.main_terminal) {
-          sendUseMainTerminalMessage(terminal, item, msg.unk2)
+          sendUseMainTerminalMessage(terminal, item, msg.actionContext)
         }
         else {
           sendUseGeneralEntityMessage(terminal, item)
@@ -1362,7 +1371,7 @@ class GeneralOperations(
                 s"${player.Name} is accessing a ${terminal.Definition.Name} for ${player.Sex.possessive} ${vehicle.Definition.Name}"
               )
               sendResponse(msg)
-              sendResponse(msg.copy(object_guid = vehicle.GUID, object_id = vehicle.Definition.ObjectId))
+              sendResponse(msg.copy(objectGUID = vehicle.GUID, objectID = vehicle.Definition.ObjectId))
             case None =>
               log.error(s"UseItem: Expecting a seated vehicle, ${player.Name} found none")
           }
@@ -1372,7 +1381,7 @@ class GeneralOperations(
           sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           terminal.Actor ! Terminal.Request(
             player,
-            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "router_telepad", 0, Default.GUID0)
+            ItemTransactionMessage(msg.objectGUID, TransactionType.Buy, 0, "router_telepad", 0, Default.GUID0)
           )
         } else if (tdef == GlobalDefinitions.targeting_laser_dispenser) {
           //explicit request
@@ -1380,7 +1389,7 @@ class GeneralOperations(
           sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           terminal.Actor ! Terminal.Request(
             player,
-            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, Default.GUID0)
+            ItemTransactionMessage(msg.objectGUID, TransactionType.Buy, 0, "flail_targeting_laser", 0, Default.GUID0)
           )
         } else {
           log.info(s"${player.Name} is accessing a ${terminal.Definition.Name}")
@@ -1423,11 +1432,11 @@ class GeneralOperations(
           useTelepadFunc(vehicle, util, obj, obj, util)
         case Some((vehicle: Vehicle, None)) =>
           log.error(
-            s"telepad@${msg.object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}"
+            s"telepad@${msg.objectGUID.guid} is not linked to a router - ${vehicle.Definition.Name}"
           )
         case Some((o, _)) =>
           log.error(
-            s"telepad@${msg.object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}"
+            s"telepad@${msg.objectGUID.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}"
           )
           obj.Actor ! Deployable.Deconstruct()
         case _ => ()
@@ -1446,7 +1455,7 @@ class GeneralOperations(
         useTelepadFunc(obj.Owner.asInstanceOf[Vehicle], obj, pad, obj, pad)
       case Some(o) =>
         log.error(
-          s"internal telepad@${msg.object_guid.guid} is not linked to a remote telepad - ${o.Definition.Name}@${o.GUID.guid}"
+          s"internal telepad@${msg.objectGUID.guid} is not linked to a remote telepad - ${o.Definition.Name}@${o.GUID.guid}"
         )
       case None => ()
     }

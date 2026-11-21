@@ -7,7 +7,9 @@ import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.packets.{ItemTransactionMessage, TriggeredSound}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
+
+import scala.collection.concurrent.TrieMap
 
 /**
   * A server object that can be accessed for net.psforever.services and other amenities.
@@ -20,6 +22,8 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class Terminal(tdef: TerminalDefinition) extends Amenity with Hackable {
+  val activeVirusUploaders: TrieMap[PlanetSideGUID, Player] = TrieMap.empty
+
   HackSound = TriggeredSound.HackTerminal
   HackEffectDuration = Array(0, 30, 60, 90)
   HackDuration = Array(0, 10, 5, 3)

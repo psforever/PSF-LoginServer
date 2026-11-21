@@ -283,6 +283,8 @@ class HackCaptureActor extends Actor {
     if (building.NtuLevel > 0) {
       building.virusId = 8
       building.virusInstalledBy = None
+      building.virusInstallTime = None
+      building.virusInformedDefenders = false
       log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
       //dispatch to players aligned with the capturing faction within the SOI
       val msg = LocalAction.GenericActionMessage(GenericAction.FacilityCaptureFanfare)

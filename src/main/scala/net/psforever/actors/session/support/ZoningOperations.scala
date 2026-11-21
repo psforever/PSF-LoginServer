@@ -1256,7 +1256,8 @@ class ZoningOperations(
               HackCaptureActor.GetHackUpdateAttributeValue(amenity.asInstanceOf[CaptureTerminal], isResecured = false)
             )
           case GlobalDefinitions.main_terminal =>
-            val virus = amenity.asInstanceOf[Terminal].Owner.asInstanceOf[Building].virusId
+            val building = amenity.asInstanceOf[Terminal].Owner.asInstanceOf[Building]
+            val virus = building.virusId
             val hackStateMap: Map[Long, HackState7] = Map(
               0L -> HackState7.UnlockDoors,
               1L -> HackState7.DisableLatticeBenefits,
@@ -1266,7 +1267,7 @@ class ZoningOperations(
             )
             val hackState = hackStateMap.getOrElse(virus, HackState7.Unk8)
             sessionLogic.general.hackObject(amenity.GUID, unk1 = 1114636288L, hackState)
-            if (virus != 8 && !sessionLogic.zoning.spawn.startEnqueueSquadMessages) {
+            if (virus != 8 && building.virusInformedDefenders && !sessionLogic.zoning.spawn.startEnqueueSquadMessages) {
                 sessionLogic.zoning.spawn.enqueueNewActivity(ActivityQueuedTask(
                   SpawnOperations.delaySendGenericObjectActionMessage(GenericObjectActionMessage(amenityId, 58)), 1))
               }

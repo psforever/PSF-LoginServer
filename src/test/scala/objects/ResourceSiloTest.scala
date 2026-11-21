@@ -62,17 +62,17 @@ class ResourceSiloTest extends Specification {
 
     "using the silo generates a charge event" in {
       val msg = UseItemMessage(
-        PlanetSideGUID(1),
-        PlanetSideGUID(0),
-        PlanetSideGUID(2),
-        0L,
-        unk3 = false,
-        Vector3(0f, 0f, 0f),
-        Vector3(0f, 0f, 0f),
-        0,
-        0,
-        0,
-        0L
+        avatarGUID = PlanetSideGUID(1),
+        itemUsedGUID = PlanetSideGUID(0),
+        objectGUID = PlanetSideGUID(2),
+        actionContext = 0L,
+        weaponFireUse = false,
+        rayStartPos = Vector3.Zero,
+        rayHitPos = Vector3.Zero,
+        pitch = 0,
+        yaw = 0,
+        roll = 0,
+        objectID = 0L
       ) //faked
       ResourceSilo().Use(ResourceSiloTest.player, msg) mustEqual ResourceSilo.ChargeEvent()
     }
