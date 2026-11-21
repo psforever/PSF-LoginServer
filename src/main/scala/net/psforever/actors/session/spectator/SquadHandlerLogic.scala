@@ -136,10 +136,10 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
         case SquadResponse.Detail(guid, detail) =>
           sendResponse(SquadDetailDefinitionUpdateMessage(guid, detail))
 
-        case SquadResponse.Membership(request_type, unk1, unk2, charId, opt_char_id, player_name, unk5, unk6) =>
+        case SquadResponse.Membership(request_type, unk1, unk2, charId, opt_char_id, player_name, is_sender, role_name) =>
           val name = request_type match {
-            case SquadResponseType.Invite if unk5 =>
-              //the name of the player indicated by unk3 is needed
+            case SquadResponseType.Invite if is_sender =>
+              //the name of the player indicated by charId is needed
               LivePlayerList.WorldPopulation({ case (_, a: Avatar) => charId == a.id }).headOption match {
                 case Some(player) =>
                   player.name
@@ -149,7 +149,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
             case _ =>
               player_name
           }
-          sendResponse(SquadMembershipResponse(request_type, unk1, unk2, charId, opt_char_id, name, unk5, unk6))
+          sendResponse(SquadMembershipResponse(request_type, unk1, unk2, charId, opt_char_id, name, is_sender, role_name))
 
         case SquadResponse.Leave(squad, positionsToUpdate) =>
           positionsToUpdate.find({ case (member, _) => member == avatar.id }) match {

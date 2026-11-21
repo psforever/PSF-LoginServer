@@ -27,11 +27,11 @@ final case class InvitationToJoinSquad(charId: Long, name: String, features: Squ
   ): Unit = {
     manager.publish(
       invitedPlayer,
-      SquadResponse.Membership(SquadResponseType.Invite, charId, Some(invitedPlayer), name, unk5 = false)
+      SquadResponse.Membership(SquadResponseType.Invite, charId, Some(invitedPlayer), name, is_sender = false)
     )
     manager.publish(
       charId,
-      SquadResponse.Membership(SquadResponseType.Invite, invitedPlayer, Some(charId), name, unk5 = true)
+      SquadResponse.Membership(SquadResponseType.Invite, invitedPlayer, Some(charId), name, is_sender = true)
     )
   }
 

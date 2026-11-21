@@ -26,19 +26,20 @@ class SquadMembershipResponseTest extends Specification {
   val string_91 = hex"6f 9 008310080115aef40500080"
   val string_92 = hex"6f 9 001355ae02cadcf405100570069007a006b00690064003400350000"
   val string_b1 = hex"6f b 021355ae02cadcf405140530041007200610069007300560061006e00750000"
+  val string_invite_with_role = hex"6f 0 010db22600854518051405600690072007500730047006900760065007200e180470075006e006e0065007200" // crafted example, no dump available
 
   "SquadMembershipResponse" should {
     "decode (0-1)" in {
       PacketCoding.decodePacket(string_01).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Invite
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.Invite
           unk2 mustEqual 0
           unk3 mustEqual 0
-          unk4 mustEqual 42771010L
-          unk5.contains(1300870L) mustEqual true
-          unk6 mustEqual "HofD"
-          unk7 mustEqual false
-          unk8.isEmpty mustEqual true
+          char_id mustEqual 42771010L
+          other_id.contains(1300870L) mustEqual true
+          player_name mustEqual "HofD"
+          is_sender mustEqual false
+          role_name mustEqual Some(None)
         case _ =>
           ko
       }
@@ -46,15 +47,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (0-2)" in {
       PacketCoding.decodePacket(string_02).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Invite
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.Invite
           unk2 mustEqual 0
           unk3 mustEqual 0
-          unk4 mustEqual 1176612L
-          unk5.contains(1004937L) mustEqual true
-          unk6 mustEqual "SPOILERS"
-          unk7 mustEqual true
-          unk8.isEmpty mustEqual true
+          char_id mustEqual 1176612L
+          other_id.contains(1004937L) mustEqual true
+          player_name mustEqual "SPOILERS"
+          is_sender mustEqual true
+          role_name mustEqual Some(None)
         case _ =>
           ko
       }
@@ -62,15 +63,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (1-1)" in {
       PacketCoding.decodePacket(string_11).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.ProximityInvite
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.ProximityInvite
           unk2 mustEqual 19
           unk3 mustEqual 0
-          unk4 mustEqual 41530025L
-          unk5.contains(0L) mustEqual true
-          unk6 mustEqual ""
-          unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 41530025L
+          other_id.contains(0L) mustEqual true
+          player_name mustEqual ""
+          is_sender mustEqual true
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -78,15 +79,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (1-2)" in {
       PacketCoding.decodePacket(string_12).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.ProximityInvite
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.ProximityInvite
           unk2 mustEqual 18
           unk3 mustEqual 0
-          unk4 mustEqual 41578085L
-          unk5.contains(0L) mustEqual true
-          unk6 mustEqual ""
-          unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 41578085L
+          other_id.contains(0L) mustEqual true
+          player_name mustEqual ""
+          is_sender mustEqual true
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -94,15 +95,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (2-1)" in {
       PacketCoding.decodePacket(string_21).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Accept
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.Accept
           unk2 mustEqual 0
           unk3 mustEqual 0
-          unk4 mustEqual 1300870L
-          unk5.contains(42771010L) mustEqual true
-          unk6 mustEqual "VirusGiver"
-          unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 1300870L
+          other_id.contains(42771010L) mustEqual true
+          player_name mustEqual "VirusGiver"
+          is_sender mustEqual true
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -110,15 +111,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (2-2)" in {
       PacketCoding.decodePacket(string_22).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Accept
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.Accept
           unk2 mustEqual 0
           unk3 mustEqual 0
-          unk4 mustEqual 1300870L
-          unk5.contains(30736877L) mustEqual true
-          unk6 mustEqual "VirusGiver"
-          unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 1300870L
+          other_id.contains(30736877L) mustEqual true
+          player_name mustEqual "VirusGiver"
+          is_sender mustEqual true
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -126,15 +127,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (3-1)" in {
       PacketCoding.decodePacket(string_31).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Reject
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.Reject
           unk2 mustEqual 0
           unk3 mustEqual 3
-          unk4 mustEqual 31035057L
-          unk5.contains(42771010L) mustEqual true
-          unk6 mustEqual "HMFIC"
-          unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 31035057L
+          other_id.contains(42771010L) mustEqual true
+          player_name mustEqual "HMFIC"
+          is_sender mustEqual false
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -142,15 +143,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (3-2)" in {
       PacketCoding.decodePacket(string_32).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Reject
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.Reject
           unk2 mustEqual 0
           unk3 mustEqual 2
-          unk4 mustEqual 31106913L
-          unk5.contains(42771010L) mustEqual true
-          unk6 mustEqual "DAN1111"
-          unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 31106913L
+          other_id.contains(42771010L) mustEqual true
+          player_name mustEqual "DAN1111"
+          is_sender mustEqual false
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -158,15 +159,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (4-1)" in {
       PacketCoding.decodePacket(string_41).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Cancel
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.Cancel
           unk2 mustEqual 0
           unk3 mustEqual 2
-          unk4 mustEqual 41578085L
-          unk5.contains(41607133L) mustEqual true
-          unk6 mustEqual "SAraisVanu"
-          unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 41578085L
+          other_id.contains(41607133L) mustEqual true
+          player_name mustEqual "SAraisVanu"
+          is_sender mustEqual false
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -174,15 +175,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (4-2)" in {
       PacketCoding.decodePacket(string_42).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Cancel
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.Cancel
           unk2 mustEqual 0
           unk3 mustEqual 2
-          unk4 mustEqual 41607396L
-          unk5.contains(41324011L) mustEqual true
-          unk6 mustEqual "AirInjector"
-          unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 41607396L
+          other_id.contains(41324011L) mustEqual true
+          player_name mustEqual "AirInjector"
+          is_sender mustEqual false
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -190,15 +191,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (5-1)" in {
       PacketCoding.decodePacket(string_51).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Leave
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.Leave
           unk2 mustEqual 0
           unk3 mustEqual 1
-          unk4 mustEqual 1176612L
-          unk5.contains(1176612L) mustEqual true
-          unk6 mustEqual "CCRIDER"
-          unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 1176612L
+          other_id.contains(1176612L) mustEqual true
+          player_name mustEqual "CCRIDER"
+          is_sender mustEqual true
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -206,15 +207,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (7-1)" in {
       PacketCoding.decodePacket(string_71).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.PlatoonInvite
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.PlatoonInvite
           unk2 mustEqual 2
           unk3 mustEqual 0
-          unk4 mustEqual 1176612L
-          unk5.contains(0L) mustEqual true
-          unk6 mustEqual ""
-          unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 1176612L
+          other_id.contains(0L) mustEqual true
+          player_name mustEqual ""
+          is_sender mustEqual true
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -222,15 +223,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (7-2)" in {
       PacketCoding.decodePacket(string_72).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.PlatoonInvite
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.PlatoonInvite
           unk2 mustEqual 0
           unk3 mustEqual 0
-          unk4 mustEqual 41578085L
-          unk5.contains(30910985L) mustEqual true
-          unk6 mustEqual "Wizkid45"
-          unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 41578085L
+          other_id.contains(30910985L) mustEqual true
+          player_name mustEqual "Wizkid45"
+          is_sender mustEqual true
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -238,15 +239,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (8-1)" in {
       PacketCoding.decodePacket(string_81).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.PlatoonAccept
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.PlatoonAccept
           unk2 mustEqual 0
           unk3 mustEqual 0
-          unk4 mustEqual 30910985L
-          unk5.contains(41578085L) mustEqual true
-          unk6 mustEqual "Wizkid45"
-          unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 30910985L
+          other_id.contains(41578085L) mustEqual true
+          player_name mustEqual "Wizkid45"
+          is_sender mustEqual false
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -254,15 +255,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (9-1)" in {
       PacketCoding.decodePacket(string_91).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.PlatoonReject
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.PlatoonReject
           unk2 mustEqual 0
           unk3 mustEqual 0
-          unk4 mustEqual 297025L
-          unk5.contains(41605002L) mustEqual true
-          unk6 mustEqual ""
-          unk7 mustEqual true
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 297025L
+          other_id.contains(41605002L) mustEqual true
+          player_name mustEqual ""
+          is_sender mustEqual true
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -270,15 +271,15 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (9-2)" in {
       PacketCoding.decodePacket(string_92).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.PlatoonReject
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.PlatoonReject
           unk2 mustEqual 0
           unk3 mustEqual 0
-          unk4 mustEqual 30910985L
-          unk5.contains(41578085L) mustEqual true
-          unk6 mustEqual "Wizkid45"
-          unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 30910985L
+          other_id.contains(41578085L) mustEqual true
+          player_name mustEqual "Wizkid45"
+          is_sender mustEqual false
+          role_name mustEqual None
         case _ =>
           ko
       }
@@ -286,22 +287,22 @@ class SquadMembershipResponseTest extends Specification {
 
     "decode (b-1)" in {
       PacketCoding.decodePacket(string_b1).require match {
-        case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.PlatoonLeave
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id, player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.PlatoonLeave
           unk2 mustEqual 0
           unk3 mustEqual 1
-          unk4 mustEqual 30910985L
-          unk5.contains(41578085L) mustEqual true
-          unk6 mustEqual "SAraisVanu"
-          unk7 mustEqual false
-          unk8.contains(None) mustEqual true
+          char_id mustEqual 30910985L
+          other_id.contains(41578085L) mustEqual true
+          player_name mustEqual "SAraisVanu"
+          is_sender mustEqual false
+          role_name mustEqual None
         case _ =>
           ko
       }
     }
 
     "encode (0-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Invite, 0, 0, 42771010L, Some(1300870L), "HofD", false, None)
+      val msg = SquadMembershipResponse(SquadResponseType.Invite, 0, 0, 42771010L, Some(1300870L), "HofD", false, Some(None))
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_01
@@ -309,7 +310,7 @@ class SquadMembershipResponseTest extends Specification {
 
     "encode (0-2)" in {
       val msg =
-        SquadMembershipResponse(SquadResponseType.Invite, 0, 0, 1176612L, Some(1004937L), "SPOILERS", true, None)
+        SquadMembershipResponse(SquadResponseType.Invite, 0, 0, 1176612L, Some(1004937L), "SPOILERS", true, Some(None))
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_02
@@ -502,6 +503,38 @@ class SquadMembershipResponseTest extends Specification {
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_b1
+    }
+
+    "decode invite_with_role" in {
+      PacketCoding.decodePacket(string_invite_with_role).require match {
+        case SquadMembershipResponse(request_type, unk2, unk3, char_id, other_id , player_name, is_sender, role_name) =>
+          request_type mustEqual SquadResponseType.Invite
+          unk2 mustEqual 0
+          unk3 mustEqual 0
+          char_id mustEqual 1300870L
+          other_id.contains(42771010L) mustEqual true
+          player_name mustEqual "VirusGiver"
+          is_sender mustEqual true
+          role_name mustEqual Some(Some("Gunner"))
+        case _ =>
+          ko
+      }
+    }
+
+    "encode invite_with_role" in {
+      val msg = SquadMembershipResponse(
+        SquadResponseType.Invite,
+        0,
+        0,
+        1300870L,
+        Some(42771010L),
+        "VirusGiver",
+        true,
+        Some(Some("Gunner"))
+      )
+      val pkt = PacketCoding.encodePacket(msg).require.toByteVector
+
+      pkt mustEqual string_invite_with_role
     }
   }
 }
