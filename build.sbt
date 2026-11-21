@@ -23,6 +23,17 @@ lazy val psforeverSettings = Seq(
   QuietTest / testOptions += Tests.Argument(TestFrameworks.Specs2, "showOnly", "x!"),
   // http://www.scalatest.org/user_guide/using_the_runner
   QuietTest / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oCEHILMNOPQRX"),
+  // Write JUnit XML reports so CI can preserve per-test results even when the job fails.
+  Test / testOptions += Tests.Argument(
+    TestFrameworks.ScalaTest,
+    "-u",
+    (Test / target).value.getAbsolutePath + "/test-reports"
+  ),
+  QuietTest / testOptions += Tests.Argument(
+    TestFrameworks.ScalaTest,
+    "-u",
+    (QuietTest / target).value.getAbsolutePath + "/test-reports"
+  ),
   // Trick taken from https://groups.google.com/d/msg/scala-user/mxV9ok7J_Eg/kt-LnsrD0bkJ
   // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
   Compile / doc / scalacOptions ++= Seq(
@@ -38,6 +49,11 @@ lazy val psforeverSettings = Seq(
     baseDirectory.value.getAbsolutePath // needed for scaladoc relative source paths
   ),
   classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+  // Actor tests share global state (Default, ServiceManager, number pools) and rely on
+  // message ordering, so they must not run in parallel. This applies to both the normal
+  // Test configuration and the QuietTest configuration used by CI.
+  Test / parallelExecution := false,
+  QuietTest / parallelExecution := false,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
     // Akka 2.8+ is BSL licensed, do not upgrade
@@ -104,8 +120,6 @@ lazy val server = (project in file("server"))
   .settings(psforeverSettings: _*)
   .settings(
     name := "server",
-    // ActorTests have specific timing requirements and will be flaky if run in parallel
-    Test / parallelExecution := false,
     // Copy all tests from Test -> QuietTest (we're only changing the run options)
     inConfig(QuietTest)(Defaults.testTasks),
     packMain := Map("psforever-server" -> "net.psforever.server.Server"),
@@ -125,7 +139,9 @@ lazy val server = (project in file("server"))
     packExtraClasspath := Map("psforever-server" -> Seq("${PROG_HOME}/config")),
     packResourceDir += ((psforever / baseDirectory).value / "config" -> "config")
   )
-  .dependsOn(psforever)
+  // The server tests reuse the actor test harness and fixtures that live in the root
+  // project's test sources, so the test classpath has to be shared as well.
+  .dependsOn(psforever % "compile->compile;test->test")
 
 lazy val decodePackets = (project in file("tools/decode-packets"))
   .enablePlugins(PackPlugin)
