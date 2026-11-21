@@ -5,6 +5,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player, Tool, Vehicle}
 import net.psforever.objects.definition.{ObjectDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.environment._
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalDefinition}
 import net.psforever.objects.vital.Vitality
 import net.psforever.packet.game.objectcreate.ObjectClass
@@ -181,35 +182,35 @@ class EnvironmentCollisionTest extends Specification {
 class EnvironmentAttributeTest extends Specification {
   "Water" should {
     "interact with drownable object" in {
-      EnvironmentAttribute.Water.canInteractWith(
-        Vehicle(
-          new VehicleDefinition(objectId = ObjectClass.apc_tr) { DrownAtMaxDepth = true }
-        )
-      ) mustEqual true
+      val obj = Vehicle(
+        new VehicleDefinition(objectId = ObjectClass.apc_tr) { DrownAtMaxDepth = true }
+      )
+      obj.WhichSide = Sidedness.OutsideOf
+      EnvironmentAttribute.Water.canInteractWith(obj) mustEqual true
     }
 
     "not interact with object that does not drown" in {
-      EnvironmentAttribute.Water.canInteractWith(
-        Vehicle(
-          new VehicleDefinition(objectId = ObjectClass.apc_tr) { DrownAtMaxDepth = false }
-        )
-      ) mustEqual false
+      val obj = Vehicle(
+        new VehicleDefinition(objectId = ObjectClass.apc_tr) { DrownAtMaxDepth = false }
+      )
+      obj.WhichSide = Sidedness.OutsideOf
+      EnvironmentAttribute.Water.canInteractWith(obj) mustEqual false
     }
 
     "interact with depth-disable object" in {
-      EnvironmentAttribute.Water.canInteractWith(
-        Vehicle(
-          new VehicleDefinition(objectId = ObjectClass.apc_tr) { DisableAtMaxDepth = true }
-        )
-      ) mustEqual true
+      val obj = Vehicle(
+        new VehicleDefinition(objectId = ObjectClass.apc_tr) { DisableAtMaxDepth = true }
+      )
+      obj.WhichSide = Sidedness.OutsideOf
+      EnvironmentAttribute.Water.canInteractWith(obj) mustEqual true
     }
 
     "not interact with object that does not depth-disable" in {
-      EnvironmentAttribute.Water.canInteractWith(
-        Vehicle(
-          new VehicleDefinition(objectId = ObjectClass.apc_tr) { DisableAtMaxDepth = false }
-        )
-      ) mustEqual false
+      val obj = Vehicle(
+        new VehicleDefinition(objectId = ObjectClass.apc_tr) { DisableAtMaxDepth = false }
+      )
+      obj.WhichSide = Sidedness.OutsideOf
+      EnvironmentAttribute.Water.canInteractWith(obj) mustEqual false
     }
   }
 

@@ -1,59 +1,135 @@
 name: Test
+
 on:
   push:
     branches:
       - master
   pull_request:
-    types: [ opened, reopened, synchronize ]
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
+    name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     services:
       postgres:
-        image: postgres:12.8
+        image: postgres:14
         env:
           POSTGRES_DB: psforever
           POSTGRES_USER: psforever
           POSTGRES_PASSWORD: psforever
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -h 127.0.0.1 -U psforever -d psforever"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          --health-start-period 10s
         ports:
           - 5432:5432
     steps:
-      - name: Cache SBT
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.ivy2/cache
-            ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
-
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Scala
+      - name: Set up JDK and sbt
         uses: coursier/setup-action@v1
         with:
           jvm: adopt:11
           apps: sbt
 
-      - name: Run migrations
-        run: sbt "server/run migrate"
-
-      - name: Run build
-        run: sbt server/packArchiveZip
+      - name: Cache sbt and coursier
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/coursier
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt', 'project/build.properties', 'project/plugins.sbt') }}
+          restore-keys: |
+            ${{ runner.os }}-sbt-
 
       - name: Run tests
-        run: sbt coverage test:compile quiet:test coverageReport
+        # Coverage is enabled for every project so the aggregate report includes server.
+        run: |
+          sbt -batch \
+            "set ThisBuild / coverageEnabled := true" \
+            "psforever / QuietTest / test" \
+            "server / QuietTest / test" \
+            "coverageAggregate"
 
       - name: Upload coverage
-        run: bash <(curl -s https://codecov.io/bash)
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: target/scala-2.13/scoverage-report/scoverage.xml
+          fail_ci_if_error: false
 
-      - name: Upload artifacts
+      - name: Upload test reports
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: server.zip
+          name: test-reports
+          path: "**/target/test-reports/**"
+          if-no-files-found: ignore
+          retention-days: 7
+
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: test
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: psforever
+          POSTGRES_USER: psforever
+          POSTGRES_PASSWORD: psforever
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U psforever -d psforever"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK and sbt
+        uses: coursier/setup-action@v1
+        with:
+          jvm: adopt:11
+          apps: sbt
+
+      - name: Cache sbt and coursier
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/coursier
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt', 'project/build.properties', 'project/plugins.sbt') }}
+          restore-keys: |
+            ${{ runner.os }}-sbt-
+
+      - name: Run migrations
+        run: sbt -batch "server / run migrate"
+
+      - name: Build server archive
+        run: sbt -batch server/packArchiveZip
+
+      - name: Upload server archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: server
           path: server/target/psforever-server-*.zip
+          retention-days: 7

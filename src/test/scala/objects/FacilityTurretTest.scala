@@ -4,7 +4,7 @@ package objects
 import akka.actor.Props
 import akka.testkit.TestProbe
 import akka.actor.typed.scaladsl.adapter._
-import base.ActorTest
+import base.{ActorTest, EventEnvelopeAssertions}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
@@ -16,7 +16,7 @@ import net.psforever.objects.serverobject.mount.{MountInfo, Mountable}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.turret._
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.packet.game.packets.{InventoryStateMessage, RepairMessage}
+import net.psforever.packet.game.packets.{InventoryStateMessage, PlanetsideAttributeMessage, RepairMessage}
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.services.base.envelope.MessageEnvelope
@@ -256,11 +256,11 @@ class FacilityTurretControlRestorationTest extends ActorTest {
       assert(turret.Destroyed)
 
       turret.Actor ! CommonMessages.Use(player1, Some(tool))
-      val msg12345 = avatarProbe.receiveN(5, 500 milliseconds)
+      val msg12345 = EventEnvelopeAssertions.drain(avatarProbe)
       val msg4     = vehicleProbe.receiveOne(500 milliseconds)
       assert(
-        msg12345.head match {
-          case MessageEnvelope(
+        EventEnvelopeAssertions.contains(msg12345) {
+          case (
                 "TestCharacter1",
                 _,
                 SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(8), _, PlanetSideGUID(7), _)))
@@ -270,38 +270,32 @@ class FacilityTurretControlRestorationTest extends ActorTest {
         }
       )
       assert(
-        msg12345(1) match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
-          case _                                                                                            => false
+        EventEnvelopeAssertions.contains(msg12345) {
+          case ("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
+          case _                                                         => false
         }
       )
       assert(
-        msg12345(2) match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 50, 0)) => true
-          case _                                                                                             => false
+        EventEnvelopeAssertions.containsPacket(msg12345) {
+          case PlanetsideAttributeMessage(PlanetSideGUID(2), 50, 0) => true
+          case _                                                    => false
         }
       )
       assert(
-        msg12345(3) match {
-          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 51, 0)) => true
-          case _                                                                                             => false
+        EventEnvelopeAssertions.containsPacket(msg12345) {
+          case PlanetsideAttributeMessage(PlanetSideGUID(2), 51, 0) => true
+          case _                                                    => false
         }
       )
       assert(
-        msg12345(4) match {
-          case MessageEnvelope(
-                "TestCharacter1",
-                _,
-                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
-              ) =>
-            true
-          case _ => false
+        EventEnvelopeAssertions.contains(msg12345) {
+          case ("TestCharacter1", _, SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))) => true
+          case _                                                                            => false
         }
       )
       assert(
-        msg4 match {
-          case MessageEnvelope("test", _, VehicleAction.EquipmentInSlot(PlanetSideGUID(2), 1, t))
-              if t eq turretWeapon =>
+        EventEnvelopeAssertions.contains(Seq(msg4)) {
+          case ("test", _, VehicleAction.EquipmentInSlot(PlanetSideGUID(2), 1, t)) if t eq turretWeapon =>
             true
           case _ => false
         }

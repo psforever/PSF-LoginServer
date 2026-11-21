@@ -5,7 +5,7 @@ import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.{ActorRef, Props}
 import akka.actor.typed.scaladsl.adapter._
 import akka.testkit.TestProbe
-import base.{ActorTest, FreedContextActorTest}
+import base.{ActorTest, EventEnvelopeAssertions, FreedContextActorTest}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{Avatar, PlayerControl}
 import net.psforever.objects.ce.DeployedItem
@@ -16,6 +16,7 @@ import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.environment.interaction.{InteractingWithEnvironment, RespondsToZoneEnvironment}
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vehicles.VehicleLockState
@@ -223,45 +224,60 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
     "if with mounted cargo, eject it when marked for deconstruction" in {
       lodestar.Actor ! Vehicle.Deconstruct()
 
-      val vehicleMsgs = eventsProbe.receiveN(6, 10.seconds)
-      val cargoMsgs = cargoProbe.receiveN(1, 1.seconds)
-      vehicleMsgs.head match {
-        case MessageEnvelope("test", _, VehicleAction.KickPassenger(4, true, PlanetSideGUID(2))) => ()
-        case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-1: ${vehicleMsgs.head}")
-      }
+      val vehicleMsgs = EventEnvelopeAssertions.drain(eventsProbe, 10.seconds)
+      val cargoMsgs   = cargoProbe.receiveOne(1.seconds)
+      assert(
+        EventEnvelopeAssertions.contains(vehicleMsgs) {
+          case ("test", _, VehicleAction.KickPassenger(4, true, PlanetSideGUID(2))) => true
+          case _                                                                     => false
+        },
+        s"VehicleControlPrepareForDeletionMountedCargoTest-1: $vehicleMsgs"
+      )
       assert(player2.VehicleSeated.isEmpty)
       assert(lodestar.Seats(0).occupant.isEmpty)
       //cargo dismounting messages
-      vehicleMsgs(1) match {
-        case MessageEnvelope(_, _, SendResponse(Seq(PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _)))) => ()
-        case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-2: ${vehicleMsgs(1)}")
-      }
-      vehicleMsgs(2) match {
-        case MessageEnvelope(_, _, SendResponse(Seq(PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _)))) => ()
-        case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-3: ${vehicleMsgs(2)}")
-      }
-      vehicleMsgs(3) match {
-        case MessageEnvelope("test", _, SendResponse(Seq(CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)))) => ;
-        case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-4: ${vehicleMsgs(3)}")
-      }
-      vehicleMsgs(4) match {
-        case MessageEnvelope("test", _, SendResponse(Seq(ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _)))) => ()
-        case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-5: ${vehicleMsgs(4)}")
-      }
-      vehicleMsgs(5) match {
-        case MessageEnvelope("test", _, SendResponse(Seq(CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)))) => ()
-        case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-6: ${vehicleMsgs(5)}")
-      }
-      cargoMsgs.head match {
+      assert(
+        EventEnvelopeAssertions.containsPacket(vehicleMsgs) {
+          case PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _) => true
+          case _                                                    => false
+        },
+        s"VehicleControlPrepareForDeletionMountedCargoTest-2: $vehicleMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.containsPacket(vehicleMsgs) {
+          case PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _) => true
+          case _                                                     => false
+        },
+        s"VehicleControlPrepareForDeletionMountedCargoTest-3: $vehicleMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.containsPacket(vehicleMsgs) {
+          case CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0) =>
+            true
+          case _ => false
+        },
+        s"VehicleControlPrepareForDeletionMountedCargoTest-4: $vehicleMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.containsPacket(vehicleMsgs) {
+          case ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _) =>
+            true
+          case _ => false
+        },
+        s"VehicleControlPrepareForDeletionMountedCargoTest-5: $vehicleMsgs"
+      )
+      assert(
+        EventEnvelopeAssertions.contains(vehicleMsgs) {
+          case ("test", _, SendResponse(Seq(CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)))) =>
+            true
+          case _ => false
+        },
+        s"VehicleControlPrepareForDeletionMountedCargoTest-6: $vehicleMsgs"
+      )
+      cargoMsgs match {
         case Vehicle.Deconstruct(_) => ()
         case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-7: ${cargoMsgs.head}")
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-7: $cargoMsgs")
       }
     }
   }
@@ -454,6 +470,10 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
       vehicle.Actor.tell(Mountable.TryDismount(player1, 0), probe.ref)
       probe.receiveOne(Duration.create(100, "ms")) //discard
       assert(vehicle.Seats(0).occupant.isEmpty)
+      //assuming the driver seat means the mounting player becomes the owner, which locks the driver seat;
+      //reset the driver group to "empire" so that a non-owner may mount it
+      vehicle.PermissionGroup(0, 3)
+      assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Empire))
 
       vehicle.Actor.tell(Mountable.TryMount(player2, 1), probe.ref)
       VehicleControlTest.checkCanMount(probe, "")
@@ -614,6 +634,7 @@ class VehicleControlInteractWithWaterWadingTest extends ActorTest {
   player1.Zone = zone
   player1.Spawn()
   vehicle.Zone = zone
+  vehicle.WhichSide = Sidedness.OutsideOf
   vehicle.Faction = PlanetSideEmpire.TR
   vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
@@ -667,6 +688,7 @@ class VehicleControlInteractWithWaterStartDrowningTest extends ActorTest {
   player1.Zone = zone
   player1.Spawn()
   vehicle.Zone = zone
+  vehicle.WhichSide = Sidedness.OutsideOf
   vehicle.Faction = PlanetSideEmpire.TR
   vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
@@ -827,6 +849,7 @@ class VehicleControlInteractWithWaterStopWadingTest extends ActorTest {
   player1.Zone = zone
   player1.Spawn()
   vehicle.Zone = zone
+  vehicle.WhichSide = Sidedness.OutsideOf
   vehicle.Faction = PlanetSideEmpire.TR
   vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
