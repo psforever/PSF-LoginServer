@@ -524,7 +524,8 @@ object BlockMap {
                                                structure: IndexedSeq[Sector]
                                              ): Iterable[Sector] = {
     if (list.nonEmpty && list.max < structure.size) {
-      list.toSet.map(structure.apply)
+      //the indices are already distinct; a list, not a set, so that the sectors and their entities are not hashed
+      list.iterator.map(structure.apply).toList
     } else {
       List[Sector]()
     }

@@ -8,8 +8,7 @@ import net.psforever.objects.serverobject.environment.PieceOfEnvironment
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.avatar.AvatarBot
-
-import scala.collection.mutable.ListBuffer
+import net.psforever.objects.entity.IdentifiableEntity
 
 /**
   * The collections of entities in a sector conglomerate.
@@ -69,49 +68,6 @@ trait SectorTraits {
 }
 
 /**
-  * Custom lists of entities for sector buckets.
-  * @param eqFunc a custom equivalence function to distinguish between the entities in the list
-  * @tparam A the type of object that will be the entities stored in the list
-  */
-class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a == b) {
-  private val internalList: ListBuffer[A] = ListBuffer[A]()
-
-  /**
-    * Insert the entity into the list as long as it cannot be found in the list
-    * according to the custom equivalence function.
-    * @param elem the entity
-    * @return a conventional list of entities
-    */
-  def addTo(elem: A): List[A] = {
-    internalList.indexWhere { item => eqFunc(elem, item) } match {
-      case -1 => internalList.addOne(elem)
-      case _  => ;
-    }
-    list
-  }
-
-  /**
-    * Remove the entity from the list as long as it can be found in the list
-    * according to the custom equivalence function.
-    * @param elem the entity
-    * @return a conventional list of entities
-    */
-  def removeFrom(elem: A): List[A] = {
-    internalList.indexWhere { item => eqFunc(elem, item) } match {
-      case -1    => ;
-      case index => internalList.remove(index)
-    }
-    list
-  }
-
-  /**
-    * Cast this specialized list of entities into a conventional list of entities.
-    * @return a conventional list of entities
-    */
-  def list: List[A] = internalList.toList
-}
-
-/**
   * The bucket of a blockmap structure
   * that contains lists of entities that, within a given span of coordinate distance,
   * are considered neighbors.
@@ -123,69 +79,42 @@ class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a == b) {
   */
 class Sector(val longitude: Int, val latitude: Int, val span: Int)
   extends SectorPopulation {
-  private val livePlayers: SectorListOf[Player] = new SectorListOf[Player](
-    (a: Player, b: Player) => a.GUID == b.GUID
-  )
-
-  private val bots: SectorListOf[AvatarBot] = new SectorListOf[AvatarBot](
-    (a: AvatarBot, b: AvatarBot) => a.GUID == b.GUID
-  )
-
-  private val corpses: SectorListOf[Player] = new SectorListOf[Player](
-    (a: Player, b: Player) => a eq b
-  )
-
-  private val vehicles: SectorListOf[Vehicle] = new SectorListOf[Vehicle](
-    (a: Vehicle, b: Vehicle) => a eq b
-  )
-
-  private val equipmentOnGround: SectorListOf[Equipment] = new SectorListOf[Equipment](
-    (a: Equipment, b: Equipment) => a eq b
-  )
-
-  private val deployables: SectorListOf[Deployable] = new SectorListOf[Deployable](
-    (a: Deployable, b: Deployable) => a eq b
-  )
-
-  private val buildings: SectorListOf[Building] = new SectorListOf[Building](
-    (a: Building, b: Building) => a.GUID == b.GUID
-  )
-
-  private val amenities: SectorListOf[Amenity] = new SectorListOf[Amenity](
-    (a: Amenity, b: Amenity) => a.GUID == b.GUID
-  )
-
-  private val environment: SectorListOf[PieceOfEnvironment] = new SectorListOf[PieceOfEnvironment](
-    (a: PieceOfEnvironment, b: PieceOfEnvironment) => a eq b
-  )
-
-  private val projectiles: SectorListOf[Projectile] = new SectorListOf[Projectile](
-    (a: Projectile, b: Projectile) => a.id == b.id
-  )
+  /* The lists are held directly, each starting as the shared empty list, Nil: a zone has thousands of sectors,
+     and most of their lists stay empty. Each list is only ever replaced, never changed, so one handed out stays as it was. */
+  private var livePlayers: List[Player]                  = Nil
+  private var bots: List[AvatarBot]                      = Nil
+  private var corpses: List[Player]                      = Nil
+  private var vehicles: List[Vehicle]                    = Nil
+  private var equipmentOnGround: List[Equipment]         = Nil
+  private var deployables: List[Deployable]              = Nil
+  private var buildings: List[Building]                  = Nil
+  private var amenities: List[Amenity]                   = Nil
+  private var environment: List[PieceOfEnvironment]      = Nil
+  private var projectiles: List[Projectile]              = Nil
 
   def rangeX: Float = span.toFloat
 
   def rangeY: Float = span.toFloat
 
-  def livePlayerList : List[Player] = livePlayers.list
+  def livePlayerList : List[Player] = livePlayers
 
-  def botList : List[AvatarBot] = bots.list
+  def botList : List[AvatarBot] = bots
 
-  def corpseList: List[Player] = corpses.list
+  def corpseList: List[Player] = corpses
 
-  def vehicleList: List[Vehicle] = vehicles.list
+  def vehicleList: List[Vehicle] = vehicles
 
-  def equipmentOnGroundList: List[Equipment] = equipmentOnGround.list
+  def equipmentOnGroundList: List[Equipment] = equipmentOnGround
 
-  def deployableList: List[Deployable] = deployables.list
+  def deployableList: List[Deployable] = deployables
 
-  def buildingList: List[Building] = buildings.list
+  def buildingList: List[Building] = buildings
 
-  def amenityList : List[Amenity] = amenities.list
+  def amenityList : List[Amenity] = amenities
 
-  def environmentList: List[PieceOfEnvironment] = environment.list
+  def environmentList: List[PieceOfEnvironment] = environment
 
-  def projectileList: List[Projectile] = projectiles.list
+  def projectileList: List[Projectile] = projectiles
 
   /**
     * Appropriate an entity added to this blockmap bucket
@@ -197,30 +126,50 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
     o match {
       case p: Player if p.isBackpack =>
         //when adding to the "corpse" list, first attempt to remove from the "player" list
-        livePlayers.removeFrom(p)
-        corpses.list.size < corpses.addTo(p).size
+        livePlayers = Sector.remove(livePlayers, p, Sector.sameGuid)
+        val before = corpses
+        corpses = Sector.add(before, p, Sector.sameObject)
+        corpses ne before
       case p: Player =>
-        livePlayers.list.size < livePlayers.addTo(p).size
+        val before = livePlayers
+        livePlayers = Sector.add(before, p, Sector.sameGuid)
+        livePlayers ne before
       case ab: AvatarBot =>
-        bots.list.size < bots.addTo(ab).size
+        val before = bots
+        bots = Sector.add(before, ab, Sector.sameGuid)
+        bots ne before
       case v: Vehicle =>
-        vehicles.list.size < vehicles.addTo(v).size
+        val before = vehicles
+        vehicles = Sector.add(before, v, Sector.sameObject)
+        vehicles ne before
       case e: Equipment =>
-        equipmentOnGround.list.size < equipmentOnGround.addTo(e).size
+        val before = equipmentOnGround
+        equipmentOnGround = Sector.add(before, e, Sector.sameObject)
+        equipmentOnGround ne before
       case d: Deployable =>
-        deployables.list.size < deployables.addTo(d).size
+        val before = deployables
+        deployables = Sector.add(before, d, Sector.sameObject)
+        deployables ne before
       case b: Building =>
-        buildings.list.size < buildings.addTo(b).size
+        val before = buildings
+        buildings = Sector.add(before, b, Sector.sameGuid)
+        buildings ne before
       case a: Amenity =>
-        val added = amenities.list.size < amenities.addTo(a).size
+        val before = amenities
+        amenities = Sector.add(before, a, Sector.sameGuid)
+        val added = amenities ne before
         if (added) {
-          a.Definition.environmentField.foreach(field => environment.addTo(field.create(a)))
+          a.Definition.environmentField.foreach(field => environment = Sector.add(environment, field.create(a), Sector.sameObject))
         }
         added
       case e: PieceOfEnvironment =>
-        environment.list.size < environment.addTo(e).size
+        val before = environment
+        environment = Sector.add(before, e, Sector.sameObject)
+        environment ne before
       case p: Projectile =>
-        projectiles.list.size < projectiles.addTo(p).size
+        val before = projectiles
+        projectiles = Sector.add(before, p, Sector.sameProjectile)
+        projectiles ne before
       case _ =>
         false
     }
@@ -235,19 +184,33 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   def removeFrom(o: Any): Boolean = {
     o match {
       case p: Player if p.isBackpack =>
-        corpses.list.size > corpses.removeFrom(p).size
+        val before = corpses
+        corpses = Sector.remove(before, p, Sector.sameObject)
+        corpses ne before
       case p: Player =>
-        livePlayers.list.size > livePlayers.removeFrom(p).size
+        val before = livePlayers
+        livePlayers = Sector.remove(before, p, Sector.sameGuid)
+        livePlayers ne before
       case ab: AvatarBot =>
-        bots.list.size > bots.removeFrom(ab).size
+        val before = bots
+        bots = Sector.remove(before, ab, Sector.sameGuid)
+        bots ne before
       case v: Vehicle =>
-        vehicles.list.size > vehicles.removeFrom(v).size
+        val before = vehicles
+        vehicles = Sector.remove(before, v, Sector.sameObject)
+        vehicles ne before
       case e: Equipment =>
-        equipmentOnGround.list.size > equipmentOnGround.removeFrom(e).size
+        val before = equipmentOnGround
+        equipmentOnGround = Sector.remove(before, e, Sector.sameObject)
+        equipmentOnGround ne before
       case d: Deployable =>
-        deployables.list.size > deployables.removeFrom(d).size
+        val before = deployables
+        deployables = Sector.remove(before, d, Sector.sameObject)
+        deployables ne before
       case p: Projectile =>
-        projectiles.list.size > projectiles.removeFrom(p).size
+        val before = projectiles
+        projectiles = Sector.remove(before, p, Sector.sameProjectile)
+        projectiles ne before
       case _ =>
         false
     }
@@ -255,6 +218,30 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
 }
 
 object Sector {
+  /* how the entities of each list are told apart */
+  private val sameGuid: (IdentifiableEntity, IdentifiableEntity) => Boolean = (a, b) => a.GUID == b.GUID
+  private val sameObject: (AnyRef, AnyRef) => Boolean                       = (a, b) => a eq b
+  private val sameProjectile: (Projectile, Projectile) => Boolean           = (a, b) => a.id == b.id
+
+  /**
+    * The list with the entity appended, unless the list already has one the same as it.
+    * @return the list itself, if the entity was not added
+    */
+  private def add[A](list: List[A], elem: A, same: (A, A) => Boolean): List[A] = {
+    if (list.exists(item => same(elem, item))) list else list :+ elem
+  }
+
+  /**
+    * The list without the first entity the same as the given one.
+    * @return the list itself, if no such entity was found
+    */
+  private def remove[A](list: List[A], elem: A, same: (A, A) => Boolean): List[A] = {
+    list.indexWhere(item => same(elem, item)) match {
+      case -1    => list
+      case index => list.patch(index, Nil, 1)
+    }
+  }
+
   /**
     * An sector that is empty forever.
     */

@@ -132,6 +132,50 @@ class NumberSourceTest extends Specification {
       result3.get.Object.isEmpty mustEqual true
     }
 
+    "keep every other number available and empty while some are leased and assigned" in {
+      val obj = MaxNumberSource(25)
+      obj.getAvailable(5).get.Object = new TestClass()
+      obj.getAvailable(6) //leased, not assigned
+      (0 to 25).filterNot(n => n == 5 || n == 6).forall { n =>
+        val key = obj.get(n).get
+        key.Policy == AvailabilityPolicy.Available && key.Object.isEmpty
+      } mustEqual true
+      obj.countAvailable mustEqual 24
+      obj.countUsed mustEqual 2
+      obj.countDangling mustEqual 1
+    }
+
+    "not let one source's leases show in another" in {
+      val a = MaxNumberSource(25)
+      val b = MaxNumberSource(25)
+      a.getAvailable(5).get.Object = new TestClass()
+      b.get(5).get.Policy mustEqual AvailabilityPolicy.Available
+      b.get(5).get.Object.isEmpty mustEqual true
+      b.countUsed mustEqual 0
+      b.getAvailable(5).nonEmpty mustEqual true
+    }
+
+    "give a number the same key each time it is leased" in {
+      val obj    = MaxNumberSource(25)
+      val first  = obj.getAvailable(5).get
+      obj.returnNumber(5)
+      val second = obj.getAvailable(5).get
+      val test   = new TestClass()
+      second.Object = test
+      first.Object.contains(test) mustEqual true //the earlier loan sees the later assignment: one key, not two
+      obj.get(5).get.Object.contains(test) mustEqual true
+    }
+
+    "lease every number, then return them all" in {
+      val obj = MaxNumberSource(25)
+      (0 to 25).forall(n => obj.getAvailable(n).nonEmpty) mustEqual true
+      obj.countAvailable mustEqual 0
+      (0 to 25).forall(n => obj.getAvailable(n).isEmpty) mustEqual true //none can be leased twice
+      (0 to 25).foreach(n => obj.returnNumber(n))
+      obj.countAvailable mustEqual 26
+      obj.countUsed mustEqual 0
+    }
+
     "clear" in {
       val obj   = MaxNumberSource(25)
       val test1 = new TestClass()

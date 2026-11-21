@@ -90,7 +90,7 @@ object NumberPoolActor {
     val original: NumberSelector   = pool.Selector
     val specific: SpecificSelector = new SpecificSelector
     pool.Selector = specific
-    specific.SelectionIndex = pool.Numbers.indexOf(number)
+    specific.SelectionIndex = pool.IndexOf(number)
     val out: Try[Int] = pool.Get()
     pool.Selector = original
     out

@@ -94,6 +94,8 @@ object Server {
       Sentry.init(options)
     }
 
+    clearStaleAvatarLogins()
+
     /** Start up the main actor system. This "system" is the home for all actors running on this server */
     implicit val system: ActorSystem = classic.ActorSystem("PsLogin")
     Default(system)
@@ -131,7 +133,7 @@ object Server {
         val uuid = randomUUID().toString
         val actor =
           context.actorOf(
-            classic.Props(new SessionActor(ref, connectionId, Session.getNewId())).withDispatcher("world-session"),
+            classic.Props(new SessionActor(ref, connectionId, Session.getNewId(), info)).withDispatcher("world-session"),
             s"session-$uuid"
           )
         Behaviors.receiveMessage(message => {
@@ -171,6 +173,29 @@ object Server {
     }
 
     Await.ready(Future.never, Duration.Inf)
+  }
+
+  /**
+    * An account's `avatar_logged_in` is cleared when its session stops, which a killed or crashed server
+    * never gets to do. No session survives a restart, so any flag set at startup is stale; left in place,
+    * it makes the first character select on that account quit without loading the world.
+    */
+  def clearStaleAvatarLogins(): Unit = {
+    import net.psforever.persistence
+    import net.psforever.util.Database.ctx
+    import net.psforever.util.Database.ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val cleared = Await.result(
+      ctx.run(
+        query[persistence.Account]
+          .filter(_.avatarLoggedIn != lift(0L))
+          .update(_.avatarLoggedIn -> lift(0L))
+      ),
+      Duration(30, "seconds")
+    )
+    if (cleared > 0) {
+      logger.info(s"Cleared $cleared stale avatar login(s) left by the previous run")
+    }
   }
 
   def flyway(args: CliConfig): Flyway = {

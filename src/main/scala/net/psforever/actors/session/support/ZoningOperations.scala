@@ -4130,9 +4130,13 @@ class ZoningOperations(
       }
     }
 
-    def randomRespawn(time: FiniteDuration = 300.seconds): Unit = {
+    def randomRespawn(time: FiniteDuration = 300.seconds, releaseFirst: Boolean = false): Unit = {
       val faction = player.Faction
       reviveTimer = context.system.scheduler.scheduleOnce(time) {
+        if (releaseFirst) {
+          //the client never released; release the body as it would have, or it is left behind
+          context.self ! ReleaseAvatarRequestMessage()
+        }
         cluster ! ICS.GetRandomSpawnPoint(
           Zones.sanctuaryZoneNumber(faction),
           faction,

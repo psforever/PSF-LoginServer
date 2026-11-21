@@ -103,21 +103,8 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
             )
         ) {
           //must draw
-          sendResponse(
-            PlayerStateMessage(
-              FilterGuid,
-              pos,
-              vel,
-              yaw,
-              pitch,
-              yawUpper,
-              timestamp = 0, //is this okay?
-              isCrouching,
-              isJumping,
-              jumpThrust,
-              isCloaking
-            )
-          )
+          //one shared draw, encoded once for everyone in range
+          sendResponse(pstate.drawnAs(FilterGuid))
           ops.lastSeenStreamMessage.put(FilterGuid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, wasShooting, now))
         } else {
           //is visible, but skip reinforcement
@@ -535,7 +522,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       sessionLogic.zoning.spawn.reviveTimer.cancel()
       sessionLogic.zoning.spawn.reviveTimer = Default.Cancellable
       if (player.death_by == 0) {
-        sessionLogic.zoning.spawn.randomRespawn(300.seconds)
+        sessionLogic.zoning.spawn.randomRespawn(300.seconds, releaseFirst = true)
       } else {
         sessionLogic.zoning.spawn.HandleReleaseAvatar(player, continent)
       }
