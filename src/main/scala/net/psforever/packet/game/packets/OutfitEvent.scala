@@ -313,8 +313,8 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
       case 3 => LeavingCodec
       case 4 => UpdateOutfitIdCodec
       case 5 => UpdateMemberCountCodec
-      case 6 => FormationPersistedNotifyCodec // included for live server parity
-      case 7 => MembershipPersistedNotifyCodec // included for live server parity
+      case 6 => FormationPersistedNotifyCodec
+      case 7 => MembershipPersistedNotifyCodec
 
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[OutfitEventAction]]
