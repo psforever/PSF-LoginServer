@@ -62,8 +62,8 @@ class OutfitEventTest extends Specification {
             OutfitRankNames("Dog Meat","Russian","","","Squad Leaders","Acting Commanders","Reapers",""),
             "\\#0000ffMumble \\#0033ffInfo \\#0066ffis \\#0099ffthemoose.typefrag.com \\#00ccffport \\#00ffff9350 \\#00ccffjoin \\#0099ffit \\#0066ffor \\#0033ffbe \\#0000ffkicked.",
             15,
-            unk11 = true,
-            unk12 = 0,
+            formation_completed = true,
+            formation_deadline = 0,
             created_timestamp = 1210901990,
             0,
             0,
@@ -87,8 +87,8 @@ class OutfitEventTest extends Specification {
           OutfitRankNames("Dog Meat","Russian","","","Squad Leaders","Acting Commanders","Reapers",""),
           "\\#0000ffMumble \\#0033ffInfo \\#0066ffis \\#0099ffthemoose.typefrag.com \\#00ccffport \\#00ffff9350 \\#00ccffjoin \\#0099ffit \\#0066ffor \\#0033ffbe \\#0000ffkicked.",
           15,
-          unk11 = true,
-          unk12 = 0,
+          formation_completed = true,
+          formation_deadline = 0,
           created_timestamp = 1210901990,
           0,
           0,
@@ -105,7 +105,7 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk1_ABC).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 529688L
-        action mustEqual Unk1()
+        action mustEqual ListEnd()
       case _ =>
         ko
     }
@@ -114,7 +114,7 @@ class OutfitEventTest extends Specification {
   "encode Unk1 ABC" in {
     val msg = OutfitEvent(
       529688L,
-      Unk1()
+      ListEnd()
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -133,8 +133,8 @@ class OutfitEventTest extends Specification {
           OutfitRankNames("","","","","","","",""),
           "",
           0,
-          unk11 = false,
-          unk12 = 300000,
+          formation_completed = false,
+          formation_deadline = 300000,
           created_timestamp = 0,
           0,
           0,
@@ -157,8 +157,8 @@ class OutfitEventTest extends Specification {
           OutfitRankNames("","","","","","","",""),
           "",
           0,
-          unk11 = false,
-          unk12 = 300000,
+          formation_completed = false,
+          formation_deadline = 300000,
           created_timestamp = 0,
           0,
           0,

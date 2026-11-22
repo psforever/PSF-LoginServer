@@ -1,4 +1,6 @@
 // Copyright (c) 2023-2025 PSForever
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package game
 
 import net.psforever.packet._
@@ -10,147 +12,147 @@ import scodec.bits._
 class OutfitMembershipResponseTest extends Specification {
 
   val createResponse  = hex"8d 0 002b54f404000000010008080"
-  val unk1            = hex"8d 2 01bb399e03ddb4f4050a078004e00690063006b009550006c0061006e006500740053006900640065005f0046006f00720065007600650072005f005400520000"
-  val unk2            = hex"8d 4 0049b0f4042b54f4051405a006500720067006c0069006e006700390032009750006c0061006e006500740053006900640065005f0046006f00720065007600650072005f00560061006e00750000"
-  val unk3            = hex"8d 6 00e8c2f40510d3b6030008080"
-  val unk4            = hex"8d 8 002b54f404000000010008080"
-  val unk5            = hex"8d a 022b54f4051fb0f4051c05000530046006f0075007400660069007400740065007300740031008080"
+  val invite          = hex"8d 2 01bb399e03ddb4f4050a078004e00690063006b009550006c0061006e006500740053006900640065005f0046006f00720065007600650072005f005400520000"
+  val inviteAccepted  = hex"8d 4 0049b0f4042b54f4051405a006500720067006c0069006e006700390032009750006c0061006e006500740053006900640065005f0046006f00720065007600650072005f00560061006e00750000"
+  val inviteRejected  = hex"8d 6 00e8c2f40510d3b6030008080"
+  val inviteCancelled = hex"8d 8 002b54f404000000010008080"
+  val kicked          = hex"8d a 022b54f4051fb0f4051c05000530046006f0075007400660069007400740065007300740031008080"
 
   "decode CreateResponse" in {
     PacketCoding.decodePacket(createResponse).require match {
-      case OutfitMembershipResponse(packet_type, unk0, unk1, outfit_id, target_id, str1, str2, flag) =>
+      case OutfitMembershipResponse(packet_type, error, variant, actor_id, target_id, actor_name, target_name, to_actor) =>
         packet_type mustEqual PacketType.CreateResponse
-        unk0 mustEqual 0
-        unk1 mustEqual 0
-        outfit_id mustEqual 41593365
+        error mustEqual OutfitMembershipResponse.Error.NoError
+        variant mustEqual 0
+        actor_id mustEqual 41593365
         target_id mustEqual 0
-        str1 mustEqual ""
-        str2 mustEqual ""
-        flag mustEqual true
+        actor_name mustEqual ""
+        target_name mustEqual ""
+        to_actor mustEqual true
       case _ =>
         ko
     }
   }
 
   "encode CreateResponse" in {
-    val msg = OutfitMembershipResponse(PacketType.CreateResponse, 0, 0, 41593365, 0, "", "", flag = true)
+    val msg = OutfitMembershipResponse(PacketType.CreateResponse, OutfitMembershipResponse.Error.NoError, 0, 41593365, 0, "", "", to_actor = true)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual createResponse
   }
 
-  "decode unk1" in {
-    PacketCoding.decodePacket(unk1).require match {
-      case OutfitMembershipResponse(packet_type, unk0, unk1, outfit_id, target_id, str1, str2, flag) =>
+  "decode Invite" in {
+    PacketCoding.decodePacket(invite).require match {
+      case OutfitMembershipResponse(packet_type, error, variant, actor_id, target_id, actor_name, target_name, to_actor) =>
         packet_type mustEqual PacketType.Invite
-        unk0 mustEqual 0
-        unk1 mustEqual 0
-        outfit_id mustEqual 30383325
+        error mustEqual OutfitMembershipResponse.Error.NoError
+        variant mustEqual 0
+        actor_id mustEqual 30383325
         target_id mustEqual 41605870
-        str1 mustEqual "xNick"
-        str2 mustEqual "PlanetSide_Forever_TR"
-        flag mustEqual false
+        actor_name mustEqual "xNick"
+        target_name mustEqual "PlanetSide_Forever_TR"
+        to_actor mustEqual false
       case _ =>
         ko
     }
   }
 
-  "encode unk1" in {
-    val msg = OutfitMembershipResponse(PacketType.Invite, 0, 0, 30383325, 41605870, "xNick", "PlanetSide_Forever_TR", flag = false)
+  "encode Invite" in {
+    val msg = OutfitMembershipResponse(PacketType.Invite, OutfitMembershipResponse.Error.NoError, 0, 30383325, 41605870, "xNick", "PlanetSide_Forever_TR", to_actor = false)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk1
+    pkt mustEqual invite
   }
 
-  "decode unk2" in {
-    PacketCoding.decodePacket(unk2).require match {
-      case OutfitMembershipResponse(packet_type, unk0, unk1, outfit_id, target_id, str1, str2, flag) =>
+  "decode InviteAccepted" in {
+    PacketCoding.decodePacket(inviteAccepted).require match {
+      case OutfitMembershipResponse(packet_type, error, variant, actor_id, target_id, actor_name, target_name, to_actor) =>
         packet_type mustEqual PacketType.InviteAccepted
-        unk0 mustEqual 0
-        unk1 mustEqual 0
-        outfit_id mustEqual 41605156
+        error mustEqual OutfitMembershipResponse.Error.NoError
+        variant mustEqual 0
+        actor_id mustEqual 41605156
         target_id mustEqual 41593365
-        str1 mustEqual "Zergling92"
-        str2 mustEqual "PlanetSide_Forever_Vanu"
-        flag mustEqual false
+        actor_name mustEqual "Zergling92"
+        target_name mustEqual "PlanetSide_Forever_Vanu"
+        to_actor mustEqual false
       case _ =>
         ko
     }
   }
 
-  "encode unk2" in {
-    val msg = OutfitMembershipResponse(PacketType.InviteAccepted, 0, 0, 41605156, 41593365, "Zergling92", "PlanetSide_Forever_Vanu", flag = false)
+  "encode InviteAccepted" in {
+    val msg = OutfitMembershipResponse(PacketType.InviteAccepted, OutfitMembershipResponse.Error.NoError, 0, 41605156, 41593365, "Zergling92", "PlanetSide_Forever_Vanu", to_actor = false)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk2
+    pkt mustEqual inviteAccepted
   }
 
-  "decode unk3" in {
-    PacketCoding.decodePacket(unk3).require match {
-      case OutfitMembershipResponse(packet_type, unk0, unk1, outfit_id, target_id, str1, str2, flag) =>
+  "decode InviteRejected" in {
+    PacketCoding.decodePacket(inviteRejected).require match {
+      case OutfitMembershipResponse(packet_type, error, variant, actor_id, target_id, actor_name, target_name, to_actor) =>
         packet_type mustEqual PacketType.InviteRejected
-        unk0 mustEqual 0
-        unk1 mustEqual 0
-        outfit_id mustEqual 41574772
+        error mustEqual OutfitMembershipResponse.Error.NoError
+        variant mustEqual 0
+        actor_id mustEqual 41574772
         target_id mustEqual 31156616
-        str1 mustEqual ""
-        str2 mustEqual ""
-        flag mustEqual true
+        actor_name mustEqual ""
+        target_name mustEqual ""
+        to_actor mustEqual true
       case _ =>
         ko
     }
   }
 
-  "encode unk3" in {
-    val msg = OutfitMembershipResponse(PacketType.InviteRejected, 0, 0, 41574772, 31156616, "", "", flag = true)
+  "encode InviteRejected" in {
+    val msg = OutfitMembershipResponse(PacketType.InviteRejected, OutfitMembershipResponse.Error.NoError, 0, 41574772, 31156616, "", "", to_actor = true)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk3
+    pkt mustEqual inviteRejected
   }
 
-  "decode unk4" in {
-    PacketCoding.decodePacket(unk4).require match {
-      case OutfitMembershipResponse(packet_type, unk0, unk1, outfit_id, target_id, str1, str2, flag) =>
-        packet_type mustEqual PacketType.YouGotKicked
-        unk0 mustEqual 0
-        unk1 mustEqual 0
-        outfit_id mustEqual 41593365
+  "decode InviteCancelled" in {
+    PacketCoding.decodePacket(inviteCancelled).require match {
+      case OutfitMembershipResponse(packet_type, error, variant, actor_id, target_id, actor_name, target_name, to_actor) =>
+        packet_type mustEqual PacketType.InviteCancelled
+        error mustEqual OutfitMembershipResponse.Error.NoError
+        variant mustEqual 0
+        actor_id mustEqual 41593365
         target_id mustEqual 0
-        str1 mustEqual ""
-        str2 mustEqual ""
-        flag mustEqual true
+        actor_name mustEqual ""
+        target_name mustEqual ""
+        to_actor mustEqual true
       case _ =>
         ko
     }
   }
 
-  "encode unk4" in {
-    val msg = OutfitMembershipResponse(PacketType.YouGotKicked, 0, 0, 41593365, 0, "", "", flag = true)
+  "encode InviteCancelled" in {
+    val msg = OutfitMembershipResponse(PacketType.InviteCancelled, OutfitMembershipResponse.Error.NoError, 0, 41593365, 0, "", "", to_actor = true)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk4
+    pkt mustEqual inviteCancelled
   }
 
-  "decode unk5" in {
-    PacketCoding.decodePacket(unk5).require match {
-      case OutfitMembershipResponse(packet_type, unk0, unk1, outfit_id, target_id, str1, str2, flag) =>
-        packet_type mustEqual PacketType.YouKicked
-        unk0 mustEqual 0
-        unk1 mustEqual 1
-        outfit_id mustEqual 41593365
+  "decode Kicked" in {
+    PacketCoding.decodePacket(kicked).require match {
+      case OutfitMembershipResponse(packet_type, error, variant, actor_id, target_id, actor_name, target_name, to_actor) =>
+        packet_type mustEqual PacketType.Kicked
+        error mustEqual OutfitMembershipResponse.Error.NoError
+        variant mustEqual 1
+        actor_id mustEqual 41593365
         target_id mustEqual 41605263
-        str1 mustEqual "PSFoutfittest1"
-        str2 mustEqual ""
-        flag mustEqual true
+        actor_name mustEqual "PSFoutfittest1"
+        target_name mustEqual ""
+        to_actor mustEqual true
       case _ =>
         ko
     }
   }
 
-  "encode unk5" in {
-    val msg = OutfitMembershipResponse(PacketType.YouKicked, 0, 1, 41593365, 41605263, "PSFoutfittest1", "", flag = true)
+  "encode Kicked" in {
+    val msg = OutfitMembershipResponse(PacketType.Kicked, OutfitMembershipResponse.Error.NoError, 1, 41593365, 41605263, "PSFoutfittest1", "", to_actor = true)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk5
+    pkt mustEqual kicked
   }
 }

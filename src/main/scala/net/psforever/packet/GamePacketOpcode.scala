@@ -548,7 +548,7 @@ object GamePacketOpcode extends Enumeration {
       // 0xc8
       case 0xc8 => packets.WeaponLazeTargetPositionMessage.decode
       case 0xc9 => packets.ModuleLimitsMessage.decode
-      case 0xca => noDecoder(OutfitBenefitMessage)
+      case 0xca => packets.OutfitBenefitMessage.decode
       case 0xcb => noDecoder(EmpireChangeTimeMessage)
       case 0xcc => noDecoder(ClockCalibrationMessage)
       case 0xcd => packets.DensityLevelUpdateMessage.decode

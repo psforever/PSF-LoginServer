@@ -1,13 +1,17 @@
 // Copyright (c) 2025 PSForever
+// Copyright (c) 2026 PSForever (modifications and additions)
+// SPDX-License-Identifier: GPL-3.0-only AND AGPL-3.0-or-later
+
 package net.psforever.actors.session.support
 
 import io.getquill.{Action, ActionReturning, EntityQuery, Insert, PostgresJAsyncContext, Query, Quoted, SnakeCase}
 import net.psforever.objects.avatar.PlayerControl
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.Player
-import net.psforever.packet.game.packets.OutfitEventAction.{Initial, Leaving, OutfitInfo, OutfitRankNames, Unk1, Update, UpdateMemberCount}
+import net.psforever.packet.game.packets.OutfitEventAction.{Initial, Leaving, OutfitInfo, OutfitRankNames, ListEnd, FormationPersistedNotify, MembershipPersistedNotify, Update, UpdateMemberCount}
+import net.psforever.packet.game.packets.OutfitMembershipResponse.Error
 import net.psforever.packet.game.packets.OutfitMembershipResponse.PacketType.CreateResponse
-import net.psforever.packet.game.packets.{ChatMsg, OutfitEvent, OutfitListEvent, OutfitListEventAction, OutfitMemberEvent, OutfitMemberEventAction, OutfitMemberUpdate, OutfitMembershipResponse}
+import net.psforever.packet.game.packets.{ChatMsg, OutfitEvent, OutfitEventAction, OutfitListEvent, OutfitListEventAction, OutfitMemberEvent, OutfitMemberEventAction, OutfitMemberUpdate, OutfitMembershipResponse}
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
@@ -30,6 +34,7 @@ object SessionOutfitHandlers {
     motd: Option[String],
     created: java.time.LocalDateTime,
     deleted: Boolean,
+    decal: Int,
     rank0: Option[String],
     rank1: Option[String],
     rank2: Option[String],
@@ -60,9 +65,9 @@ object SessionOutfitHandlers {
       case Some(validName) =>
         ctx.run(findOutfitByName(validName)).flatMap {
           case existing if existing.nonEmpty =>
-            PlayerControl.sendResponse(zone, pname,
-              ChatMsg(ChatMessageType.UNK_227, "@OutfitErrorNameAlreadyTaken")
-            )
+            // the client displays the localized "@OutfitErrorNameAlreadyTaken" notification
+            PlayerControl.sendResponse(zone, pname, OutfitMembershipResponse(
+              CreateResponse, Error.NameAlreadyTaken, 0, charid, 0, validName, "", to_actor = true))
             Future.successful(())
 
           case _ =>
@@ -76,14 +81,24 @@ object SessionOutfitHandlers {
                 MessageEnvelope(pname, SendResponse(
                   OutfitEvent(outfitId, Update(
                     OutfitInfo(
-                      outfitName, 0, 0, 1,
-                      OutfitRankNames("", "", "", "", "", "", "", ""),
-                      "",
-                      14, unk11 = true, 0, seconds, 0, 0, 0)
+                      outfitName,
+                      outfit_points1 = 0,
+                      outfit_points2 = 0,
+                      member_count = 1,
+                      outfit_rank_names = OutfitRankNames("", "", "", "", "", "", "", ""),
+                      motd = "",
+                      outfit.decal,
+                      formation_completed = true,
+                      formation_deadline = 0,
+                      created_timestamp = seconds,
+                      owned_base_zone_id = 0,
+                      owned_base_facility_id = 0,
+                      owned_base_benefit_timeout = 0
+                    )
                   )),
                   OutfitMemberUpdate(outfitId, charid, 7, flag = true),
                   ChatMsg(ChatMessageType.UNK_227, "@OutfitCreateSuccess"),
-                  OutfitMembershipResponse(CreateResponse, 0, 0, charid, 0, "", "", flag = true),
+                  OutfitMembershipResponse(CreateResponse, Error.NoError, 0, charid, 0, "", "", to_actor = true),
                 )),
                 MessageEnvelope(
                   zoneid,
@@ -96,16 +111,19 @@ object SessionOutfitHandlers {
                 )
               )
               session.chat.JoinChannel(OutfitChannel(outfitId))
+              // the trailing database-persistence echo of the outfit creation
+              scheduleOutfitPersistenceNotify(outfitId, FormationPersistedNotify(), zone, pname)
             }
               .recover { case e =>
                 e.printStackTrace()
-                PlayerControl.sendResponse(zone, pname,
-                  ChatMsg(ChatMessageType.UNK_227, "@OutfitCreateFailure")
-                )
+                PlayerControl.sendResponse(zone, pname, OutfitMembershipResponse(
+                  CreateResponse, Error.DatabaseError, 0, charid, 0, validName, "", to_actor = true))
               }
         }
       case None =>
-        PlayerControl.sendResponse(zone, pname, ChatMsg(ChatMessageType.UNK_227, "@OutfitCreateFailure"))
+        PlayerControl.sendResponse(zone, pname, OutfitMembershipResponse(
+          CreateResponse, Error.NameIsInvalid, 0, charid, 0,
+          outfitName, "", to_actor = true))
     }
   }
 
@@ -113,19 +131,33 @@ object SessionOutfitHandlers {
     findPlayerByNameForOutfitAction(zones, invitedName, sentFrom).foreach { invitedPlayer =>
 
       PlayerControl.sendResponse(invitedPlayer.Zone, invitedPlayer.Name,
-        OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Invite, 0, 0,
-          sentFrom.CharId, sentFrom.CharId, sentFrom.Name, sentFrom.outfit_name, flag = false))
+        OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Invite, Error.NoError, 0,
+          sentFrom.CharId, sentFrom.CharId, sentFrom.Name, sentFrom.outfit_name, to_actor = false))
 
       PlayerControl.sendResponse(sentFrom.Zone, sentFrom.Name,
-        OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Invite, 0, 0,
-          sentFrom.CharId, invitedPlayer.CharId, invitedPlayer.Name, sentFrom.outfit_name, flag = true))
+        OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Invite, Error.NoError, 0,
+          sentFrom.CharId, invitedPlayer.CharId, invitedPlayer.Name, sentFrom.outfit_name, to_actor = true))
+
+      // show the pending invitation in the inviter's outfit window:
+      // a member row with `joined = false` and the inviter's char id is only
+      // rendered on the inviter's client (client row logic 0x4c8b40/0x4c97b0)
+      PlayerControl.sendResponse(sentFrom.Zone, sentFrom.Name,
+        OutfitMemberEvent(sentFrom.outfit_id, invitedPlayer.CharId,
+          OutfitMemberEventAction.Update(
+            invitedPlayer.Name,
+            rank = 0,
+            points = 0,
+            last_online = 0,
+            joined = false,
+            invited_by = Some(sentFrom.CharId)
+          )))
 
       val outfitInvite = OutfitInvite(invitedPlayer, sentFrom)
       OutfitInviteManager.addOutfitInvite(outfitInvite)
     }
   }
 
-  def HandleOutfitInviteAccept(invited: Player, session: SessionData): Unit = {
+  def HandleOutfitInviteAccept(zones: Seq[Zone], invited: Player, session: SessionData): Unit = {
     val toName = invited.Name
     val toCharId = invited.CharId
     val toZone = invited.Zone
@@ -150,28 +182,32 @@ object SessionOutfitHandlers {
             fromZone.AvatarEvents ! BundledEnvelope(
               MessageEnvelope(fromName, SendResponse(
                 OutfitMembershipResponse(
-                  OutfitMembershipResponse.PacketType.InviteAccepted, 0, 0,
-                  toCharId, fromCharId, toName, outfitName, flag = false
+                  OutfitMembershipResponse.PacketType.InviteAccepted, Error.NoError, 0,
+                  toCharId, fromCharId, toName, outfitName, to_actor = false
                 ),
                 OutfitEvent(outfitId, UpdateMemberCount(memberCount)),
                 OutfitMemberEvent(outfitId, toCharId,
-                  OutfitMemberEventAction.Update(toName, 0, 0, 0,
-                    OutfitMemberEventAction.PacketType.Padding, 0
-                  )
+                  OutfitMemberEventAction.Update(toName, rank = 0, points = 0, last_online = 0, joined = true, invited_by = None)
                 )
               ))
             )
             toZone.AvatarEvents ! BundledEnvelope(
               MessageEnvelope(toName, SendResponse(
                 OutfitMembershipResponse(
-                  OutfitMembershipResponse.PacketType.InviteAccepted, 0, 0,
-                  toCharId, fromCharId, toName, outfitName, flag = true
+                  OutfitMembershipResponse.PacketType.InviteAccepted, Error.NoError, 0,
+                  toCharId, fromCharId, toName, outfitName, to_actor = true
                 ),
                 OutfitEvent(outfitId, Initial(OutfitInfo(
                   outfitName, points, points, memberCount,
                   OutfitRankNames("", "", "", "", "", "", "", ""),
                   outfit.motd.getOrElse(""),
-                  14, unk11 = true, 0, seconds, 0, 0, 0
+                  outfit.decal,
+                  formation_completed = true,
+                  formation_deadline = 0,
+                  created_timestamp = seconds,
+                  owned_base_zone_id = 0,
+                  owned_base_facility_id = 0,
+                  owned_base_benefit_timeout = 0
                 ))),
                 OutfitMemberUpdate(outfitId, toCharId, 0, flag=true)
               )),
@@ -189,6 +225,8 @@ object SessionOutfitHandlers {
             session.chat.JoinChannel(OutfitChannel(outfitId))
             invited.outfit_id = outfitId
             invited.outfit_name = outfitName
+            // the trailing database-persistence echo of the member join
+            scheduleOutfitPersistenceNotify(outfitId, MembershipPersistedNotify(), toZone, toName)
           case (None, _, _) => ()
             PlayerControl.sendResponse(toZone, toName,
               ChatMsg(ChatMessageType.UNK_227, "Failed to join outfit")
@@ -209,16 +247,60 @@ object SessionOutfitHandlers {
 
         PlayerControl.sendResponse(outfitInvite.sentFrom.Zone, outfitInvite.sentFrom.Name,
           OutfitMembershipResponse(
-            OutfitMembershipResponse.PacketType.InviteRejected, 0, 0,
-            invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, "", flag = false))
+            OutfitMembershipResponse.PacketType.InviteRejected, Error.NoError, 0,
+            invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, "", to_actor = false))
 
         PlayerControl.sendResponse(invited.Zone, invited.Name,
           OutfitMembershipResponse(
-            OutfitMembershipResponse.PacketType.InviteRejected, 0, 0,
-            invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, "", flag = true))
+            OutfitMembershipResponse.PacketType.InviteRejected, Error.NoError, 0,
+            invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, "", to_actor = true))
+
+        // clear the pending-invitation row in the inviter's outfit window
+        PlayerControl.sendResponse(outfitInvite.sentFrom.Zone, outfitInvite.sentFrom.Name,
+          OutfitMemberEvent(outfitInvite.sentFrom.outfit_id, invited.CharId, OutfitMemberEventAction.Kicked()))
 
         OutfitInviteManager.removeOutfitInvite(invited.CharId)
       case None =>
+    }
+  }
+
+  /**
+    * A player withdrew an outfit invitation they had previously extended.
+    * The client offers this through the outfit window's member list (and the
+    * `/outfitcancel` chat command) - the `OutfitMembershipRequest`'s `CancelInvite` action.
+    * Only the player who extended the invitation may cancel it; both sides receive the
+    * `InviteCancelled` response family, the invited player's dialog being withdrawn with
+    * `flag = false` and the inviter seeing the confirmation with `flag = true`.
+    */
+  def HandleOutfitInviteCancel(zones: Seq[Zone], cancelledId: Long, cancelledName: String, cancelledBy: Player): Unit = {
+    val cancelledOpt = findPlayerByNameForOutfitAction(zones, cancelledName, cancelledBy)
+      .orElse(findPlayerByIdForOutfitAction(zones, cancelledId, cancelledBy))
+    cancelledOpt match {
+      case Some(cancelled) =>
+        OutfitInviteManager.getOutfitInvite(cancelled.CharId) match {
+          case Some(invite) if invite.sentFrom.CharId == cancelledBy.CharId =>
+            PlayerControl.sendResponse(cancelled.Zone, cancelled.Name,
+              OutfitMembershipResponse(
+                OutfitMembershipResponse.PacketType.InviteCancelled, Error.NoError, 0,
+                cancelledBy.CharId, cancelled.CharId, cancelledBy.Name, "", to_actor = false))
+
+            PlayerControl.sendResponse(cancelledBy.Zone, cancelledBy.Name,
+              OutfitMembershipResponse(
+                OutfitMembershipResponse.PacketType.InviteCancelled, Error.NoError, 0,
+                cancelledBy.CharId, cancelled.CharId, cancelled.Name, "", to_actor = true))
+
+            // clear the pending-invitation row in the inviter's outfit window
+            PlayerControl.sendResponse(cancelledBy.Zone, cancelledBy.Name,
+              OutfitMemberEvent(cancelledBy.outfit_id, cancelled.CharId, OutfitMemberEventAction.Kicked()))
+
+            OutfitInviteManager.removeOutfitInvite(cancelled.CharId)
+          case _ => ()
+        }
+      case None =>
+        // the client displays the localized "@OutfitErrorNoPlayer" notification
+        PlayerControl.sendResponse(cancelledBy.Zone, cancelledBy.Name, OutfitMembershipResponse(
+          OutfitMembershipResponse.PacketType.InviteCancelled, Error.NoPlayer, 0,
+          cancelledBy.CharId, cancelledId, cancelledName, "", to_actor = true))
     }
   }
 
@@ -245,6 +327,8 @@ object SessionOutfitHandlers {
             session.chat.LeaveChannel(OutfitChannel(outfit_id))
             kickedBy.outfit_name = ""
             kickedBy.outfit_id = 0
+            // the trailing database-persistence echo of the member removal
+            scheduleOutfitPersistenceNotify(outfit_id, MembershipPersistedNotify(), kickedBy.Zone, kickedBy.Name)
 
             zones
               .filter(z => z.AllPlayers.nonEmpty)
@@ -264,13 +348,17 @@ object SessionOutfitHandlers {
       removeMemberFromOutfit(outfit_id, kickedId).map {
         case (deleted, _) =>
           if (deleted > 0) {
+            // the trailing database-persistence confirmation of the kicker's action
+            scheduleOutfitPersistenceNotify(outfit_id, MembershipPersistedNotify(), kickedBy.Zone, kickedBy.Name)
             findPlayerByIdForOutfitAction(zones, kickedId, kickedBy).foreach { kicked =>
               kicked.Zone.AvatarEvents ! BundledEnvelope(
                 MessageEnvelope(kicked.Name, SendResponse(
                   OutfitEvent(outfit_id, Leaving()),
+                  // type `Kicked` with `flag = false` makes the client display
+                  // its "@OutfitResponseMemberKicked" notification to the kicked player
                   OutfitMembershipResponse(
-                    OutfitMembershipResponse.PacketType.YouGotKicked, 0, 1,
-                    kickedBy.CharId, kicked.CharId, kickedBy.Name, kicked.Name, flag = false
+                    OutfitMembershipResponse.PacketType.Kicked, Error.NoError, 1,
+                    kickedBy.CharId, kicked.CharId, kickedBy.Name, kicked.Name, to_actor = false
                   )
                 )),
                 MessageEnvelope(kicked.Zone.id,
@@ -296,10 +384,10 @@ object SessionOutfitHandlers {
 
             avatarName.foreach {
               case Some(name) => PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name,
-                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.YouKicked, 0, 1, kickedBy.CharId, kickedId, name, "", flag = true))
+                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Kicked, Error.NoError, 1, kickedBy.CharId, kickedId, name, "", to_actor = true))
 
               case None => PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name,
-                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.YouKicked, 0, 1, kickedBy.CharId, kickedId, "NameNotFound", "", flag = true))
+                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Kicked, Error.NoError, 1, kickedBy.CharId, kickedId, "NameNotFound", "", to_actor = true))
             }
             zones
               .filter(z => z.AllPlayers.nonEmpty)
@@ -340,7 +428,7 @@ object SessionOutfitHandlers {
                   PlayerControl.sendResponse(
                     zone, outfitMember.Name,
                     OutfitMemberEvent(outfit_id, promoter.avatar.id,
-                      OutfitMemberEventAction.Update(promoter.Name, 6, owner_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
+                      OutfitMemberEventAction.Update(promoter.Name, 6, owner_points, last_online = 0, joined = true, invited_by = None)))
                 })
             })
         }
@@ -364,7 +452,7 @@ object SessionOutfitHandlers {
               .map { player =>
                 MessageEnvelope(player.Name, SendResponse(
                   OutfitMemberEvent(outfit_id, promoted.avatar.id,
-                    OutfitMemberEventAction.Update(promoted.Name, newRank, member_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)
+                    OutfitMemberEventAction.Update(promoted.Name, newRank, member_points, last_online = 0, joined = true, invited_by = None)
                   )
                 ))
               }
@@ -409,8 +497,14 @@ object SessionOutfitHandlers {
             outfit.rank7.getOrElse(""),
           ),
           outfit.motd.getOrElse(""),
-          14, unk11 = true, 0, seconds, 0, 0, 0))
-        )
+          outfit.decal,
+          formation_completed = true,
+          formation_deadline = 0,
+          created_timestamp = seconds,
+          owned_base_zone_id = 0,
+          owned_base_facility_id = 0,
+          owned_base_benefit_timeout = 0
+        )))
         val memberEventList = members.map { case (avatarId, avatarName, points, rank, login) =>
           val lastLogin = findPlayerByIdForOutfitAction(zones, avatarId, player) match {
             case Some(_) => 0L
@@ -423,11 +517,12 @@ object SessionOutfitHandlers {
               rank,
               points,
               lastLogin,
-              OutfitMemberEventAction.PacketType.Padding, 0)
+              joined = true,
+              invited_by = None)
           )
         }
         player.Zone.AvatarEvents ! MessageEnvelope(player.Name, SendResponse(
-          outfitEventInitial +: memberEventList :+ OutfitEvent(outfit.id, Unk1())
+          outfitEventInitial +: memberEventList :+ OutfitEvent(outfit.id, ListEnd())
         ))
       }
     }
@@ -440,11 +535,16 @@ object SessionOutfitHandlers {
     futureResult.onComplete {
       case Success(rows) =>
         player.Zone.AvatarEvents ! MessageEnvelope(player.Name, SendResponse(
-          rows.map { case (outfitId, points, name, leaderName, memberCount) =>
-            OutfitListEvent(
-              OutfitListEventAction.ListElementOutfit(outfitId, points, memberCount, name, leaderName)
-            )
-          }
+          // the client only clears its outfit-browser rows when a `ListBegin` (action 0)
+          // arrives first (handler 0x4c7db0); without it, every browser opening would
+          // append to the rows already collected
+          OutfitListEvent(OutfitListEventAction.ListBegin()) +:
+            rows.map { case (outfitId, points, name, leaderName, memberCount) =>
+              OutfitListEvent(
+                OutfitListEventAction.ListElementOutfit(outfitId, points, memberCount, name, leaderName)
+              )
+            } :+
+            OutfitListEvent(OutfitListEventAction.ListEnd())
         ))
 
       case Failure(_) =>
@@ -456,18 +556,27 @@ object SessionOutfitHandlers {
 
   def HandleOutfitMotd(zones: Seq[Zone], message: String, player: Player): Unit = {
     val outfit_id = player.outfit_id
+    // normalize: the outfit table stores the message of the day in a VARCHAR(255);
+    // the client's message editor does not enforce that length, and an over-long
+    // message used to fail the database update *silently* (no write, no broadcast,
+    // no feedback - the likely reason the feature was once switched off entirely).
+    // Emptying the message clears the stored value.
+    val motd: Option[String] = message.trim match {
+      case ""  => None
+      case msg => Some(msg.take(255))
+    }
     val outfitDetails = for {
-      _           <- updateOutfitMotd(outfit_id, message)
-      outfitOpt <- ctx.run(getOutfitById(outfit_id)).map(_.headOption)
+      _           <- updateOutfitMotd(outfit_id, motd)
+      outfitOpt   <- ctx.run(getOutfitById(outfit_id)).map(_.headOption)
       memberCount <- ctx.run(query[Outfitmember].filter(_.outfit_id == lift(outfit_id)).size)
       pointsTotal <- ctx.run(querySchema[OutfitpointMv]("outfitpoint_mv").filter(_.outfit_id == lift(outfit_id)))
     } yield (outfitOpt, memberCount, pointsTotal.headOption.map(_.points).getOrElse(0L))
 
-    for {
+    (for {
       (outfitOpt, memberCount, totalPoints) <- outfitDetails
     } yield {
       outfitOpt.foreach { outfit =>
-        // send to all online players in outfit
+        // send to all online players in outfit with the window open
         val outfit_event = SendResponse(OutfitEvent(
           outfit_id,
           Update(
@@ -487,13 +596,13 @@ object SessionOutfitHandlers {
                 outfit.rank7.getOrElse(""),
               ),
               motd = outfit.motd.getOrElse(""),
-              unk10 = 0,
-              unk11 = true,
-              unk12 = 0,
+              decal_id = outfit.decal,
+              formation_completed = true,
+              formation_deadline = 0,
               created_timestamp = outfit.created.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli / 1000,
-              unk23 = 0,
-              unk24 = 0,
-              unk25 = 0
+              owned_base_zone_id = 0,
+              owned_base_facility_id = 0,
+              owned_base_benefit_timeout = 0
             )
           )
         ))
@@ -506,6 +615,25 @@ object SessionOutfitHandlers {
           )
         }
       }
+    }) recoverWith {
+      case e =>
+        e.printStackTrace()
+        // the client displays its localized "@OutfitErrorDatabaseError" notification
+        PlayerControl.sendResponse(
+          player.Zone,
+          player.Name,
+          OutfitMembershipResponse(
+            OutfitMembershipResponse.PacketType.CreateResponse,
+            Error.DatabaseError,
+            variant = 0,
+            actor_id = outfit_id,
+            target_id = player.CharId,
+            actor_name = player.Name,
+            target_name = "",
+            to_actor = true
+          )
+        )
+        Future.failed(e)
     }
 
     // C >> S OutfitRequest(41593365, Motd(Vanu outfit for the planetside forever project!                                                                                      -find out more about the PSEMU project at PSforever.net))
@@ -521,7 +649,7 @@ object SessionOutfitHandlers {
       pointsTotal <- ctx.run(querySchema[OutfitpointMv]("outfitpoint_mv").filter(_.outfit_id == lift(outfit_id)))
     } yield (outfitOpt, memberCount, pointsTotal.headOption.map(_.points).getOrElse(0L))
 
-    for {
+    (for {
       (outfitOpt, memberCount, totalPoints) <- outfitDetails
     } yield {
       outfitOpt.foreach { outfit =>
@@ -545,13 +673,13 @@ object SessionOutfitHandlers {
                 outfit.rank7.getOrElse(""),
               ),
               motd = outfit.motd.getOrElse(""),
-              unk10 = 0,
-              unk11 = true,
-              unk12 = 0,
+              decal_id = outfit.decal,
+              formation_completed = true,
+              formation_deadline = 0,
               created_timestamp = outfit.created.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli / 1000,
-              unk23 = 0,
-              unk24 = 0,
-              unk25 = 0
+              owned_base_zone_id = 0,
+              owned_base_facility_id = 0,
+              owned_base_benefit_timeout = 0
             )
           )
         ))
@@ -564,10 +692,68 @@ object SessionOutfitHandlers {
           )
         }
       }
+    }) recoverWith {
+      case e =>
+        e.printStackTrace()
+        // the client displays its localized "@OutfitErrorDatabaseError" notification
+        PlayerControl.sendResponse(
+          player.Zone,
+          player.Name,
+          OutfitMembershipResponse(
+            OutfitMembershipResponse.PacketType.CreateResponse,
+            error = Error.DatabaseError,
+            variant = 0,
+            actor_id = outfit_id,
+            target_id = player.CharId,
+            actor_name = player.Name,
+            target_name = "",
+            to_actor = true
+          )
+        )
+        Future.failed(e)
     }
   }
 
   private var outfitPointSheduleStarted = false
+
+  /**
+    * Re-emits the trailing outfit events found in stock-server packet logs:
+    * roughly 15-20 seconds after an outfit was created, or after a member
+    * joined, left, or was kicked, a second `OutfitEvent` naming that outfit
+    * reached the player who had *performed* the change - action `Unk6` for
+    * the creation of the outfit row, action `Unk7` for changes of the
+    * outfitmember row. Only that one player received it, never the rest of
+    * the outfit, which reads as a "your action is persisted" confirmation of
+    * that client's own request rather than a general notification: an
+    * asynchronous database-persistence echo of the committed row, with the
+    * 15-20 second scatter matching what a background commit-then-refresh
+    * chain added on the stock servers. The shipped client's outfit-event
+    * handler drops both actions without effect. Carried over here so live
+    * traffic matches the captured baseline as closely as possible; scheduled
+    * at the observed floor of the window.
+    */
+  private val outfitPersistenceNotifyExecutor: java.util.concurrent.ScheduledExecutorService =
+    Executors.newSingleThreadScheduledExecutor()
+
+  /**
+    * Schedules the "your action is persisted" echo for the player who
+    * performed the change and no one else.
+    */
+  private def scheduleOutfitPersistenceNotify(
+                                               outfit_id: Long,
+                                               action: OutfitEventAction,
+                                               zone: Zone,
+                                               playerName: String
+                                             ): Unit = {
+    outfitPersistenceNotifyExecutor.schedule(
+      new Runnable {
+        override def run(): Unit =
+          PlayerControl.sendResponse(zone, playerName, OutfitEvent(outfit_id, action))
+      },
+      15,
+      java.util.concurrent.TimeUnit.SECONDS
+    )
+  }
 
   def HandleLoginOutfitCheck(player: Player, session: SessionData): Unit = {
 
@@ -608,7 +794,7 @@ object SessionOutfitHandlers {
                         outfit.rank6.getOrElse(""), outfit.rank7.getOrElse("")
                       ),
                       outfit.motd.getOrElse(""),
-                      14, unk11 = true, 0, seconds, 0, 0, 0
+                      outfit.decal, formation_completed = true, 0, seconds, 0, 0, 0
                     ))),
                     OutfitMemberUpdate(outfit.id, player.CharId, membership.rank, flag = true)
                   )),
@@ -831,19 +1017,21 @@ object SessionOutfitHandlers {
       .update(_.motd -> lift(motd))
   }
 
-  def updateOutfitMotd(outfit_id: Long, motd: String): Future[Unit] = {
+  def updateOutfitMotd(outfit_id: Long, motd: Option[String]): Future[Unit] = {
     ctx.transaction { implicit ec =>
       for {
-        _ <- ctx.run(updateOutfitMotdById(outfit_id, Some(motd)))
+        _ <- ctx.run(updateOutfitMotdById(outfit_id, motd))
       } yield ()
     }
   }
 
   def updateOutfitRanksById(outfit_id: Long, list: List[Option[String]]): Quoted[io.getquill.Update[Outfit]] = {
 
-    // Normalize: turn empty strings into None
+    // Normalize: turn empty strings into None, and clamp to the outfit table's
+    // VARCHAR(32) rank-title column - an over-long title would fail the
+    // database update silently
     val normalized = list.map {
-      case Some(value) if value.trim.nonEmpty => Some(value)
+      case Some(value) if value.trim.nonEmpty => Some(value.take(32))
       case _ => None
     }
 
