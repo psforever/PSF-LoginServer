@@ -1,4 +1,4 @@
-# PSForever Server [![Build Status](https://travis-ci.org/psforever/PSF-LoginServer.svg?branch=master)](https://travis-ci.com/psforever/PSF-LoginServer) [![Code coverage](https://codecov.io/gh/psforever/PSF-LoginServer/coverage.svg?branch=master)](https://codecov.io/gh/psforever/PSF-LoginServer/) [![Documentation](https://img.shields.io/badge/documentation-master-lightgrey)](https://psforever.github.io/docs/master/index.html)
+# PSForever Server [![Test](https://github.com/psforever/PSF-LoginServer/actions/workflows/test.yaml/badge.svg?branch=master)](https://github.com/psforever/PSF-LoginServer/actions/workflows/test.yaml) [![Code coverage](https://codecov.io/gh/psforever/PSF-LoginServer/coverage.svg?branch=master)](https://codecov.io/gh/psforever/PSF-LoginServer/) [![Documentation](https://img.shields.io/badge/documentation-master-lightgrey)](https://psforever.github.io/PSF-LoginServer/)
 
 <img src="https://www.psforever.net/res/logo.png" align="left" title="PSForever" width="120">
 
@@ -21,15 +21,14 @@ which has the instructions on downloading the game and using the PSForever launc
 
 ## Server Requirements
 - Running
-  - [Java](https://www.java.com/en/) Development Kit 8.0
-    - JDK 1.8_251
+  - [Java](https://www.java.com/en/) Development Kit 11
+    - JDK 11 (CI uses Eclipse Temurin 11)
   - [Scala](https://www.scala-lang.org/)
-    - 2.13.3 (set in `build.sbt`)
+    - 2.13.10 (set in `build.sbt`)
   - [sbt](http://www.scala-sbt.org) (Scala build tool)
-    - 1.4.5+?
-    - Up to date
+    - 1.8.2 (set in `project/build.properties`)
   - [PostgreSQL](https://www.postgresql.org/)
-    - 10+
+    - 14 (matches `docker-compose.yml`)
 - Development (+Running)
   - [Git](https://en.wikipedia.org/wiki/Git)
   - IDE or Text Editor
@@ -62,9 +61,8 @@ the scenes. This is equivalent to Java's `javac`, and the language itself runs o
 Machine, meaning it generates `.class` and `.jar` files and uses the `java` executable. Essentially, Scala is just a
 compiler that targets a JVM runtime.
 
-Download and install the
-[correct version](https://www.oracle.com/java/technologies/javase/javase8u211-later-archive-downloads.html) of Java,
-a more [up-to-date version](https://www.oracle.com/java/technologies/downloads/) of Java (if you don't have one),
+Download and install
+[Java 11](https://www.oracle.com/java/technologies/downloads/#java11),
 then follow the [quick instructions on Scala's home page](https://www.scala-lang.org/download/)
 to get a working development environment.  The modern installation of Scala utilizes Coursier, a Scala application
 used for dependency resolution, and will install a number of "apps" including the sbt build tool.  These "apps" are
@@ -199,14 +197,14 @@ sbt packArchiveZip # creates a single zip with resources
 ```
 This will use the sbt-pack plugin to create a JAR file and some helper scripts to run the server. The output for this
 will be in the `PSF-LoginServer/target` directory. Now you can copy the ZIP file to a server you want to run it on. You
-will need the Java 8 runtime (JRE only) on the target to run this. In the ZIP file, there is a `bin/` directory with
+will need the Java 11 runtime (JRE only) on the target to run this. In the ZIP file, there is a `bin/` directory with
 some helper scripts. Run the correct file for your platform (.BAT for Windows and shell script for Unix).
 
 ## Troubleshooting
 1. If dependency resolution results in certificate issues or generates a `/null/` directory into which some library
 files are placed, the Java versioning is incorrectly applied.  Your system's Java, via `JAVA_HOME` environment variable,
-must be advanced enough to operate the toolset and only the project itself requires JDK 8.  Check that project settings
-import and utilize Java 1.8_251.  Perform normal generated file cleanup, e.g., sbt's `clean`.
+must be advanced enough to operate the toolset and only the project itself requires JDK 11.  Check that project settings
+import and utilize JDK 11.  Perform normal generated file cleanup, e.g., sbt's `clean`.
 Any extraneous folders may also be deleted without issue.
 2. If the server repeatedly complains that "authentication method 10 not supported" during startup, your PostgreSQL
 database does not support [scram-sha-256](https://www.postgresql.org/docs/current/auth-password.html) authentication.
