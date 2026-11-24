@@ -556,14 +556,14 @@ object SessionOutfitHandlers {
 
   def HandleOutfitMotd(zones: Seq[Zone], message: String, player: Player): Unit = {
     val outfit_id = player.outfit_id
-    // normalize: the outfit table stores the message of the day in a VARCHAR(255);
-    // the client's message editor does not enforce that length, and an over-long
-    // message used to fail the database update *silently* (no write, no broadcast,
-    // no feedback - the likely reason the feature was once switched off entirely).
+    // normalize: the outfit table stores the message of the day in a VARCHAR(256);
+    // the client's message editor does not enforce a length below its own cap.
+    // The clamp is the client's own: its editor submit path truncates the input to
+    // 256 wide characters (client 3.15.84)
     // Emptying the message clears the stored value.
     val motd: Option[String] = message.trim match {
       case ""  => None
-      case msg => Some(msg.take(255))
+      case msg => Some(msg.take(256))
     }
     val outfitDetails = for {
       _           <- updateOutfitMotd(outfit_id, motd)
