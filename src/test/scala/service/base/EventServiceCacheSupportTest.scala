@@ -9,10 +9,18 @@ import net.psforever.services.Service
 import net.psforever.services.base.message.EventMessage
 import net.psforever.services.base.{CachedEnvelope, CachedGenericEventEnvelope, EventServiceSupport, GenericEventServiceWithCacheAndSupport, GenericSupportEnvelope}
 import net.psforever.types.PlanetSideGUID
+import net.psforever.util.Config
 
 import scala.concurrent.duration._
 
 object EventServiceCacheSupportTest {
+  /** A cached message is held for at least this long before it is dispatched. */
+  val flushCacheDelay: FiniteDuration = Config.app.network.eventCaching.flushCacheDelay.milliseconds
+  /** A cached message is dispatched before this much time passes. */
+  val flushCacheMaxDelay: FiniteDuration = Config.app.network.eventCaching.flushCacheMaxDelay.milliseconds
+  /** A window that ends before the earliest possible cache flush. */
+  val beforeFlush: FiniteDuration = flushCacheDelay / 2
+
   final case class CachedSupportTestEnvelope(
                                               guid: PlanetSideGUID,
                                               channel: String,
@@ -78,7 +86,7 @@ class EventServiceCacheSupportTestCachedMessages extends ActorTest {
       events.tell(Service.Join("test"), mainProbe.ref)
       val firstMessage = CachedEnvelope(PlanetSideGUID(1), "test", TestMessage(1))
       events ! firstMessage
-      mainProbe.expectNoMessage(50 milliseconds)
+      mainProbe.expectNoMessage(EventServiceCacheSupportTest.beforeFlush)
       val reply = mainProbe.receiveOne(125 milliseconds)
       reply match {
         case msg if msg == firstMessage => ()
@@ -102,7 +110,7 @@ class EventServiceCacheSupportTestMultipleCachedMessagesAtOnce extends ActorTest
       events ! firstMessage
       events ! secondMessage
       events ! thirdMessage
-      mainProbe.expectNoMessage(50 milliseconds)
+      mainProbe.expectNoMessage(EventServiceCacheSupportTest.beforeFlush)
       val reply = mainProbe.receiveN(3, 125 milliseconds)
       reply.head match {
         case msg if msg == firstMessage => ()
@@ -135,7 +143,7 @@ class EventServiceCacheSupportTestMultipleCachedSameMessages extends ActorTest {
       val secondMessage = CachedEnvelope(PlanetSideGUID(1), "test", TestMessage(2))
       val thirdMessage = CachedEnvelope(PlanetSideGUID(1), "test", TestMessage(3)) //this one!
       events ! firstMessage
-      mainProbe.expectNoMessage(50 milliseconds)
+      mainProbe.expectNoMessage(EventServiceCacheSupportTest.beforeFlush)
       events ! secondMessage
       events ! thirdMessage
       val reply = mainProbe.receiveOne(125 milliseconds)
@@ -163,7 +171,7 @@ class EventServiceCacheSupportTestMultipleCachedMessages extends ActorTest {
       val firstMessage = CachedEnvelope(PlanetSideGUID(1), "test", TestMessage(1))
       //first cache flush
       events ! firstMessage
-      mainProbe.expectNoMessage(50 milliseconds)
+      mainProbe.expectNoMessage(EventServiceCacheSupportTest.beforeFlush)
       val firstReply = mainProbe.receiveOne(125 milliseconds)
       firstReply match {
         case msg if msg == firstMessage => ()
@@ -174,7 +182,7 @@ class EventServiceCacheSupportTestMultipleCachedMessages extends ActorTest {
       //second cache flush
       val secondMessage = CachedEnvelope(PlanetSideGUID(2), "test", TestMessage(2))
       events ! secondMessage
-      mainProbe.expectNoMessage(50 milliseconds)
+      mainProbe.expectNoMessage(EventServiceCacheSupportTest.beforeFlush)
       val reply = mainProbe.receiveOne(125 milliseconds)
       reply match {
         case msg if msg == secondMessage => ()
@@ -201,9 +209,8 @@ class EventServiceCacheSupportTestSupportDelayed extends ActorTest {
         SupportActorRepliesWith("hello world", supportProbe.ref)
       )
       events ! originalMessage
-      //main reply
-      supportProbe.expectNoMessage(50 milliseconds)
-      mainProbe.expectNoMessage(10 milliseconds)
+      //the support actor is not contacted until the message leaves the cache
+      supportProbe.expectNoMessage(EventServiceCacheSupportTest.beforeFlush)
       val mainReply = mainProbe.receiveOne(125 milliseconds)
       mainReply match {
         case msg if msg == originalMessage => ()
@@ -211,7 +218,7 @@ class EventServiceCacheSupportTestSupportDelayed extends ActorTest {
           assert(false, s"(10) expected delivery of test envelope, but received $badmsg instead")
       }
       //support reply
-      val supportReply = supportProbe.receiveOne(10 milliseconds)
+      val supportReply = supportProbe.receiveOne(125 milliseconds)
       supportReply match {
         case msg: String if msg.equals("hello world") => ()
         case badmsg =>

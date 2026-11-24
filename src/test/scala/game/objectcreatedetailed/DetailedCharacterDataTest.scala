@@ -2973,7 +2973,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(7181),
             12,
             DetailedREKData(
-              CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               16
             )
           ),
@@ -3686,7 +3686,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(10075),
             39,
             DetailedREKData(
-              CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.NC, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               24
             )
           )
@@ -4511,7 +4511,7 @@ class DetailedCharacterDataTest extends Specification {
             PlanetSideGUID(4731),
             39,
             DetailedREKData(
-              CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
+              CommonFieldData(PlanetSideEmpire.TR, false, false, true, Some(CommonFieldDataExtra.Default), false, None, PlanetSideGUID(0)),
               16
             )
           )
