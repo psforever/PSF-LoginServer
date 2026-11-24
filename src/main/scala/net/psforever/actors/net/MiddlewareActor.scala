@@ -207,6 +207,16 @@ class MiddlewareActor(
   /** List of missing subslot numbers and attempts counter */
   private val inSubslotsMissing: mutable.Map[Int, Int] = TrieMap()
 
+  /**
+    * Reassembly state for the fragment channel (`SlottedMetaPacket` slots 4-7).
+    * The client mirrors this with a single buffer per session (`SOEChannelDeliverInOrderPacket`, channel 1).
+    * @see `workIncomingSlottedPacketContents`
+    */
+  private var smpFragmentAssembly: Option[SmpFragmentAssembler] = None
+
+  /** the largest fragmented-message size accepted on the fragment channel */
+  private val smpReassemblyLimitBytes: Int = Config.app.network.middleware.smpReassemblyLimit
+
   /** Queue of outgoing packets used for bundling and splitting */
   private val outQueue: mutable.Queue[(PlanetSidePacket, BitVector)] = mutable.Queue()
 
@@ -560,6 +570,71 @@ class MiddlewareActor(
       inReorderQueue.clear()
       inSubslotsMissing.clear()
       Behaviors.same
+  }
+
+  /**
+    * Decode and dispatch the contents of one `SlottedMetaPacket` frame.
+    *
+    * The frame's slot selects the channel (ground truth from the shipped 3.15.84 client:
+    * `SOEChannelProcessSlottedPacket` derives `(opcode - 9) >> 2` and delivers through
+    * `SOEChannelDeliverInOrderPacket`, which treats the two halves of the slot range differently):
+    *
+    * * slots 0-3 are the *plain* channel: every frame's contents are one complete message,
+    *   decoded and dispatched directly;
+    * * slots 4-7 are the *fragment* channel: a message that does not fit one frame is split
+    *   across consecutive frames, the opening frame carrying a 4-byte big-endian `u32` that
+    *   declares the size of the whole message followed by its first bytes, and later frames
+    *   carrying the rest. The frames of the message are collected until the declared number
+    *   of bytes is reached (the client's own reader collects exactly `min(remaining, available)`
+    *   per frame and discards over-delivery), and the completed message is dispatched.
+    *   The outbound twin of this scheme is `splitPacket`: its `00 00 <BE u16 size>`
+    *   `HandleGamePacket` header reads as exactly this big-endian `u32`, which is how the
+    *   stock-era wire data was framed.
+    *
+    * A failed decode of a plain-channel frame is a *permanently* undecodable packet (a type the
+    * server can not marshal, or structural garbage): it is reported and discarded, never retained,
+    * so one undecodable frame can not wedge later traffic behind it.
+    *
+    * @param slot    the SMP slot the frame arrived on
+    * @param subslot the SMP sequence number of the frame
+    * @param inner   the raw frame contents
+    * @see `SmpFragmentAssembler`
+    * @see `in`
+    */
+  private def workIncomingSlottedPacketContents(slot: Int, subslot: Int, inner: ByteVector): Unit = {
+    if (slot < 4) {
+      //the plain channel: the frame is one complete message, as it has always been handled
+      in(PacketCoding.decodePacket(inner))
+    } else {
+      //the fragment channel: collect the declared-size message spanning these frames
+      val assembler = smpFragmentAssembly.getOrElse(new SmpFragmentAssembler(smpReassemblyLimitBytes))
+      assembler.append(inner) match {
+        case SmpFragmentAssembler.Completed(message, fragments) =>
+          smpFragmentAssembly = None
+          if (fragments > 1) {
+            log.info(
+              s"reassembled a ${message.length} B message from $fragments fragmented SlottedMetaPacket frames (slot $slot, subslot $subslot)"
+            )
+          } else {
+            log.debug(
+              s"dispatched a ${message.length} B message from a single-fragment frame (slot $slot, subslot $subslot)"
+            )
+          }
+          in(PacketCoding.decodePacket(message))
+        case SmpFragmentAssembler.Waiting =>
+          if (smpFragmentAssembly.isEmpty) {
+            log.info(
+              s"collecting a ${assembler.declaredSize} B fragmented message (slot $slot, subslot $subslot)"
+            )
+            smpFragmentAssembly = Some(assembler)
+          }
+        case SmpFragmentAssembler.Rejected(reason) =>
+          smpFragmentAssembly = None
+          log.error(
+            s"discarding SlottedMetaPacket fragment data (slot $slot, subslot $subslot) - $reason"
+          )
+      }
+    }
   }
 
   /** Handle incoming packet */
@@ -955,11 +1030,11 @@ class MiddlewareActor(
     */
   private def inSubslotNotMissing(slot: Int, subslot: Int, inner: ByteVector): Unit = {
     if (subslot == inSubslot + 1) {
-      in(PacketCoding.decodePacket(inner))
+      workIncomingSlottedPacketContents(slot, subslot, inner)
       send(RelatedB(slot % 4, subslot))
       inSubslot = subslot
     } else if (subslot > inSubslot + 1) {
-      in(PacketCoding.decodePacket(inner))
+      workIncomingSlottedPacketContents(slot, subslot, inner)
       ((inSubslot + 1) until subslot).foreach { s =>
         inSubslotsMissing.addOne((s, inSubslotMissingNumberOfAttempts))
       } //request missing SMP's
@@ -1006,17 +1081,17 @@ class MiddlewareActor(
   private def inSubslotMissingRequests(slot: Int, subslot: Int, inner: ByteVector): Unit = {
     if (subslot < inSubslot) {
       inSubslotsMissing.remove(subslot)
-      in(PacketCoding.decodePacket(inner))
+      workIncomingSlottedPacketContents(slot, subslot, inner)
       inSubslotsMissingRequestsFinished(slot)
     } else if (subslot > inSubslot + 1) {
       ((inSubslot + 1) until subslot).foreach { s =>
         inSubslotsMissing.addOne((s, inSubslotMissingNumberOfAttempts))
       } //request missing SMP's
       inSubslot = subslot
-      in(PacketCoding.decodePacket(inner))
+      workIncomingSlottedPacketContents(slot, subslot, inner)
     } else if (subslot == inSubslot + 1) {
       inSubslot = subslot
-      in(PacketCoding.decodePacket(inner))
+      workIncomingSlottedPacketContents(slot, subslot, inner)
     }
   }
 
@@ -1163,6 +1238,9 @@ class MiddlewareActor(
     * End messaging capabilities.
     */
   private def connectionClose(): Behavior[Command] = {
+    smpFragmentAssembly = None
+    inReorderQueue.clear()
+    inSubslotsMissing.clear()
     send(ConnectionClose())
     Behaviors.stopped
   }

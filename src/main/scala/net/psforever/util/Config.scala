@@ -143,7 +143,8 @@ case class MiddlewareConfig(
     inReorderTimeout: FiniteDuration,
     inSubslotMissingDelay: FiniteDuration,
     inSubslotMissingAttempts: Int,
-    smpHistoryLength: Int
+    smpHistoryLength: Int,
+    smpReassemblyLimit: Int
 )
 
 case class SessionConfig(
