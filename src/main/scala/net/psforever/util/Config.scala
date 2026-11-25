@@ -88,7 +88,7 @@ case class AppConfig(
     public: String,
     login: LoginConfig,
     world: WorldConfig,
-    admin: AdminConfig,
+    api: ApiConfig,
     database: DatabaseConfig,
     game: GameConfig,
     antiCheat: AntiCheatConfig,
@@ -110,9 +110,29 @@ case class WorldConfig(
     serverType: ServerType
 )
 
-case class AdminConfig(
+case class ApiConfig(
+    public: ApiListenerConfig,
+    admin: AdminApiConfig,
+    trustedProxies: Seq[String],
+    rateLimit: ApiRateLimitConfig,
+    cacheTtl: FiniteDuration
+)
+
+case class ApiListenerConfig(
+    bind: String,
+    port: Int
+)
+
+case class AdminApiConfig(
+    bind: String,
     port: Int,
-    bind: String
+    token: String
+)
+
+case class ApiRateLimitConfig(
+    requestsPerMinute: Int,
+    burst: Int,
+    maxTrackedAddresses: Int
 )
 
 case class DatabaseConfig(
