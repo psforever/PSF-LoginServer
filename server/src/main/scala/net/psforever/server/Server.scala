@@ -5,7 +5,6 @@ import java.nio.file.Paths
 import java.util.Locale
 import java.util.UUID.randomUUID
 import java.util.concurrent.atomic.AtomicLong
-import scala.concurrent.Future
 import scala.concurrent.Await
 import akka.actor.ActorSystem
 import akka.actor.typed.ActorRef
@@ -159,7 +158,11 @@ object Server {
       logger.info("Login server now shutting down...")
     }
 
-    Await.ready(Future.never, Duration.Inf)
+    // Run until the actor system stops -- from the admin API's shutdown, or from a startup failure such as a
+    // listener that cannot bind -- and then end the process. Waiting on a future that never completes kept
+    // the JVM alive after the actor system had gone, so a requested shutdown left a server doing nothing.
+    Await.ready(system.whenTerminated, Duration.Inf)
+    sys.exit(if (ApiServer.failedToStart) 1 else 0)
   }
 
   def flyway(args: CliConfig): Flyway = {
