@@ -166,7 +166,7 @@ object SessionOutfitHandlers {
     }
   }
 
-  def HandleOutfitInviteAccept(zones: Seq[Zone], invited: Player, session: SessionData): Unit = {
+  def HandleOutfitInviteAccept(invited: Player, session: SessionData): Unit = {
     val toName = invited.Name
     val toCharId = invited.CharId
     val toZone = invited.Zone
@@ -367,7 +367,7 @@ object SessionOutfitHandlers {
               kicked.Zone.AvatarEvents ! BundledEnvelope(
                 MessageEnvelope(kicked.Name, SendResponse(
                   OutfitEvent(outfit_id, Leaving()),
-                  // type `Kicked` with `flag = false` makes the client display
+                  // type `Kicked` with `to_actor = false` makes the client display
                   // its "@OutfitResponseMemberKicked" notification to the kicked player
                   OutfitMembershipResponse(
                     OutfitMembershipResponse.PacketType.Kicked, Error.NoError, 1,
@@ -628,8 +628,8 @@ object SessionOutfitHandlers {
           )
         }
       }
-    }) recoverWith {
-      case e =>
+    }) andThen {
+      case Failure(e) =>
         e.printStackTrace()
         // the client displays its localized "@OutfitErrorDatabaseError" notification
         PlayerControl.sendResponse(
@@ -646,7 +646,6 @@ object SessionOutfitHandlers {
             to_actor = true
           )
         )
-        Future.failed(e)
     }
 
     // C >> S OutfitRequest(41593365, Motd(Vanu outfit for the planetside forever project!                                                                                      -find out more about the PSEMU project at PSforever.net))
@@ -705,8 +704,8 @@ object SessionOutfitHandlers {
           )
         }
       }
-    }) recoverWith {
-      case e =>
+    }) andThen {
+      case Failure(e) =>
         e.printStackTrace()
         // the client displays its localized "@OutfitErrorDatabaseError" notification
         PlayerControl.sendResponse(
@@ -723,7 +722,6 @@ object SessionOutfitHandlers {
             to_actor = true
           )
         )
-        Future.failed(e)
     }
   }
 
@@ -733,9 +731,9 @@ object SessionOutfitHandlers {
     * Re-emits the trailing outfit events found in stock-server packet logs:
     * roughly 15-20 seconds after an outfit was created, or after a member
     * joined, left, or was kicked, a second `OutfitEvent` naming that outfit
-    * reached the player who had *performed* the change - action `Unk6` for
-    * the creation of the outfit row, action `Unk7` for changes of the
-    * outfitmember row. Only that one player received it, never the rest of
+    * reached the player who had *performed* the change - action
+    * `FormationPersistedNotify` for the creation of the outfit row, action
+    * `MembershipPersistedNotify` for changes of the outfitmember row. Only that one player received it, never the rest of
     * the outfit, which reads as a "your action is persisted" confirmation of
     * that client's own request rather than a general notification: an
     * asynchronous database-persistence echo of the committed row, with the

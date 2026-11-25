@@ -87,8 +87,7 @@ object OutfitMemberEventAction {
   /**
     * The member was removed from the outfit.
     */
-  final case class Kicked(
-                         ) extends OutfitMemberEventAction(code = 1)
+  final case class Kicked() extends OutfitMemberEventAction(code = 1)
 
   final case class Unknown(badCode: Int, data: BitVector) extends OutfitMemberEventAction(badCode)
 

@@ -85,6 +85,8 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
     val InviteRejected: PacketType.Value = Value(3) // the invitation was rejected (the inviter's side reads variant 2 = timed out, 4 = invitee disconnected; the invited player's side ignores the variant)
     val InviteCancelled: PacketType.Value = Value(4) // the invitation was cancelled (the invited player's side reads variant 2 = timed out, 4 = themselves disconnected; the inviter's side ignores the variant)
     val Kicked: PacketType.Value = Value(5) // a member was kicked from the outfit
+    val Unk6: PacketType.Value = Value(6) // 6 and 7 observed in stock era captures, validity unknown
+    val Unk7: PacketType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -119,6 +121,19 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
     val NotEnoughSquadMembers: Error.Value = Value(19) // format OutfitErrorNotEnoughSquadMember
     val SquadMembersInOutfit: Error.Value = Value(20) // format OutfitErrorSquadMembersInOutfit
     val DatabaseError: Error.Value = Value(21) // format OutfitErrorDatabaseError
+    // 22-31 have no display of their own in the client's membership-response handler
+    // (its error switch ends at 21); the entries carry no modelled meaning, but keep
+    // stray codes decodable instead of failing the enumeration's bounds check
+    val Unk22: Error.Value = Value(22)
+    val Unk23: Error.Value = Value(23)
+    val Unk24: Error.Value = Value(24)
+    val Unk25: Error.Value = Value(25)
+    val Unk26: Error.Value = Value(26)
+    val Unk27: Error.Value = Value(27)
+    val Unk28: Error.Value = Value(28)
+    val Unk29: Error.Value = Value(29)
+    val Unk30: Error.Value = Value(30)
+    val Unk31: Error.Value = Value(31)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(5))
   }

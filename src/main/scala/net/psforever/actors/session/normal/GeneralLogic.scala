@@ -839,7 +839,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         }
 
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.AcceptInvite(_)) =>
-        SessionOutfitHandlers.HandleOutfitInviteAccept(zones, player, sessionLogic)
+        SessionOutfitHandlers.HandleOutfitInviteAccept(player, sessionLogic)
 
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.RejectInvite(_)) =>
         SessionOutfitHandlers.HandleOutfitInviteReject(player)

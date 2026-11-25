@@ -3,9 +3,9 @@ package game
 
 import net.psforever.packet._
 import net.psforever.packet.game.packets.OutfitListEventAction.ListElementOutfit
-import net.psforever.packet.game.packets.OutfitListEvent
+import net.psforever.packet.game.packets.{OutfitListEvent, OutfitListEventAction}
 import org.specs2.mutable._
-import scodec.bits.ByteVector
+import scodec.bits.{BitVector, ByteVector}
 
 class OutfitListEventTest extends Specification {
 
@@ -45,6 +45,30 @@ class OutfitListEventTest extends Specification {
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual unk2_0_ABC
+  }
+
+  "round-trip a ListBegin bracket" in {
+    val msg = OutfitListEvent(OutfitListEventAction.ListBegin())
+
+    PacketCoding.decodePacket(PacketCoding.encodePacket(msg).require.toByteVector).require mustEqual msg
+  }
+
+  "round-trip a ListEnd bracket" in {
+    val msg = OutfitListEvent(OutfitListEventAction.ListEnd())
+
+    PacketCoding.decodePacket(PacketCoding.encodePacket(msg).require.toByteVector).require mustEqual msg
+  }
+
+  private def decodesBackAsUnknown(code: Int): Boolean =
+    PacketCoding.decodePacket(
+      PacketCoding.encodePacket(OutfitListEvent(OutfitListEventAction.Unknown(code, BitVector.empty))).require.toByteVector
+    ).require match {
+      case OutfitListEvent(OutfitListEventAction.Unknown(bad, _)) => bad == code
+      case _                                                       => false
+    }
+
+  "decode unmodelled actions 4-7 as Unknown instead of failing" in {
+    Seq(4, 5, 6, 7).forall(decodesBackAsUnknown) must beTrue
   }
 
 }

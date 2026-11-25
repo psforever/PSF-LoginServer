@@ -155,4 +155,23 @@ class OutfitMembershipResponseTest extends Specification {
 
     pkt mustEqual kicked
   }
+
+  private def roundTrips(msg: OutfitMembershipResponse): Boolean =
+    PacketCoding.decodePacket(PacketCoding.encodePacket(msg).require.toByteVector).require == msg
+
+  "decode unmodelled packet types 6 and 7" in {
+    Seq(PacketType.Unk6, PacketType.Unk7).forall { packet_type =>
+      roundTrips(OutfitMembershipResponse(packet_type, OutfitMembershipResponse.Error.NoError, 0, 1, 2, "a", "b", to_actor = true))
+    } must beTrue
+  }
+
+  "decode error codes beyond the client's display table" in {
+    Seq(
+      OutfitMembershipResponse.Error.Unk22,
+      OutfitMembershipResponse.Error.Unk25,
+      OutfitMembershipResponse.Error.Unk31
+    ).forall { error =>
+      roundTrips(OutfitMembershipResponse(PacketType.Kicked, error, 0, 1, 2, "", "", to_actor = false))
+    } must beTrue
+  }
 }

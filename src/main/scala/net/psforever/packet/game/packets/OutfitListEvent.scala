@@ -135,6 +135,12 @@ object OutfitListEvent extends Marshallable[OutfitListEvent] {
     val ListEnd: PacketType.Value = Value(1)
     val ListElement: PacketType.Value = Value(2)
     val Unk3: PacketType.Value = Value(3)
+    // 4-7: the client decodes these actions without any payload and leaves them unhandled;
+    // the entries have no modelled meaning here either, but keep the codes decodable
+    val Unk4: PacketType.Value = Value(4)
+    val Unk5: PacketType.Value = Value(5)
+    val Unk6: PacketType.Value = Value(6)
+    val Unk7: PacketType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -144,7 +150,9 @@ object OutfitListEvent extends Marshallable[OutfitListEvent] {
     * `0` clears the list rows collected so far (the client wipes its row collection),
     * `2` adds one outfit row, and `3` closes a list (carrying one 32-bit value).
     * Action `1` re-enters the client's row-handling path of `2`, but carries no payload.
-    * Actions `4`-`7` are decoded by the client without any payload and are not handled.
+    * Actions `4`-`7` are decoded by the client without any payload and are not handled;
+    * they decode into `Unknown` (as they always did before the modelled actions were
+    * split out) rather than failing the decode.
     */
   private def selectFromType(code: Int): Codec[OutfitListEventAction] = {
     import OutfitListEventAction.Codecs._
@@ -156,6 +164,8 @@ object OutfitListEvent extends Marshallable[OutfitListEvent] {
       case 1 => ListEndCodec
       case 2 => ListElementCodec
       case 3 => Unk3Codec
+
+      case 4 | 5 | 6 | 7 => unknownCodec(action = code)
 
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[OutfitListEventAction]]

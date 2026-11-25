@@ -209,7 +209,7 @@ object OutfitEventAction {
       }
     )
 
-    val Unk1Codec: Codec[ListEnd] = PacketHelpers.emptyCodec(ListEnd())
+    val ListEndCodec: Codec[ListEnd] = PacketHelpers.emptyCodec(ListEnd())
 
     val UpdateCodec: Codec[Update] = (
       ("outfit_info" | InfoCodec)
@@ -290,13 +290,13 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
     type Type = Value
 
     val Initial: PacketType.Value = Value(0)
-    val Unk1: PacketType.Value = Value(1) // end listing of members
+    val ListEnd: PacketType.Value = Value(1) // end listing of members
     val Update: PacketType.Value = Value(2)
     val Leaving: PacketType.Value = Value(3)
     val UpdateOutfitId: PacketType.Value = Value(4)
     val UpdateMemberCount: PacketType.Value = Value(5)
     val FormationPersistedNotify: PacketType.Value = Value(6)
-    val MemberUpdatePersistedNotify: PacketType.Value = Value(7)
+    val MembershipPersistedNotify: PacketType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -308,7 +308,7 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
 
     ((code: @switch) match {
       case 0 => InitialCodec
-      case 1 => Unk1Codec
+      case 1 => ListEndCodec
       case 2 => UpdateCodec
       case 3 => LeavingCodec
       case 4 => UpdateOutfitIdCodec
