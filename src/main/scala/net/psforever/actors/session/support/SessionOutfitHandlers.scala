@@ -129,31 +129,40 @@ object SessionOutfitHandlers {
 
   def HandleOutfitInvite(zones: Seq[Zone], invitedName: String, sentFrom: Player): Unit = {
     findPlayerByNameForOutfitAction(zones, invitedName, sentFrom).foreach { invitedPlayer =>
-
-      PlayerControl.sendResponse(invitedPlayer.Zone, invitedPlayer.Name,
-        OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Invite, Error.NoError, 0,
-          sentFrom.CharId, sentFrom.CharId, sentFrom.Name, sentFrom.outfit_name, to_actor = false))
-
-      PlayerControl.sendResponse(sentFrom.Zone, sentFrom.Name,
-        OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Invite, Error.NoError, 0,
-          sentFrom.CharId, invitedPlayer.CharId, invitedPlayer.Name, sentFrom.outfit_name, to_actor = true))
-
-      // show the pending invitation in the inviter's outfit window:
-      // a member row with `joined = false` and the inviter's char id is only
-      // rendered on the inviter's client (client row logic 0x4c8b40/0x4c97b0)
-      PlayerControl.sendResponse(sentFrom.Zone, sentFrom.Name,
-        OutfitMemberEvent(sentFrom.outfit_id, invitedPlayer.CharId,
-          OutfitMemberEventAction.Update(
-            invitedPlayer.Name,
-            rank = 0,
-            points = 0,
-            last_online = 0,
-            joined = false,
-            invited_by = Some(sentFrom.CharId)
-          )))
-
       val outfitInvite = OutfitInvite(invitedPlayer, sentFrom)
-      OutfitInviteManager.addOutfitInvite(outfitInvite)
+      if (OutfitInviteManager.addOutfitInvite(outfitInvite)) {
+        PlayerControl.sendResponse(invitedPlayer.Zone, invitedPlayer.Name,
+          OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Invite, Error.NoError, 0,
+            sentFrom.CharId, sentFrom.CharId, sentFrom.Name, sentFrom.outfit_name, to_actor = false))
+
+        PlayerControl.sendResponse(sentFrom.Zone, sentFrom.Name,
+          OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Invite, Error.NoError, 0,
+            sentFrom.CharId, invitedPlayer.CharId, invitedPlayer.Name, sentFrom.outfit_name, to_actor = true))
+
+        // show the pending invitation in the inviter's outfit window:
+        // a member row with `joined = false` and the inviter's char id is only
+        // rendered on the inviter's client (client row logic 0x4c8b40/0x4c97b0)
+        PlayerControl.sendResponse(sentFrom.Zone, sentFrom.Name,
+          OutfitMemberEvent(sentFrom.outfit_id, invitedPlayer.CharId,
+            OutfitMemberEventAction.Update(
+              invitedPlayer.Name,
+              rank = 0,
+              points = 0,
+              last_online = 0,
+              joined = false,
+              invited_by = Some(sentFrom.CharId)
+            )))
+
+        scheduleOutfitInviteExpiration(outfitInvite)
+      } else {
+        // the invitee already holds a still-valid invitation: their dialog stays as it is,
+        // and this inviter gets the client's localized "@OutfitErrorAlreadyInvited"
+        // notification instead of a confirmation and a pending row that no reject or cancel
+        // of the stored invite would ever clear
+        PlayerControl.sendResponse(sentFrom.Zone, sentFrom.Name,
+          OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Invite, Error.AlreadyInvited, 0,
+            sentFrom.CharId, invitedPlayer.CharId, invitedPlayer.Name, sentFrom.outfit_name, to_actor = true))
+      }
     }
   }
 
@@ -270,33 +279,37 @@ object SessionOutfitHandlers {
     * `/outfitcancel` chat command) - the `OutfitMembershipRequest`'s `CancelInvite` action.
     * Only the player who extended the invitation may cancel it; both sides receive the
     * `InviteCancelled` response family, the invited player's dialog being withdrawn with
-    * `flag = false` and the inviter seeing the confirmation with `flag = true`.
+    * `variant = 0` and the inviter seeing the confirmation.
+    * The invitation record itself is authoritative: the invitee may be offline (the withdrawal
+    * sends then drop harmlessly), so both the invite and the pending-invitation row in the
+    * inviter's outfit window are cleared even when the invitee can not be located among the
+    * online players.
     */
-  def HandleOutfitInviteCancel(zones: Seq[Zone], cancelledId: Long, cancelledName: String, cancelledBy: Player): Unit = {
-    val cancelledOpt = findPlayerByNameForOutfitAction(zones, cancelledName, cancelledBy)
-      .orElse(findPlayerByIdForOutfitAction(zones, cancelledId, cancelledBy))
-    cancelledOpt match {
-      case Some(cancelled) =>
-        OutfitInviteManager.getOutfitInvite(cancelled.CharId) match {
-          case Some(invite) if invite.sentFrom.CharId == cancelledBy.CharId =>
-            PlayerControl.sendResponse(cancelled.Zone, cancelled.Name,
-              OutfitMembershipResponse(
-                OutfitMembershipResponse.PacketType.InviteCancelled, Error.NoError, 0,
-                cancelledBy.CharId, cancelled.CharId, cancelledBy.Name, "", to_actor = false))
+  def HandleOutfitInviteCancel(cancelledId: Long, cancelledName: String, cancelledBy: Player): Unit = {
+    val invitations = OutfitInviteManager.getAllOutfitInvites.filter(_.sentFrom.CharId == cancelledBy.CharId)
+    val inviteOpt = invitations.find(_.sentTo.CharId == cancelledId)
+      .orElse(invitations.find(invite => invite.sentTo.Name.equalsIgnoreCase(cancelledName)))
+    inviteOpt match {
+      case Some(invite) =>
+        val cancelled = invite.sentTo
 
-            PlayerControl.sendResponse(cancelledBy.Zone, cancelledBy.Name,
-              OutfitMembershipResponse(
-                OutfitMembershipResponse.PacketType.InviteCancelled, Error.NoError, 0,
-                cancelledBy.CharId, cancelled.CharId, cancelled.Name, "", to_actor = true))
+        PlayerControl.sendResponse(cancelled.Zone, cancelled.Name,
+          OutfitMembershipResponse(
+            OutfitMembershipResponse.PacketType.InviteCancelled, Error.NoError, 0,
+            cancelledBy.CharId, cancelled.CharId, cancelledBy.Name, "", to_actor = false))
 
-            // clear the pending-invitation row in the inviter's outfit window
-            PlayerControl.sendResponse(cancelledBy.Zone, cancelledBy.Name,
-              OutfitMemberEvent(cancelledBy.outfit_id, cancelled.CharId, OutfitMemberEventAction.Kicked()))
+        PlayerControl.sendResponse(cancelledBy.Zone, cancelledBy.Name,
+          OutfitMembershipResponse(
+            OutfitMembershipResponse.PacketType.InviteCancelled, Error.NoError, 0,
+            cancelledBy.CharId, cancelled.CharId, cancelled.Name, "", to_actor = true))
 
-            OutfitInviteManager.removeOutfitInvite(cancelled.CharId)
-          case _ => ()
-        }
+        // clear the pending-invitation row in the inviter's outfit window
+        PlayerControl.sendResponse(cancelledBy.Zone, cancelledBy.Name,
+          OutfitMemberEvent(cancelledBy.outfit_id, cancelled.CharId, OutfitMemberEventAction.Kicked()))
+
+        OutfitInviteManager.removeOutfitInvite(cancelled.CharId)
       case None =>
+        // no still-valid invitation of this inviter's to cancel;
         // the client displays the localized "@OutfitErrorNoPlayer" notification
         PlayerControl.sendResponse(cancelledBy.Zone, cancelledBy.Name, OutfitMembershipResponse(
           OutfitMembershipResponse.PacketType.InviteCancelled, Error.NoPlayer, 0,
@@ -735,6 +748,10 @@ object SessionOutfitHandlers {
   private val outfitPersistenceNotifyExecutor: java.util.concurrent.ScheduledExecutorService =
     Executors.newSingleThreadScheduledExecutor()
 
+  /** clears lapsed outfit invitations after their validity window passes */
+  private val outfitInviteExpiryExecutor: java.util.concurrent.ScheduledExecutorService =
+    Executors.newSingleThreadScheduledExecutor()
+
   /**
     * Schedules the "your action is persisted" echo for the player who
     * performed the change and no one else.
@@ -751,6 +768,46 @@ object SessionOutfitHandlers {
           PlayerControl.sendResponse(zone, playerName, OutfitEvent(outfit_id, action))
       },
       15,
+      java.util.concurrent.TimeUnit.SECONDS
+    )
+  }
+
+  /**
+    * Schedules the withdrawal of an outfit invitation that no one accepted, rejected or
+    * cancelled before its validity window passed. The sweep only acts if the invitation is
+    * still the one recorded for its invitee at that time (a newer invitation schedules its own
+    * sweep), and the withdrawal sends reach only players still online to receive them -
+    * the lapsed invitation itself is removed either way, so the pending-invitation row in the
+    * inviter's outfit window can not outlive the invitation by more than the validity window.
+    */
+  private def scheduleOutfitInviteExpiration(outfitInvite: OutfitInvite): Unit = {
+    outfitInviteExpiryExecutor.schedule(
+      new Runnable {
+        override def run(): Unit =
+          OutfitInviteManager.withdrawIfUnchanged(outfitInvite).foreach { invite =>
+            val invited = invite.sentTo
+            val inviter = invite.sentFrom
+            // the two sides read their "timed out" wording from different response families
+            // (client `ClientOutfitManagerHandleOutfitMembershipResponse` 0x4c72c0): the invited
+            // player's `InviteCancelled` family knows variant 2 as the timed-out withdrawal
+            // (`@OutfitResponseMemberCancelledInvitationTimedOut`), while the inviter's
+            // `InviteCancelled` family ignores the variant entirely - the leader's timed-out
+            // notification instead belongs to the `InviteRejected` family as its variant 2
+            // (`@OutfitResponseLeaderRejectedInvitationTimedOut`)
+            PlayerControl.sendResponse(invited.Zone, invited.Name,
+              OutfitMembershipResponse(
+                OutfitMembershipResponse.PacketType.InviteCancelled, Error.NoError, 2,
+                inviter.CharId, invited.CharId, inviter.Name, "", to_actor = false))
+            PlayerControl.sendResponse(inviter.Zone, inviter.Name,
+              OutfitMembershipResponse(
+                OutfitMembershipResponse.PacketType.InviteRejected, Error.NoError, 2,
+                invited.CharId, inviter.CharId, invited.Name, "", to_actor = false))
+            // clear the pending-invitation row in the inviter's outfit window
+            PlayerControl.sendResponse(inviter.Zone, inviter.Name,
+              OutfitMemberEvent(inviter.outfit_id, invited.CharId, OutfitMemberEventAction.Kicked()))
+          }
+      },
+      OutfitInviteManager.ExpirationSeconds,
       java.util.concurrent.TimeUnit.SECONDS
     )
   }

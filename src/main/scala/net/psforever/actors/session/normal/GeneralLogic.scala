@@ -845,7 +845,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         SessionOutfitHandlers.HandleOutfitInviteReject(player)
 
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.CancelInvite(targetId, targetName)) =>
-        SessionOutfitHandlers.HandleOutfitInviteCancel(zones, targetId, targetName, player)
+        SessionOutfitHandlers.HandleOutfitInviteCancel(targetId, targetName, player)
 
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.Kick(memberId, _)) =>
         if (player.outfit_id != 0) {

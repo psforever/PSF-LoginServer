@@ -82,8 +82,8 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
     val CreateResponse: PacketType.Value = Value(0)
     val Invite: PacketType.Value = Value(1) // an invitation extended to the receiving player
     val InviteAccepted: PacketType.Value = Value(2) // the invitation was accepted
-    val InviteRejected: PacketType.Value = Value(3) // the invitation was rejected (variant 2 = timed out, 4 = invitee disconnected)
-    val InviteCancelled: PacketType.Value = Value(4) // the invitation was cancelled (variant 2 = timed out, 4 = invitee disconnected)
+    val InviteRejected: PacketType.Value = Value(3) // the invitation was rejected (the inviter's side reads variant 2 = timed out, 4 = invitee disconnected; the invited player's side ignores the variant)
+    val InviteCancelled: PacketType.Value = Value(4) // the invitation was cancelled (the invited player's side reads variant 2 = timed out, 4 = themselves disconnected; the inviter's side ignores the variant)
     val Kicked: PacketType.Value = Value(5) // a member was kicked from the outfit
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
