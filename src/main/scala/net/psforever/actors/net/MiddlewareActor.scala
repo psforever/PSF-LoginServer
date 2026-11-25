@@ -113,6 +113,9 @@ object MiddlewareActor {
   /** ... */
   private case object ProcessMissingSubslots extends Command
 
+  /** ... */
+  private case object ProcessFragmentStall extends Command
+
   /** Log inbound packets that are yet to be in proper order by sequence number */
   private case class InReorderEntry(packet: PlanetSidePacket, sequence: Int, time: Long)
 
@@ -212,10 +215,23 @@ class MiddlewareActor(
     * The client mirrors this with a single buffer per session (`SOEChannelDeliverInOrderPacket`, channel 1).
     * @see `workIncomingSlottedPacketContents`
     */
-  private var smpFragmentAssembly: Option[SmpFragmentAssembler] = None
+  private var smpFragmentAssembly: Option[SMPFragmentAssembler] = None
 
   /** the largest fragmented-message size accepted on the fragment channel */
   private val smpReassemblyLimitBytes: Int = Config.app.network.middleware.smpReassemblyLimit
+
+  /** how long a partially assembled fragmented message may wait for its further fragments before it is dropped */
+  private val smpFragmentStallTime: FiniteDuration = Config.app.network.middleware.smpReassemblyStallTime
+
+  /**
+    * Fragment channel (`SlottedMetaPacket` slots 4-7) frames held for strictly ordered delivery to
+    * the reassembly, keyed by subslot. A frame may only be fed to the reassembly once no earlier
+    * subslot can still arrive - the frames of one message reassembled in arrival order would read a
+    * continuation fragment's leading bytes as its message's declared size.
+    * @see `workIncomingFragmentContents`
+    * @see `releaseFragmentFrames`
+    */
+  private val inFragmentOrder = new SMPFragmentOrder()
 
   /** Queue of outgoing packets used for bundling and splitting */
   private val outQueue: mutable.Queue[(PlanetSidePacket, BitVector)] = mutable.Queue()
@@ -327,6 +343,12 @@ class MiddlewareActor(
 
   /** Timer that handles the bundling and throttling of outgoing packets requesting packets with known subslot numbers */
   private var subslotMissingProcessor: Cancellable = Default.Cancellable
+
+  /** Timer that drops partially assembled fragmented messages whose remaining fragments never arrive */
+  private var fragmentStallProcessor: Cancellable = Default.Cancellable
+
+  /** the last time a fragment channel frame was fed to the reassembly */
+  private var lastFragmentActivityNanos: Long = 0L
 
   /** how long to wait between repeated requests for packets with known missing subslot numbers (ms) */
   private val inSubslotMissingDelay: FiniteDuration = Config.app.network.middleware.inSubslotMissingDelay
@@ -542,6 +564,10 @@ class MiddlewareActor(
           processRequestsForMissingSubslots()
           Behaviors.same
 
+        case ProcessFragmentStall =>
+          processFragmentStall()
+          Behaviors.same
+
         case Teardown() =>
           send(TeardownConnection(clientNonce))
           close()
@@ -567,8 +593,10 @@ class MiddlewareActor(
       }
       packetProcessor.cancel()
       subslotMissingProcessor.cancel()
+      fragmentStallProcessor.cancel()
       inReorderQueue.clear()
       inSubslotsMissing.clear()
+      inFragmentOrder.clear()
       Behaviors.same
   }
 
@@ -587,6 +615,10 @@ class MiddlewareActor(
     *   carrying the rest. The frames of the message are collected until the declared number
     *   of bytes is reached (the client's own reader collects exactly `min(remaining, available)`
     *   per frame and discards over-delivery), and the completed message is dispatched.
+    *   Fragment frames are only ever handed to that reassembly in strict subslot order -
+    *   a frame is held until no earlier subslot can still arrive - because a frame fed out of
+    *   order would have its leading bytes misread as its message's declared size, corrupting
+    *   both its own message and the next one to pass through the channel.
     *   The outbound twin of this scheme is `splitPacket`: its `00 00 <BE u16 size>`
     *   `HandleGamePacket` header reads as exactly this big-endian `u32`, which is how the
     *   stock-era wire data was framed.
@@ -598,7 +630,9 @@ class MiddlewareActor(
     * @param slot    the SMP slot the frame arrived on
     * @param subslot the SMP sequence number of the frame
     * @param inner   the raw frame contents
-    * @see `SmpFragmentAssembler`
+    * @see `SMPFragmentAssembler`
+    * @see `SMPFragmentOrder`
+    * @see `workIncomingFragmentContents`
     * @see `in`
     */
   private def workIncomingSlottedPacketContents(slot: Int, subslot: Int, inner: ByteVector): Unit = {
@@ -606,34 +640,119 @@ class MiddlewareActor(
       //the plain channel: the frame is one complete message, as it has always been handled
       in(PacketCoding.decodePacket(inner))
     } else {
-      //the fragment channel: collect the declared-size message spanning these frames
-      val assembler = smpFragmentAssembly.getOrElse(new SmpFragmentAssembler(smpReassemblyLimitBytes))
-      assembler.append(inner) match {
-        case SmpFragmentAssembler.Completed(message, fragments) =>
-          smpFragmentAssembly = None
-          if (fragments > 1) {
-            log.info(
-              s"reassembled a ${message.length} B message from $fragments fragmented SlottedMetaPacket frames (slot $slot, subslot $subslot)"
-            )
-          } else {
-            log.debug(
-              s"dispatched a ${message.length} B message from a single-fragment frame (slot $slot, subslot $subslot)"
-            )
-          }
-          in(PacketCoding.decodePacket(message))
-        case SmpFragmentAssembler.Waiting =>
-          if (smpFragmentAssembly.isEmpty) {
-            log.info(
-              s"collecting a ${assembler.declaredSize} B fragmented message (slot $slot, subslot $subslot)"
-            )
-            smpFragmentAssembly = Some(assembler)
-          }
-        case SmpFragmentAssembler.Rejected(reason) =>
-          smpFragmentAssembly = None
-          log.error(
-            s"discarding SlottedMetaPacket fragment data (slot $slot, subslot $subslot) - $reason"
-          )
+      //the fragment channel is order-sensitive; the frame joins the ordered hold and is fed to
+      //the reassembly below only once its predecessors have all been accounted for
+      if (inFragmentOrder.hold(slot, subslot, inner)) {
+        releaseFragmentFrames()
       }
+    }
+  }
+
+  /**
+    * Release fragment channel frames for ordered reassembly.
+    * Frames are only releaseable while no subslots are outstanding in the missing-subslot request
+    * machinery: until every earlier subslot has arrived - and been held itself - or has been given
+    * up on, a held frame might still be preceded by earlier fragments of its own message.
+    */
+  private def releaseFragmentFrames(): Unit = {
+    inFragmentOrder.release(subslotsOutstanding = inSubslotsMissing.nonEmpty).foreach {
+      case (slot, subslot, inner) =>
+        workIncomingFragmentContents(slot, subslot, inner)
+    }
+  }
+
+  /**
+    * Feed one fragment channel frame - already arranged in subslot order - to the reassembly,
+    * and dispatch the completed message.
+    * The reassembly either recognizes the opening fragment of a message (4-byte big-endian
+    * declared size) and starts collecting, absorbs the continuation of the message under
+    * assembly (discarding any bytes beyond the declared size), or rejects the frame as stream
+    * garbage; the message is decoded and dispatched the moment its declared number of bytes has
+    * been collected.
+    * @param slot    the SMP slot the frame arrived on
+    * @param subslot the SMP sequence number of the frame
+    * @param inner   the raw frame contents
+    * @see `SMPFragmentAssembler`
+    * @see `workIncomingSlottedPacketContents`
+    * @see `in`
+    */
+  private def workIncomingFragmentContents(slot: Int, subslot: Int, inner: ByteVector): Unit = {
+    lastFragmentActivityNanos = System.nanoTime()
+    val assembler = smpFragmentAssembly.getOrElse(new SMPFragmentAssembler(smpReassemblyLimitBytes))
+    assembler.append(inner) match {
+      case SMPFragmentAssembler.Completed(message, fragments) =>
+        smpFragmentAssembly = None
+        stopFragmentStallChecks()
+        if (fragments > 1) {
+          log.info(
+            s"reassembled a ${message.length} B message from $fragments fragmented SlottedMetaPacket frames (slot $slot, subslot $subslot)"
+          )
+        } else {
+          log.debug(
+            s"dispatched a ${message.length} B message from a single-fragment frame (slot $slot, subslot $subslot)"
+          )
+        }
+        in(PacketCoding.decodePacket(message))
+      case SMPFragmentAssembler.Waiting =>
+        startFragmentStallChecks()
+        if (smpFragmentAssembly.isEmpty) {
+          log.info(
+            s"collecting a ${assembler.declaredSize} B fragmented message (slot $slot, subslot $subslot)"
+          )
+          smpFragmentAssembly = Some(assembler)
+        }
+      case SMPFragmentAssembler.Rejected(reason) =>
+        smpFragmentAssembly = None
+        stopFragmentStallChecks()
+        log.error(
+          s"discarding SlottedMetaPacket fragment data (slot $slot, subslot $subslot) - $reason"
+        )
+    }
+  }
+
+  /**
+    * Begin periodically checking a message under assembly for a stall.
+    * The check is idempotent while one runs, and the scheduled check message is delivered
+    * through the actor's mailbox like all the other periodic work.
+    */
+  private def startFragmentStallChecks(): Unit = {
+    if (fragmentStallProcessor.isCancelled) {
+      fragmentStallProcessor = context.system.scheduler.scheduleWithFixedDelay(
+        smpFragmentStallTime,
+        smpFragmentStallTime
+      )(() => {
+        context.self ! ProcessFragmentStall
+      })
+    }
+  }
+
+  /** Stop checking a message under assembly for a stall (none is under assembly) */
+  private def stopFragmentStallChecks(): Unit = {
+    if (fragmentStallProcessor != Default.Cancellable) {
+      fragmentStallProcessor.cancel()
+      fragmentStallProcessor = Default.Cancellable
+    }
+  }
+
+  /**
+    * Drop a partially assembled fragmented message whose remaining fragments never arrive.
+    * A stalled assembly can never complete into a valid message; without its remaining frames it
+    * instead absorbs the frames of the next message to pass through the fragment channel, so it is
+    * discarded after `smpFragmentStallTime` without fragment activity (detected within one to two
+    * stall periods). While subslots are outstanding, recovery belongs to the missing-subslot
+    * request machinery and its give-up path, not to this check.
+    */
+  private def processFragmentStall(): Unit = {
+    if (
+      smpFragmentAssembly.exists(_.isActive) &&
+      inSubslotsMissing.isEmpty &&
+      System.nanoTime() - lastFragmentActivityNanos > smpFragmentStallTime.toNanos
+    ) {
+      smpFragmentAssembly = None
+      stopFragmentStallChecks()
+      log.warn(
+        s"a fragmented message under assembly stalled without further fragments; discarding the partial message"
+      )
     }
   }
 
@@ -1034,11 +1153,14 @@ class MiddlewareActor(
       send(RelatedB(slot % 4, subslot))
       inSubslot = subslot
     } else if (subslot > inSubslot + 1) {
-      workIncomingSlottedPacketContents(slot, subslot, inner)
+      //the gap opens before the frame's contents are worked: the fragment channel's ordered
+      //release decides by this request table whether a frame may be fed to the reassembly yet,
+      //and a future frame must already see its missing predecessors registered below it
       ((inSubslot + 1) until subslot).foreach { s =>
         inSubslotsMissing.addOne((s, inSubslotMissingNumberOfAttempts))
       } //request missing SMP's
       inSubslot = subslot
+      workIncomingSlottedPacketContents(slot, subslot, inner)
       activeSubslotsFunc = inSubslotMissingRequests
       askForMissingSubslots()
       log.trace("packet subslots in disorder; start requests")
@@ -1053,22 +1175,41 @@ class MiddlewareActor(
    */
   def processRequestsForMissingSubslots(): Unit = {
     timesSubslotMissing += inSubslotsMissing.size
-    inSubslotsMissing.foreach {
+    val subslotsAbandoned = mutable.ListBuffer[Int]()
+    //iterate a snapshot: giving up on a subslot removes it from the request table during the pass
+    inSubslotsMissing.toList.foreach {
       case (subslot, attempt) =>
         val value = attempt - 1
         if (value > 0) {
           inSubslotsMissing(subslot) = value
         } else {
           inSubslotsMissing.remove(subslot)
+          subslotsAbandoned += subslot
         }
         send(RelatedA(0, subslot))
+    }
+    if (subslotsAbandoned.nonEmpty && smpFragmentAssembly.exists(_.isActive)) {
+      //an unrecovered subslot can not complete in order below the frames of the message under
+      //assembly: the message's own missing fragments will never arrive (only the reassembly's
+      //already-fed bytes exist below the gap), so the partial message is dropped instead of
+      //corrupting the channel for the next fragmented message to pass through
+      smpFragmentAssembly = None
+      stopFragmentStallChecks()
+      log.warn(
+        s"subslots ${subslotsAbandoned.toList.sorted.mkString(", ")} went unrecovered after ${inSubslotMissingNumberOfAttempts} attempts; discarding any fragmented message under assembly"
+      )
     }
     inSubslotsMissingRequestsFinished()
   }
 
   /**
     * What to do with an inbound `SlottedMetaPacket` control packet when the subslots are in disarray.
-    * Whenever a subslot arrives prior to the current highest, removing that subslot from the request list is possible.
+    * Whenever a subslot arrives prior to the current highest, and it was actually still outstanding,
+    * it is recovered: removed from the request list and processed.
+    * A frame below the current highest that was *not* outstanding anymore - a second copy of an
+    * already-recovered subslot, arriving because the request repeats every retry - has already had
+    * its contents dispatched (or discarded for good when the gap was given up on), and is dropped
+    * instead of being processed a second time.
     * If the proper next subslot arrives, proceeding like normal is fine.
     * Do not, however, send any `ResultB` confirmations until no more requests are outstanding.
     * @param slot the SMP slot (related to the opcode)
@@ -1080,9 +1221,15 @@ class MiddlewareActor(
     */
   private def inSubslotMissingRequests(slot: Int, subslot: Int, inner: ByteVector): Unit = {
     if (subslot < inSubslot) {
-      inSubslotsMissing.remove(subslot)
-      workIncomingSlottedPacketContents(slot, subslot, inner)
-      inSubslotsMissingRequestsFinished(slot)
+      inSubslotsMissing.remove(subslot) match {
+        case Some(_) =>
+          //the frame was actually still outstanding; this is the copy that recovers it
+          workIncomingSlottedPacketContents(slot, subslot, inner)
+          inSubslotsMissingRequestsFinished(slot)
+        case None =>
+          //a copy of a subslot that was already recovered or given up on: already dispatched or
+          //discarded once, and processing it again would duplicate that data
+      }
     } else if (subslot > inSubslot + 1) {
       ((inSubslot + 1) until subslot).foreach { s =>
         inSubslotsMissing.addOne((s, inSubslotMissingNumberOfAttempts))
@@ -1098,6 +1245,8 @@ class MiddlewareActor(
   /**
     * If there are no more requests for missing subslots,
     * resume normal operations when acting upon inbound `SlottedMetaPacket` packets.
+    * Fragment channel frames that were held while the gaps below them were being resolved can
+    * now be released in order to the reassembly.
     * @param slot the optional slot to report the "first" `RelatedB` in a "while"
     */
   private def inSubslotsMissingRequestsFinished(slot: Int = 0): Unit = {
@@ -1105,6 +1254,7 @@ class MiddlewareActor(
       subslotMissingProcessor.cancel()
       activeSubslotsFunc = inSubslotNotMissing
       send(RelatedB(slot % 4, inSubslot)) //send a confirmation packet after all requested packets are handled
+      releaseFragmentFrames()
       log.trace("normalcy with packet subslot order; resuming normal workflow")
     }
   }
@@ -1239,8 +1389,10 @@ class MiddlewareActor(
     */
   private def connectionClose(): Behavior[Command] = {
     smpFragmentAssembly = None
+    stopFragmentStallChecks()
     inReorderQueue.clear()
     inSubslotsMissing.clear()
+    inFragmentOrder.clear()
     send(ConnectionClose())
     Behaviors.stopped
   }

@@ -25,7 +25,7 @@ import scodec.bits.ByteVector
   *                             can not be genuine on this protocol and is rejected outright,
   *                             bounding the memory a single connection can pin
   */
-final class SmpFragmentAssembler(reassemblyLimitBytes: Int) {
+final class SMPFragmentAssembler(reassemblyLimitBytes: Int) {
 
   /** the size declared by the message's first fragment; negative while no message is being assembled */
   private var expectedBytes: Long = -1L
@@ -54,10 +54,10 @@ final class SmpFragmentAssembler(reassemblyLimitBytes: Int) {
     *         more frames, or the instruction to discard (with reason) when the stream is not
     *         acceptable
     */
-  def append(frame: ByteVector): SmpFragmentAssembler.Result = {
+  def append(frame: ByteVector): SMPFragmentAssembler.Result = {
     if (expectedBytes < 0) {
       if (frame.length < 4) {
-        SmpFragmentAssembler.Rejected(
+        SMPFragmentAssembler.Rejected(
           s"a ${frame.length} B continuation fragment arrived without its leading fragment"
         )
       } else {
@@ -66,7 +66,7 @@ final class SmpFragmentAssembler(reassemblyLimitBytes: Int) {
           ((frame.get(2) & 0xffL) << 8) |
           (frame.get(3) & 0xffL)
         if (declared <= 0 || declared > reassemblyLimitBytes) {
-          SmpFragmentAssembler.Rejected(
+          SMPFragmentAssembler.Rejected(
             s"a first fragment declared an out-of-bounds message size ($declared B; limit $reassemblyLimitBytes B)"
           )
         } else {
@@ -81,7 +81,7 @@ final class SmpFragmentAssembler(reassemblyLimitBytes: Int) {
     }
   }
 
-  private def absorb(fragment: ByteVector): SmpFragmentAssembler.Result = {
+  private def absorb(fragment: ByteVector): SMPFragmentAssembler.Result = {
     fragmentCount += 1
     val remaining = expectedBytes - assembled.length
     assembled = assembled ++ fragment.take(remaining)
@@ -91,14 +91,14 @@ final class SmpFragmentAssembler(reassemblyLimitBytes: Int) {
       assembled = ByteVector.empty
       val fragmentsTaken = fragmentCount
       fragmentCount = 0
-      SmpFragmentAssembler.Completed(message, fragmentsTaken)
+      SMPFragmentAssembler.Completed(message, fragmentsTaken)
     } else {
-      SmpFragmentAssembler.Waiting
+      SMPFragmentAssembler.Waiting
     }
   }
 }
 
-object SmpFragmentAssembler {
+object SMPFragmentAssembler {
 
   sealed trait Result
 

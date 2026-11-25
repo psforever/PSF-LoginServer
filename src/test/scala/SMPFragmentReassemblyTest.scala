@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import org.specs2.mutable._
-import net.psforever.actors.net.SmpFragmentAssembler
+import net.psforever.actors.net.SMPFragmentAssembler
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.packets.{OutfitRequest, OutfitRequestAction}
 import scodec.bits._
@@ -22,7 +22,7 @@ import scodec.codecs._
   * as exactly that big-endian `u32` (the marker supplies the zero high bytes), so the outbound
   * and inbound schemes are the same wire format.
   */
-class SmpFragmentReassemblyTest extends Specification {
+class SMPFragmentReassemblyTest extends Specification {
 
   /** the raw client wire form of an `OutfitRequest` motd message, as emitted by the client's encoder */
   private def clientMotdPacket(t: String, id: Int = 5): ByteVector = {
@@ -53,10 +53,10 @@ class SmpFragmentReassemblyTest extends Specification {
   "the fragment assembler" should {
     "dispatch a message that fits in a single fragment" in {
       val message = clientMotdPacket("messageoftheday")
-      val assembler = new SmpFragmentAssembler(65536)
+      val assembler = new SMPFragmentAssembler(65536)
 
       assembler.append(leadingFrame(message.length, message)) mustEqual
-        SmpFragmentAssembler.Completed(message, fragments = 1L)
+        SMPFragmentAssembler.Completed(message, fragments = 1L)
     }
 
     "reassemble a message that spans several fragments" in {
@@ -65,14 +65,14 @@ class SmpFragmentReassemblyTest extends Specification {
       val slices  = message.grouped(300).toSeq
       slices.length mustEqual 2
 
-      val assembler = new SmpFragmentAssembler(65536)
+      val assembler = new SMPFragmentAssembler(65536)
       val first = assembler.append(leadingFrame(message.length, slices.head))
-      first mustEqual SmpFragmentAssembler.Waiting
+      first mustEqual SMPFragmentAssembler.Waiting
       assembler.isActive mustEqual true
       assembler.declaredSize mustEqual message.length
 
       val second = assembler.append(slices.tail.head)
-      second mustEqual SmpFragmentAssembler.Completed(message, fragments = 2L)
+      second mustEqual SMPFragmentAssembler.Completed(message, fragments = 2L)
       assembler.isActive mustEqual false
     }
 
@@ -86,11 +86,11 @@ class SmpFragmentReassemblyTest extends Specification {
       slices(0).length mustEqual 459
       slices(1).length mustEqual 61
 
-      val assembler = new SmpFragmentAssembler(65536)
+      val assembler = new SMPFragmentAssembler(65536)
       //the leading frame: [BE u32 520][459 B of message], exactly as the client's encoder writes it
-      assembler.append(leadingFrame(message.length, slices.head)) mustEqual SmpFragmentAssembler.Waiting
+      assembler.append(leadingFrame(message.length, slices.head)) mustEqual SMPFragmentAssembler.Waiting
       //the 61 B tail frame
-      assembler.append(slices(1)) mustEqual SmpFragmentAssembler.Completed(message, fragments = 2L)
+      assembler.append(slices(1)) mustEqual SMPFragmentAssembler.Completed(message, fragments = 2L)
     }
 
     "reassemble the outbound `splitPacket` framing (the HandleGamePacket u32 trick)" in {
@@ -103,12 +103,12 @@ class SmpFragmentReassemblyTest extends Specification {
         (payload.length & 0xff).toByte
       ) ++ payload
 
-      val assembler = new SmpFragmentAssembler(65536)
-      var result: SmpFragmentAssembler.Result = SmpFragmentAssembler.Waiting
+      val assembler = new SMPFragmentAssembler(65536)
+      var result: SMPFragmentAssembler.Result = SMPFragmentAssembler.Waiting
       wireHeaderAndPayload.grouped(432).toSeq.foreach { slice => result = assembler.append(slice) }
 
       result must beLike {
-        case SmpFragmentAssembler.Completed(message, fragments) =>
+        case SMPFragmentAssembler.Completed(message, fragments) =>
           fragments must beGreaterThan(1L)
           message mustEqual payload
           PacketCoding.decodePacket(message).require must beAnInstanceOf[OutfitRequest]
@@ -118,43 +118,43 @@ class SmpFragmentReassemblyTest extends Specification {
     "discard over-delivered bytes past the declared size, like the client's reader" in {
       val message = clientMotdPacket("Hello")
       val extra   = hex"deadbeef"
-      val assembler = new SmpFragmentAssembler(65536)
+      val assembler = new SMPFragmentAssembler(65536)
 
       //the frame declares 9 bytes but carries 9 + 4: the trailing 4 are dropped, not carried into a next message
       assembler.append(leadingFrame(message.length, message ++ extra)) mustEqual
-        SmpFragmentAssembler.Completed(message, fragments = 1L)
+        SMPFragmentAssembler.Completed(message, fragments = 1L)
     }
 
     "reject a declared size beyond the reassembly limit and resynchronize on the next message" in {
-      val assembler = new SmpFragmentAssembler(65536)
+      val assembler = new SMPFragmentAssembler(65536)
 
       val hostile = leadingFrame(total = 0x7fffffff, ByteVector.fill(455)(0x41.toByte))
       assembler.append(hostile) must beLike {
-        case SmpFragmentAssembler.Rejected(_) => ok
+        case SMPFragmentAssembler.Rejected(_) => ok
       }
       assembler.isActive mustEqual false
 
       //a genuine message follows immediately and works
       val message = clientMotdPacket("messageoftheday")
       assembler.append(leadingFrame(message.length, message)) mustEqual
-        SmpFragmentAssembler.Completed(message, fragments = 1L)
+        SMPFragmentAssembler.Completed(message, fragments = 1L)
     }
 
     "reject a continuation fragment that arrives without its leader" in {
-      val assembler = new SmpFragmentAssembler(65536)
+      val assembler = new SMPFragmentAssembler(65536)
 
       //a short mid-message tail with no length header (its leader was lost)
       val tail = hex"00 6e 00 73" ++ ByteVector.fill(29)(0x20.toByte)
       assembler.append(tail) must beLike {
-        case SmpFragmentAssembler.Rejected(_) => ok
+        case SMPFragmentAssembler.Rejected(_) => ok
       }
       assembler.isActive mustEqual false
     }
 
     "reject a declared size of zero" in {
-      val assembler = new SmpFragmentAssembler(65536)
+      val assembler = new SMPFragmentAssembler(65536)
       assembler.append(leadingFrame(0, hex"0000")) must beLike {
-        case SmpFragmentAssembler.Rejected(_) => ok
+        case SMPFragmentAssembler.Rejected(_) => ok
       }
     }
   }
