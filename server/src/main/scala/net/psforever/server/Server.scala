@@ -5,7 +5,6 @@ import java.nio.file.Paths
 import java.util.Locale
 import java.util.UUID.randomUUID
 import java.util.concurrent.atomic.AtomicLong
-import scala.concurrent.Future
 import scala.concurrent.Await
 import akka.actor.ActorSystem
 import akka.actor.typed.ActorRef
@@ -16,8 +15,7 @@ import ch.qos.logback.classic.joran.JoranConfigurator
 import io.sentry.{Sentry, SentryOptions}
 import net.psforever.actors.net.{LoginActor, MiddlewareActor, SocketSetup, SocketSetupInfo, SocketPane}
 import net.psforever.actors.session.SessionActor
-import net.psforever.login.psadmin.PsAdminActor
-import net.psforever.login._
+import net.psforever.api.ApiServer
 import net.psforever.objects.Default
 import net.psforever.objects.zones._
 import net.psforever.services.account.{AccountIntermediaryService, AccountPersistenceService, ReceiveIPAddress}
@@ -148,17 +146,7 @@ object Server {
       name = SocketPane.SocketPaneKey.id
     )
 
-    val adminListener = system.actorOf(
-      classic.Props(
-        new TcpListener(
-          classOf[PsAdminActor],
-          "psadmin-client-",
-          InetAddress.getByName(Config.app.admin.bind),
-          Config.app.admin.port
-        )
-      ),
-      "psadmin-tcp-endpoint"
-    )
+    ApiServer.start(Config.app.api)(system)
 
     logger.info(
       s"Login server is running on ${InetAddress.getByName(Config.app.public).getHostAddress}:${Config.app.login.port}"
@@ -170,7 +158,11 @@ object Server {
       logger.info("Login server now shutting down...")
     }
 
-    Await.ready(Future.never, Duration.Inf)
+    // Run until the actor system stops -- from the admin API's shutdown, or from a startup failure such as a
+    // listener that cannot bind -- and then end the process. Waiting on a future that never completes kept
+    // the JVM alive after the actor system had gone, so a requested shutdown left a server doing nothing.
+    Await.ready(system.whenTerminated, Duration.Inf)
+    sys.exit(if (ApiServer.failedToStart) 1 else 0)
   }
 
   def flyway(args: CliConfig): Flyway = {

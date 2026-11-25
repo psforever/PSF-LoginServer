@@ -16,6 +16,7 @@ services:
     environment:
       CONFIG_FORCE_database_host: db
       CONFIG_FORCE_bind: 0.0.0.0
+      CONFIG_FORCE_api_public_bind: 0.0.0.0
   adminer:
     image: adminer
     ports:
