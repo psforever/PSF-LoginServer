@@ -168,7 +168,8 @@ case class MiddlewareConfig(
 
 case class SessionConfig(
     inboundGraceTime: FiniteDuration,
-    outboundGraceTime: FiniteDuration
+    outboundGraceTime: FiniteDuration,
+    maxWorldSessionsPerAddress: Int
 )
 
 case class CachedMessagesConfig(

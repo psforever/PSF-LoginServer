@@ -309,12 +309,14 @@ class SquadService extends Actor {
       case CloseSquadMemberPosition(position) =>
         GetOrCreateSquadOnlyIfLeader(tplayer)
           .collect {
-            case features if features.Squad.Membership(position).CharId > 0 =>
+            //position is a 4-bit client value (0-15) and a squad has 10 positions; out of range would throw and restart this service
+            case features if features.Squad.Membership.lift(position).exists(_.CharId > 0) =>
               LeaveSquad(features.Squad.Membership(position).CharId, features)
               features
           }
       case FindLfsSoldiersForRole(position) =>
         GetLeadingSquad(tplayer, None)
+          .filter(features => features.Squad.Membership.isDefinedAt(position)) //4-bit client value; see above
           .foreach(features => invitations.findLfsSoldiersForRole(tplayer, features, position))
         None
       case CancelFind() =>

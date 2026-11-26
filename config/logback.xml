@@ -91,6 +91,21 @@
     </filter> -->
   </appender>
 
+  <!--
+   Login events (logger "LoginEvents") under a fixed name, for tools like fail2ban: rolled over daily,
+   with no duplicate cooldown, so every failed attempt is written. They also still reach the general log.
+   -->
+  <appender name="FILE-LOGIN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/psforever-login.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/psforever-login_%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+      <maxHistory>60</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%date{ISO8601} %5level - %msg%n</pattern>
+    </encoder>
+  </appender>
+
   <appender name="Sentry" class="io.sentry.logback.SentryAppender">
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
       <level>WARN</level>
@@ -110,4 +125,7 @@
 
   <!-- Logger specific overrides -->
   <logger name="oshi" level="OFF"/>
+  <logger name="LoginEvents" level="INFO">
+    <appender-ref ref="FILE-LOGIN"/>
+  </logger>
 </configuration>

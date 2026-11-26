@@ -1948,9 +1948,10 @@ class AvatarActor(
         if account.exists { _.avatarLoggedIn == 0 } =>
         //accept
         performAvatarLogin(avatarId, accountId, replyTo)
-      case _ =>
+      case result =>
         //refuse
         //TODO refuse?
+        log.warn(s"refusing login of avatar $avatarId: account $accountId is marked as already logged in (or failed to load: $result)")
         sessionActor ! SessionActor.Quit()
     }
   }
@@ -3304,6 +3305,8 @@ class AvatarActor(
                                         ): Future[Boolean] = {
     val output: Promise[Boolean] = Promise[Boolean]()
     import ctx._
+    //the server's clock, not the database's: lastLogin is compared against server-local time
+    val now = LocalDateTime.now()
     val result = for {
       _ <- ctx.run(
         query[persistence.Avatar]
@@ -3315,7 +3318,9 @@ class AvatarActor(
             _.voiceId   -> lift(voice.id),
             _.genderId  -> lift(sex.value),
             _.bep       -> lift(bep),
-            _.cep       -> lift(cep)
+            _.cep       -> lift(cep),
+            _.created   -> lift(now),
+            _.lastLogin -> lift(now)
           )
       )
     } yield ()

@@ -7,14 +7,15 @@ import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 class GenericPool(
-                   private val hub: mutable.LongMap[String],
+                   private val hub: NumberPoolNames,
                    private val max: Int,
-                   private val poolName: String,
-                   private val selectionFunc: (List[Long], Int) => Int
+                   private val poolName: String
                  ) extends NumberPool {
   private val numbers: mutable.ListBuffer[Int]   = mutable.ListBuffer[Int]()
   private val selector: SpecificSelector = new SpecificSelector
   selector.SelectionIndex = -1
+
+  private var searchFrom: Int = 1
 
   def Numbers: List[Int] = numbers.toList
 
@@ -28,10 +29,11 @@ class GenericPool(
     val specific = selector.SelectionIndex
     selector.SelectionIndex = -1 //clear
     if (specific == -1) {
-      val number = selectionFunc(hub.keys.toList, max)
+      val number = lowestFree()
       if (number > -1) {
         hub += number.toLong -> poolName
         numbers += number
+        searchFrom = number + 1
         Success(number)
       } else {
         Failure(new Exception("no numbers available in this pool"))
@@ -50,90 +52,37 @@ class GenericPool(
     if (index > -1) {
       numbers.remove(index)
       hub -= number
+      if (number < searchFrom) {
+        searchFrom = number
+      }
       true
     } else {
       false
     }
   }
+
+  private def lowestFree(): Int = {
+    var number = math.max(searchFrom, 1)
+    while (number < max && hub.contains(number.toLong)) {
+      number += 1
+    }
+    searchFrom = number
+    if (number < max) number else -1
+  }
 }
 
 object GenericPool {
   /**
-    * Overloaded constructor that assigns a "numerical first discovery" function for number selection.
-    * @param hub na
-    * @param max na
-    * @param poolName na
+    * Overloaded constructor.
+    * @param hub every number known to the hub, mapped to the name of the pool that holds it
+    * @param max how many numbers the source supports
+    * @param poolName the name recorded in `hub` for numbers this pool takes
     * @return a `GenericPool` entity
     */
   def apply(
-             hub: mutable.LongMap[String],
+             hub: NumberPoolNames,
              max: Int,
              poolName: String
            ): GenericPool =
-    new GenericPool(hub, max, poolName, GenericPool.first)
-
-  /**
-    * Get some number that is not accounted for in any other fixed pool, making it available in this generic one.<br>
-    * <br>
-    * Returns the first number that is detected as available between two sorted numbers.
-    * @param list all of the non-repeating numbers to be compared
-    * @param domainSize how many numbers can be supported
-    * @return the next available number, or -1
-    */
-  def first(list: List[Long], domainSize: Int): Int = {
-    if (list.size < domainSize) {
-      /* An Array, because the loop below indexes it by position and Array.apply is constant
-         time. That matters here more than elsewhere: this pool is the fallback for any
-         exhausted pool and receives every number in the hub, on the order of tens of
-         thousands, and the scan runs on the pool actor's thread while its mailbox waits. */
-      val sortedList: Array[Long] = (0L +: list.sorted :+ domainSize.toLong).toArray
-      var index: Int = 0
-      val listLen = sortedList.length - 1
-      while(index < listLen && index < domainSize) {
-        val curr = sortedList(index + 1) - sortedList(index)
-        if (curr > 1) {
-          return sortedList(index).toInt + 1
-        }
-        index += 1
-      }
-    }
-    -1
-  }
-
-  /**
-    * Get some number that is not accounted for in any other fixed pool, making it available in this generic one.<br>
-    * <br>
-    * Although called "`rand`," this algorithm is not actually random.
-    * From a sorted list of numbers, with a minimum and a maximum value appended,
-    * it finds the two adjacent numbers that are the most distant.
-    * It finds an average whole integer number between the two.<br>
-    * <br>
-    * This solution gets expensive as the count of numbers in `list` increases.
-    * @param list all of the non-repeating numbers to be compared
-    * @param domainSize how many numbers can be supported
-    * @return midpoint of the largest distance between any two of the existing numbers, or -1
-    */
-  def rand(list: List[Long], domainSize: Int): Int = {
-    if (list.size < domainSize) {
-      //get a list of all assigned numbers with an appended min and max
-      //an Array for the same reason as in `first`: the loop below indexes it by position
-      val sortedList: Array[Long] = (-1L +: list.sorted :+ domainSize.toLong).toArray
-      //compare the delta between every two entries and find the start of that greatest delta comparison
-      var maxDelta: Long = -1
-      var maxDeltaIndex  = -1
-      for (index <- 0 until (sortedList.length - 1)) {
-        val curr = sortedList(index + 1) - sortedList(index)
-        if (curr > maxDelta) {
-          maxDelta = curr
-          maxDeltaIndex = index
-        }
-      }
-      //find half of the distance between the two numbers with the greatest delta value
-      if (maxDelta == 2) { sortedList(maxDeltaIndex).toInt + 1 }
-      else if (maxDelta > 1) { ((sortedList(maxDeltaIndex + 1) + sortedList(maxDeltaIndex)) / 2f).toInt }
-      else { -1 }
-    } else {
-      -1
-    }
-  }
+    new GenericPool(hub, max, poolName)
 }

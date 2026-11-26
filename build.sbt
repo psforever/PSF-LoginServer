@@ -72,7 +72,8 @@ lazy val psforeverSettings = Seq(
     "com.typesafe.scala-logging" %% "scala-logging"              % "3.9.5",
     "org.specs2"                 %% "specs2-core"                % "4.20.0" % "test",
     "org.scalatest"              %% "scalatest"                  % "3.2.15" % "test",
-    "org.scodec"                 %% "scodec-core"                % "1.11.10",
+    "org.scodec"                 %% "scodec-core"                % "1.11.11",
+    "org.scodec"                 %% "scodec-bits"                % "1.2.5",
     "ch.qos.logback"              % "logback-classic"            % "1.2.12",
     "org.log4s"                  %% "log4s"                      % "1.10.0",
     "org.fusesource.jansi"        % "jansi"                      % "2.4.0",
@@ -111,7 +112,11 @@ lazy val psforever = (project in file("."))
   .settings(
     name := "psforever",
     // Copy all tests from Test -> QuietTest (we're only changing the run options)
-    inConfig(QuietTest)(Defaults.testTasks)
+    inConfig(QuietTest)(Defaults.testTasks),
+    // Root `clean` cleans every project
+    clean := clean
+      .dependsOn(Seq("server", "decodePackets", "client", "docs").map(p => LocalProject(p) / clean): _*)
+      .value
   )
 
 lazy val server = (project in file("server"))
@@ -131,11 +136,41 @@ lazy val server = (project in file("server"))
     // session simultaneously.
     packJvmOpts := Map("psforever-server" -> Seq(
       "-Dstacktrace.app.packages=net.psforever",
-      "-Xms2g",
+      "-Dio.netty.eventLoopThreads=4", // Limit DB threads
+      "-Dio.netty.allocator.numDirectArenas=4", // Limit allocator arenas
+      "-Dio.netty.allocator.maxOrder=9", // 4MB chunks
+      "-Xms512m",
       "-Xmx4g",
-      "-XX:+UseG1GC",
-      "-XX:MaxGCPauseMillis=50"
     )),
+    packEnvVars := Map("psforever-server" -> Map("MALLOC_ARENA_MAX" -> "2")), // fewer glibc malloc arenas
+    // Collector flags depend on the JDK the launcher finds, so they are chosen at launch: G1 before 21
+    // (G1PeriodicGCInterval needs 12+: a concurrent cycle after 60 s idle can uncommit heap, JEP 346;
+    // the free ratios default to 40 / 70), generational ZGC from 21 (the default ZGC mode from 23).
+    // TrimNativeHeapInterval releases freed native memory back to the system (21+).
+    // ZGC never uncommits below -Xms, so -Xms is the floor the heap shrinks to.
+    Compile / pack := {
+      val dir      = (Compile / pack).value
+      val launcher = dir / "bin" / "psforever-server"
+      val gcSelect =
+        """JAVA_MAJOR=`"$JAVACMD" -version 2>&1 | sed -n 's/.* version "\([0-9.]*\).*/\1/p' | sed 's/^1\.//' | cut -d. -f1`
+          |# ZGC shrinking: return unused memory after 30 s rather than 300, and aim to keep the heap under
+          |# 2 GB (a target: it grows past it to -Xmx under load, collecting harder while it is over)
+          |ZGC_SHRINK="-XX:ZUncommitDelay=30 -XX:SoftMaxHeapSize=2g"
+          |case "$JAVA_MAJOR" in
+          |  "")        GC_OPTS="" ;; # unknown version: JVM defaults
+          |  8|9|10|11) GC_OPTS="-XX:+UseG1GC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30" ;;
+          |  1[2-9]|20) GC_OPTS="-XX:+UseG1GC -XX:G1PeriodicGCInterval=60000 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30" ;;
+          |  21|22)     GC_OPTS="-XX:+UseZGC -XX:+ZGenerational $ZGC_SHRINK -XX:TrimNativeHeapInterval=60000" ;;
+          |  *)         GC_OPTS="-XX:+UseZGC $ZGC_SHRINK -XX:TrimNativeHeapInterval=60000" ;;
+          |esac
+          |JAVA_OPTS="$GC_OPTS $JAVA_OPTS"
+          |
+          |""".stripMargin
+      val script = IO.read(launcher)
+      if (!script.contains("eval exec")) sys.error(s"$launcher: no `eval exec` line to insert GC selection before")
+      IO.write(launcher, script.replaceFirst("eval exec", java.util.regex.Matcher.quoteReplacement(gcSelect) + "eval exec"))
+      dir
+    },
     packExtraClasspath := Map("psforever-server" -> Seq("${PROG_HOME}/config")),
     packResourceDir += ((psforever / baseDirectory).value / "config" -> "config")
   )

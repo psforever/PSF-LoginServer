@@ -38,7 +38,7 @@ object SocketActor {
   private[net] final case class UdpEventMessage(message: Udp.Event)               extends Command
   private final case class UdpUnboundMessage(message: Udp.Unbound)           extends Command
   private final case class Bound(socket: classic.ActorRef)                   extends Command
-  private final case class StopChild(ref: ActorRef[MiddlewareActor.Command]) extends Command
+  private case object Reap                                                   extends Command
   final case class AskSocketLoad(replyTo: ActorRef[Any]) extends Command
   final case class SocketLoad(sessions: Int)
 
@@ -92,27 +92,29 @@ class SocketActor(
   val incomingTimes: mutable.Map[InetSocketAddress, Long] = mutable.Map()
   val outgoingTimes: mutable.Map[InetSocketAddress, Long] = mutable.Map()
 
-  val sessionReaper: Cancellable = context.system.scheduler.scheduleWithFixedDelay(0.seconds, 5.seconds)(() => {
-    val now = System.currentTimeMillis()
-    packetActors.keys.foreach(addr => {
-      packetActors.get(addr) match {
-        case Some(child) =>
-          if(
-            (incomingTimes.get(addr) match {
-              case Some(time) =>  now - time > Config.app.network.session.inboundGraceTime.toMillis
-              case _          => false
-            }) ||
-            (outgoingTimes.get(addr) match {
-              case Some(time) =>  now - time > Config.app.network.session.outboundGraceTime.toMillis
-            case _            => false
-          })
-          ) {
-            context.self ! StopChild(child)
-          }
-        case _ => ;
-      }
-    })
+  /*
+  The timer only sends a message; the check runs as this actor, the only thread that touches the maps.
+  Run on the scheduler thread, it raced the actor's updates, and a throw would cancel it for good.
+   */
+  val sessionReaper: Cancellable = context.system.scheduler.scheduleWithFixedDelay(5.seconds, 5.seconds)(() => {
+    context.self ! Reap
   })
+
+  /** Stop each session that has been quiet, in either direction, for longer than its grace time. */
+  private def reap(): Unit = {
+    val now = System.currentTimeMillis()
+    val inboundGrace  = Config.app.network.session.inboundGraceTime.toMillis
+    val outboundGrace = Config.app.network.session.outboundGraceTime.toMillis
+    packetActors.foreach {
+      case (addr, child) =>
+        if (
+          incomingTimes.get(addr).exists(time => now - time > inboundGrace) ||
+          outgoingTimes.get(addr).exists(time => now - time > outboundGrace)
+        ) {
+          context.stop(child)
+        }
+    }
+  }
 
   def start(): Behavior[Command] = {
     Behaviors
@@ -176,8 +178,8 @@ class SocketActor(
         case UdpUnboundMessage(_) =>
           Behaviors.stopped
 
-        case StopChild(ref) =>
-          context.stop(ref)
+        case Reap =>
+          reap()
           Behaviors.same
       }
       .receiveSignal {
@@ -186,7 +188,11 @@ class SocketActor(
           Behaviors.same
         case (_, Terminated(ref)) =>
           packetActors.find(_._2 == ref) match {
-            case Some((remote, _)) => packetActors.remove(remote)
+            case Some((remote, _)) =>
+              packetActors.remove(remote)
+              //or they pile up, and a reconnect from this address starts out with stale times
+              incomingTimes.remove(remote)
+              outgoingTimes.remove(remote)
             case None              => log.warn(s"Received Terminated for unknown actor $ref")
           }
           Behaviors.same

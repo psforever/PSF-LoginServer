@@ -15,8 +15,7 @@ class MaxNumberSource(val max: Int) extends NumberSource {
   if (max < 0) {
     throw new IllegalArgumentException(s"non-negative integers only, not $max")
   }
-  private val ary: Array[Key] = Array.ofDim[Key](max + 1)
-  (0 to max).foreach(x => { ary(x) = new Key })
+  private val ary: Array[Key] = Array.fill[Key](max + 1)(MaxNumberSource.UNUSED_KEY)
 
   def size: Int = ary.length
 
@@ -51,6 +50,9 @@ class MaxNumberSource(val max: Int) extends NumberSource {
   def getAvailable(number: Int): Option[LoanedKey] = {
     var out: Option[LoanedKey] = None
     if (test(number)) {
+      if (ary(number) eq MaxNumberSource.UNUSED_KEY) {
+        ary(number) = new Key
+      }
       val key: Key = ary(number)
       if (key.policy == AvailabilityPolicy.Available) {
         key.policy = AvailabilityPolicy.Leased
@@ -90,6 +92,9 @@ class MaxNumberSource(val max: Int) extends NumberSource {
 }
 
 object MaxNumberSource {
+  /** Unleased sentinel */
+  private final val UNUSED_KEY: Key = new Key
+
   def apply(max: Int): MaxNumberSource = {
     new MaxNumberSource(max)
   }
