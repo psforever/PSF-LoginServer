@@ -2,6 +2,8 @@
 
 <img src="https://www.psforever.net/res/logo.png" align="left" title="PSForever" width="120">
 
+test
+
 Welcome to the recreated login and world servers for PlanetSide 1. We are a community of players and developers who took
 it upon ourselves to preserve PlanetSide 1's unique gameplay and history _forever_.
 
