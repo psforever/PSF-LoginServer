@@ -233,6 +233,16 @@ class MiddlewareActor(
     */
   private val inFragmentOrder = new SMPFragmentOrder()
 
+  /**
+    * Subslots were given up on by the missing-subslot request machinery, and the fragment
+    * frames affected by them have not been resolved yet. When normalcy resumes and the held
+    * frames are released in order, a message under assembly that the release could not
+    * complete is proven holed by one of the abandoned subslots (its missing bytes can never
+    * arrive) and is dropped; a message the release *did* complete was unaffected by the gap
+    * - its bytes sum to the declared size without the abandoned subslots - and stands.
+    */
+  private var fragmentAbandonsPending: Boolean = false
+
   /** Queue of outgoing packets used for bundling and splitting */
   private val outQueue: mutable.Queue[(PlanetSidePacket, BitVector)] = mutable.Queue()
 
@@ -1188,16 +1198,17 @@ class MiddlewareActor(
         }
         send(RelatedA(0, subslot))
     }
-    if (subslotsAbandoned.nonEmpty && smpFragmentAssembly.exists(_.isActive)) {
-      //an unrecovered subslot can not complete in order below the frames of the message under
-      //assembly: the message's own missing fragments will never arrive (only the reassembly's
-      //already-fed bytes exist below the gap), so the partial message is dropped instead of
-      //corrupting the channel for the next fragmented message to pass through
-      smpFragmentAssembly = None
-      stopFragmentStallChecks()
-      log.warn(
-        s"subslots ${subslotsAbandoned.toList.sorted.mkString(", ")} went unrecovered after ${inSubslotMissingNumberOfAttempts} attempts; discarding any fragmented message under assembly"
+    if (subslotsAbandoned.nonEmpty) {
+      log.debug(
+        s"subslots ${subslotsAbandoned.toList.sorted.mkString(", ")} went unrecovered after $inSubslotMissingNumberOfAttempts attempts"
       )
+      //the frames below the abandoned subslots can now be resolved in order: whichever of them
+      //belong to the message under assembly either complete it (the abandoned subslots carried
+      //none of its bytes) or leave it holed (they carried some, and those bytes can never
+      //arrive). The decision is made by byte arithmetic after the held frames are released -
+      //not here - so a message whose every fragment arrived is not discarded just because an
+      //unrelated, unrecovered plain-channel frame sat below it
+      fragmentAbandonsPending = true
     }
     inSubslotsMissingRequestsFinished()
   }
@@ -1255,6 +1266,24 @@ class MiddlewareActor(
       activeSubslotsFunc = inSubslotNotMissing
       send(RelatedB(slot % 4, inSubslot)) //send a confirmation packet after all requested packets are handled
       releaseFragmentFrames()
+      if (fragmentAbandonsPending) {
+        fragmentAbandonsPending = false
+        if (smpFragmentAssembly.exists(_.isActive)) {
+          //every fragment frame below the frontier has now been fed to the reassembly in
+          //subslot order, and the message under assembly still waits for bytes: they were
+          //carried by abandoned subslots and can never arrive. Drop the partial message now,
+          //before it absorbs the frames of the next message as continuation bytes - the next
+          //genuine leader frame then re-establishes a clean assembly. (The rare cost of this
+          //byte arithmetic is dropping a message whose remaining fragments were still in
+          //flight beyond the whole request window - which the back-to-back fragment bursts
+          //of this protocol do not produce.)
+          smpFragmentAssembly = None
+          stopFragmentStallChecks()
+          log.warn(
+            s"a fragmented message lost bytes to unrecovered subslots; discarding the partial message"
+          )
+        }
+      }
       log.trace("normalcy with packet subslot order; resuming normal workflow")
     }
   }

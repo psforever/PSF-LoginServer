@@ -172,7 +172,10 @@ object SessionOutfitHandlers {
     val toZone = invited.Zone
     val toZoneId = toZone.id
     val toGuid = invited.GUID
-    OutfitInviteManager.getOutfitInvite(toCharId) match {
+    // the invitation is claimed up front: from this moment the expiry sweep can not withdraw
+    // it mid-acceptance anymore - its timeout notices and roster row-clear would otherwise
+    // race this flow's own broadcasts while the database writes are in flight
+    OutfitInviteManager.withdrawInvite(toCharId) match {
       case Some(outfitInvite) =>
         val fromName = outfitInvite.sentFrom.Name
         val fromCharId = outfitInvite.sentFrom.CharId
@@ -230,7 +233,6 @@ object SessionOutfitHandlers {
                 AvatarAction.PlanetsideStringAttribute(0, outfitName)
               )
             )
-            OutfitInviteManager.removeOutfitInvite(toCharId)
             session.chat.JoinChannel(OutfitChannel(outfitId))
             invited.outfit_id = outfitId
             invited.outfit_name = outfitName
@@ -240,8 +242,31 @@ object SessionOutfitHandlers {
             PlayerControl.sendResponse(toZone, toName,
               ChatMsg(ChatMessageType.UNK_227, "Failed to join outfit")
             )
+            // the outfit no longer exists; the claimed invitation can not be honored,
+            // so the inviter's pending-invitation row is cleared with it
+            PlayerControl.sendResponse(fromZone, fromName,
+              OutfitMemberEvent(outfitId, toCharId, OutfitMemberEventAction.Kicked()))
           }
           .recover { case _ =>
+            // the database failed mid-acceptance: both sides learn through the client's
+            // localized database-error notification (the client's membership-response display
+            // switches on the error field alone - the packet type only routes the no-error
+            // cases, so this renders as "@OutfitErrorDatabaseError" for both). The invitation
+            // was claimed at the start of the acceptance and is not coming back, so the
+            // inviter's pending-invitation row is cleared as well.
+            PlayerControl.sendResponse(toZone, toName,
+              OutfitMembershipResponse(
+                OutfitMembershipResponse.PacketType.InviteAccepted, Error.DatabaseError, 0,
+                toCharId, fromCharId, toName, "", to_actor = true
+              ))
+            PlayerControl.sendResponse(fromZone, fromName,
+              OutfitMembershipResponse(
+                OutfitMembershipResponse.PacketType.InviteAccepted, Error.DatabaseError, 0,
+                toCharId, fromCharId, toName, "", to_actor = false
+              ))
+            // clear the pending-invitation row in the inviter's outfit window
+            PlayerControl.sendResponse(fromZone, fromName,
+              OutfitMemberEvent(outfitId, toCharId, OutfitMemberEventAction.Kicked()))
             PlayerControl.sendResponse(toZone, toName,
               ChatMsg(ChatMessageType.UNK_227, "Failed to join outfit")
             )
@@ -251,7 +276,8 @@ object SessionOutfitHandlers {
   }
 
   def HandleOutfitInviteReject(invited: Player): Unit = {
-    OutfitInviteManager.getOutfitInvite(invited.CharId) match {
+    //the invitation is claimed up front so the expiry sweep can not act on it mid-rejection
+    OutfitInviteManager.withdrawInvite(invited.CharId) match {
       case Some(outfitInvite) =>
 
         PlayerControl.sendResponse(outfitInvite.sentFrom.Zone, outfitInvite.sentFrom.Name,
@@ -267,8 +293,6 @@ object SessionOutfitHandlers {
         // clear the pending-invitation row in the inviter's outfit window
         PlayerControl.sendResponse(outfitInvite.sentFrom.Zone, outfitInvite.sentFrom.Name,
           OutfitMemberEvent(outfitInvite.sentFrom.outfit_id, invited.CharId, OutfitMemberEventAction.Kicked()))
-
-        OutfitInviteManager.removeOutfitInvite(invited.CharId)
       case None =>
     }
   }
@@ -286,10 +310,9 @@ object SessionOutfitHandlers {
     * online players.
     */
   def HandleOutfitInviteCancel(cancelledId: Long, cancelledName: String, cancelledBy: Player): Unit = {
-    val invitations = OutfitInviteManager.getAllOutfitInvites.filter(_.sentFrom.CharId == cancelledBy.CharId)
-    val inviteOpt = invitations.find(_.sentTo.CharId == cancelledId)
-      .orElse(invitations.find(invite => invite.sentTo.Name.equalsIgnoreCase(cancelledName)))
-    inviteOpt match {
+    //the invitation is claimed up front, matched by the invited player's id and falling back
+    //to their name, so the claim can not interleave with the expiry sweep acting on the same one
+    OutfitInviteManager.withdrawInvitationOf(cancelledBy.CharId, cancelledId, cancelledName) match {
       case Some(invite) =>
         val cancelled = invite.sentTo
 
@@ -306,8 +329,6 @@ object SessionOutfitHandlers {
         // clear the pending-invitation row in the inviter's outfit window
         PlayerControl.sendResponse(cancelledBy.Zone, cancelledBy.Name,
           OutfitMemberEvent(cancelledBy.outfit_id, cancelled.CharId, OutfitMemberEventAction.Kicked()))
-
-        OutfitInviteManager.removeOutfitInvite(cancelled.CharId)
       case None =>
         // no still-valid invitation of this inviter's to cancel;
         // the client displays the localized "@OutfitErrorNoPlayer" notification
