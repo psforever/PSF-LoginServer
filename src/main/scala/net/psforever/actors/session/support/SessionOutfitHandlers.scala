@@ -205,13 +205,19 @@ object SessionOutfitHandlers {
             )
             toZone.AvatarEvents ! BundledEnvelope(
               MessageEnvelope(toName, SendResponse(
-                OutfitMembershipResponse(
-                  OutfitMembershipResponse.PacketType.InviteAccepted, Error.NoError, 0,
-                  toCharId, fromCharId, toName, outfitName, to_actor = true
-                ),
+                //no InviteAccepted to the joining player: the client's member branch of that
+                //family (to_actor = true, `ClientOutfitManagerHandleOutfitMembershipResponse`
+                //0x4c72c0 case 2) is the squad-formation flow's "join the forming outfit"
+                //notice - it fires the `xpe_join_outfit` UI event and opens the outfit
+                //FORMATION window, which the Initial info's formation_completed state then
+                //renders as "formation successful". The stock capture only ever carries the
+                //inviter-side copy of this family (to_actor = false); a player
+                //joining an existing outfit gets their outfit assignment, the member row and
+                //the populated outfit info instead, and the window is pulled through the
+                //outfit request when they open it
                 OutfitEvent(outfitId, Initial(OutfitInfo(
                   outfitName, points, points, memberCount,
-                  OutfitRankNames("", "", "", "", "", "", "", ""),
+                  OutfitRankNames("", "", "", "", "", "", "", ""), // refresh on first window open loads strings
                   outfit.motd.getOrElse(""),
                   outfit.decal,
                   formation_completed = true,
