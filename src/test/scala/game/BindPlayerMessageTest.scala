@@ -16,14 +16,14 @@ class BindPlayerMessageTest extends Specification {
 
   "decode (standard)" in {
     PacketCoding.decodePacket(string_standard).require match {
-      case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
+      case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, mapId, pos) =>
         action mustEqual BindStatus.Unbind
         bindDesc mustEqual ""
         unk1 mustEqual false
         logging mustEqual false
         unk2 mustEqual SpawnGroup.BoundAMS
         unk3 mustEqual 0
-        unk4 mustEqual 0
+        mapId mustEqual 0
         pos mustEqual Vector3.Zero
       case _ =>
         ko
@@ -32,14 +32,14 @@ class BindPlayerMessageTest extends Specification {
 
   "decode (ams)" in {
     PacketCoding.decodePacket(string_ams).require match {
-      case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
+      case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, mapId, pos) =>
         action mustEqual BindStatus.Unavailable
         bindDesc mustEqual "@ams"
         unk1 mustEqual false
         logging mustEqual false
         unk2 mustEqual SpawnGroup.AMS
         unk3 mustEqual 10
-        unk4 mustEqual 0
+        mapId mustEqual 0
         pos mustEqual Vector3.Zero
       case _ =>
         ko
@@ -48,14 +48,14 @@ class BindPlayerMessageTest extends Specification {
 
   "decode (tech)" in {
     PacketCoding.decodePacket(string_tech).require match {
-      case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
+      case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, mapId, pos) =>
         action mustEqual BindStatus.Bind
         bindDesc mustEqual "@tech_plant"
         unk1 mustEqual true
         logging mustEqual true
         unk2 mustEqual SpawnGroup.BoundFacility
         unk3 mustEqual 10
-        unk4 mustEqual 14
+        mapId mustEqual 14
         pos mustEqual Vector3(4610.0f, 6292, 69.625f)
       case _ =>
         ko
@@ -64,14 +64,14 @@ class BindPlayerMessageTest extends Specification {
 
   "decode (akkan)" in {
     PacketCoding.decodePacket(string_akkan).require match {
-      case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
+      case BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, mapId, pos) =>
         action mustEqual BindStatus.Available
         bindDesc mustEqual "@ams"
         unk1 mustEqual true
         logging mustEqual false
         unk2 mustEqual SpawnGroup.AMS
         unk3 mustEqual 4
-        unk4 mustEqual 5
+        mapId mustEqual 5
         pos mustEqual Vector3(2673.039f, 4423.547f, 39.1875f)
       case _ =>
         ko
