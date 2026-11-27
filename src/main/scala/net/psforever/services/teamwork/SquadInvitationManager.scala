@@ -222,7 +222,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
           invitingPlayer,
           None,
           "",
-          unk5=true,
+          is_sender = true,
           Some(None)
         )
       )
@@ -458,7 +458,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
                         ): Unit = {
     val msg = SquadResponse.Membership(SquadResponseType.Accept, joiningPlayer, Some(squadLeader), joiningPlayerName, is_sender = false)
     subs.Publish(squadLeader, msg)
-    subs.Publish(joiningPlayer, msg.copy(unk5 = true))
+    subs.Publish(joiningPlayer, msg.copy(is_sender = true))
   }
 
   /* rejection */

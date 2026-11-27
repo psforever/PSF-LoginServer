@@ -56,7 +56,7 @@ final case class ProximityInvite(squadLeader: Member, features: SquadFeatures, p
       //manager.acceptanceMessages(invitingPlayer, invitedPlayer, player.Name)
       val msg = SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), player.Name, is_sender = false)
       manager.publish(leaderCharId, msg)
-      manager.publish(invitedPlayer, msg.copy(unk5 = true))
+      manager.publish(invitedPlayer, msg.copy(is_sender = true))
       //clean up invitations specifically for this squad and this position
       val cleanedUpQueuedInvites = manager.cleanUpQueuedInvitesForSquadAndPosition(features.Squad.GUID, position)
       if (features.Squad.Capacity == features.Squad.Size) {
