@@ -331,17 +331,17 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
     case AvatarAction.UseKit(kguid, kObjId) =>
       sendResponse(
         UseItemMessage(
-          ResolvedGuid,
-          kguid,
-          ResolvedGuid,
-          unk2 = 4294967295L,
-          unk3 = false,
-          unk4 = Vector3.Zero,
-          unk5 = Vector3.Zero,
-          unk6 = 126,
-          unk7 = 0, //sequence time?
-          unk8 = 137,
-          kObjId
+          avatarGUID = ResolvedGuid,
+          itemUsedGUID = kguid,
+          objectGUID = ResolvedGuid,
+          actionContext = 4294967295L,
+          weaponFireUse = false,
+          rayStartPos = Vector3.Zero,
+          rayHitPos = Vector3.Zero,
+          pitch = 126,
+          yaw = 0,
+          roll = 137,
+          objectID = kObjId
         )
       )
       sendResponse(ObjectDeleteMessage(kguid, unk1=0))

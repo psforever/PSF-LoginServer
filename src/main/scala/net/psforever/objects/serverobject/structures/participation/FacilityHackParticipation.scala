@@ -110,10 +110,14 @@ trait FacilityHackParticipation extends ParticipationLogic {
       import net.psforever.objects.serverobject.terminals.Terminal
       import net.psforever.objects.GlobalDefinitions
       val mainTerm = building.Amenities.filter(x => x.isInstanceOf[Terminal] && x.Definition == GlobalDefinitions.main_terminal).head.GUID
-      val pkts = SendResponse(
-        GenericObjectActionMessage(mainTerm, 61),
-        GenericObjectActionMessage(mainTerm, 58)
-      )
+      val pkts = if (building.virusInformedDefenders) {
+        SendResponse(
+          GenericObjectActionMessage(mainTerm, 61),
+          GenericObjectActionMessage(mainTerm, 58)
+        )
+      } else {
+        SendResponse(GenericObjectActionMessage(mainTerm, 61))
+      }
       val events = building.Zone.AvatarEvents
       events ! BundledEnvelope(list.map { p =>
         MessageEnvelope(p.Name, pkts)

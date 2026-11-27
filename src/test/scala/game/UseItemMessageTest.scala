@@ -1,30 +1,31 @@
-// Copyright (c) 2017 PSForever
+// Copyright (c) 2026 PSForever
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package game
 
 import org.specs2.mutable._
 import net.psforever.packet._
-import net.psforever.packet.game.packets._
 import net.psforever.packet.game.packets.UseItemMessage
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import scodec.bits._
 
 class UseItemMessageTest extends Specification {
-  val string = hex"10 4B00 0000 7401 FFFFFFFF 4001000000000000000000000000058C803600800000"
+  val string = hex"10 eb06 0000 7b01 FFFFFFFF 4001000000000000000000000000058c803600800000" // LongGameplay.gcap #46046
 
   "decode" in {
     PacketCoding.decodePacket(string).require match {
-      case UseItemMessage(avatar_guid, unk1, object_guid, unk2, unk3, unk4, unk5, unk6, unk7, unk8, itemType) =>
-        avatar_guid mustEqual PlanetSideGUID(75)
-        unk1 mustEqual PlanetSideGUID(0)
-        object_guid mustEqual PlanetSideGUID(372)
-        unk2 mustEqual 0xffffffffL
-        unk3 mustEqual false
-        unk4 mustEqual Vector3(5.0f, 0.0f, 0.0f)
-        unk5 mustEqual Vector3(0.0f, 0.0f, 0.0f)
-        unk6 mustEqual 11
-        unk7 mustEqual 25
-        unk8 mustEqual 0
-        itemType mustEqual 364
+      case UseItemMessage(avatarGUID, itemUsedGUID, objectGUID, actionContext, weaponFireUse, rayStartPos, rayHitPos, pitch, yaw, roll, objectID) =>
+        avatarGUID mustEqual PlanetSideGUID(1771)
+        itemUsedGUID mustEqual PlanetSideGUID(0)
+        objectGUID mustEqual PlanetSideGUID(379)
+        actionContext mustEqual 0xFFFFFFFFL
+        weaponFireUse mustEqual false
+        rayStartPos mustEqual Vector3(5.0f, 0.0f, 0.0f)
+        rayHitPos mustEqual Vector3.Zero
+        pitch mustEqual 11
+        yaw mustEqual 25
+        roll mustEqual 0
+        objectID mustEqual 364
       case _ =>
         ko
     }
@@ -32,17 +33,17 @@ class UseItemMessageTest extends Specification {
 
   "encode" in {
     val msg = UseItemMessage(
-      PlanetSideGUID(75),
-      PlanetSideGUID(0),
-      PlanetSideGUID(372),
-      0xffffffffL,
-      false,
-      Vector3(5.0f, 0.0f, 0.0f),
-      Vector3(0.0f, 0.0f, 0.0f),
-      11,
-      25,
-      0,
-      364
+      avatarGUID = PlanetSideGUID(1771),
+      itemUsedGUID = PlanetSideGUID(0),
+      objectGUID = PlanetSideGUID(379),
+      actionContext = 0xFFFFFFFFL,
+      weaponFireUse = false,
+      rayStartPos = Vector3(5.0f, 0.0f, 0.0f),
+      rayHitPos = Vector3.Zero,
+      pitch = 11,
+      yaw = 25,
+      roll = 0,
+      objectID = 364
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
