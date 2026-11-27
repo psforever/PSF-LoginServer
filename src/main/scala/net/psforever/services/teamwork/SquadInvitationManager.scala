@@ -222,7 +222,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
           invitingPlayer,
           None,
           "",
-          unk5=true,
+          is_sender = true,
           Some(None)
         )
       )
@@ -366,7 +366,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
           case Some((charId, name)) =>
             subs.Publish(
               charId,
-              SquadResponse.Membership(SquadResponseType.Cancel, charId, Some(0L), name, unk5 = false)
+              SquadResponse.Membership(SquadResponseType.Cancel, charId, Some(0L), name, is_sender = false)
             )
           case None => ()
         }
@@ -456,9 +456,9 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
                           joiningPlayer: Long,
                           joiningPlayerName: String
                         ): Unit = {
-    val msg = SquadResponse.Membership(SquadResponseType.Accept, joiningPlayer, Some(squadLeader), joiningPlayerName, unk5 = false)
+    val msg = SquadResponse.Membership(SquadResponseType.Accept, joiningPlayer, Some(squadLeader), joiningPlayerName, is_sender = false)
     subs.Publish(squadLeader, msg)
-    subs.Publish(joiningPlayer, msg.copy(unk5 = true))
+    subs.Publish(joiningPlayer, msg.copy(is_sender = true))
   }
 
   /* rejection */
@@ -533,7 +533,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
   def rejectionMessage(rejectingPlayer: Long): Unit = {
     subs.Publish(
       rejectingPlayer,
-      SquadResponse.Membership(SquadResponseType.Reject, rejectingPlayer, Some(rejectingPlayer), "", unk5 = true)
+      SquadResponse.Membership(SquadResponseType.Reject, rejectingPlayer, Some(rejectingPlayer), "", is_sender = true)
     )
   }
 
@@ -544,11 +544,11 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
                        ): Unit = {
     subs.Publish(
       rejectingPlayer,
-      SquadResponse.Membership(SquadResponseType.Reject, rejectingPlayer, Some(leaderCharId), "", unk5 = true)
+      SquadResponse.Membership(SquadResponseType.Reject, rejectingPlayer, Some(leaderCharId), "", is_sender = true)
     )
     subs.Publish(
       leaderCharId,
-      SquadResponse.Membership(SquadResponseType.Reject, leaderCharId, Some(rejectingPlayer), name, unk5 = false)
+      SquadResponse.Membership(SquadResponseType.Reject, leaderCharId, Some(rejectingPlayer), name, is_sender = false)
     )
   }
 
@@ -887,7 +887,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         removeInvite(leaderCharId)
         subs.Publish(
           leaderCharId,
-          SquadResponse.Membership(SquadResponseType.Cancel, cancellingPlayer, None, entry.requestee.Name, unk5 = false )
+          SquadResponse.Membership(SquadResponseType.Cancel, cancellingPlayer, None, entry.requestee.Name, is_sender = false )
         )
         nextInviteAndRespond(leaderCharId)
         Some(true)
@@ -913,7 +913,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
           val entry = list.head.asInstanceOf[RequestToJoinSquadRole]
           subs.Publish(
             leaderCharId,
-            SquadResponse.Membership(SquadResponseType.Cancel, cancellingPlayer, None, entry.requestee.Name, unk5 = false)
+            SquadResponse.Membership(SquadResponseType.Cancel, cancellingPlayer, None, entry.requestee.Name, is_sender = false)
           )
           queuedInvites.remove(leaderCharId)
           Some(true)
@@ -921,7 +921,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
           val entry = list(index).asInstanceOf[RequestToJoinSquadRole]
           subs.Publish(
             leaderCharId,
-            SquadResponse.Membership(SquadResponseType.Cancel, cancellingPlayer, None, entry.requestee.Name, unk5 = false)
+            SquadResponse.Membership(SquadResponseType.Cancel, cancellingPlayer, None, entry.requestee.Name, is_sender = false)
           )
           queuedInvites.put(leaderCharId, list.take(index) ++ list.drop(index + 1))
           Some(true)
@@ -1185,7 +1185,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
                            ): Boolean = {
     subs.Publish(
       invitingPlayer,
-      SquadResponse.Membership(SquadResponseType.Accept, invitingPlayer, Some(invitedPlayer), player.Name, unk5 = false)
+      SquadResponse.Membership(SquadResponseType.Accept, invitingPlayer, Some(invitedPlayer), player.Name, is_sender = false)
     )
     SquadInvitationManager.handleRequestRole(manager = this, player, invite)
   }

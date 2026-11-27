@@ -622,11 +622,11 @@ class SquadService extends Actor {
               //kicked by the squad leader
               subs.Publish(
                 leavingPlayer,
-                SquadResponse.Membership(SquadResponseType.Leave, leavingPlayer, Some(leader), tplayer.Name, unk5 = false)
+                SquadResponse.Membership(SquadResponseType.Leave, leavingPlayer, Some(leader), tplayer.Name, is_sender = false)
               )
               subs.Publish(
                 leader,
-                SquadResponse.Membership( SquadResponseType.Leave, leader, Some(leavingPlayer), "", unk5 = true)
+                SquadResponse.Membership( SquadResponseType.Leave, leader, Some(leavingPlayer), "", is_sender = true)
               )
               LeaveSquad(leavingPlayer, features)
             }
@@ -1047,7 +1047,7 @@ class SquadService extends Actor {
     )
     //the squad is being disbanded, the squad events channel is also going away; use cached character ids
     info(s"Squad #${squad.GUID.guid} has been disbanded.")
-    subs.Publish(leader, SquadResponse.Membership(SquadResponseType.Disband, leader, None, "", unk5=true))
+    subs.Publish(leader, SquadResponse.Membership(SquadResponseType.Disband, leader, None, "", is_sender = true))
   }
 
   /**
@@ -1075,7 +1075,7 @@ class SquadService extends Actor {
     (membership.filterNot(_ == leader) ++ subs.PublishToMonitorTargets(squad.GUID, Nil))
       .toSet
       .foreach { charId : Long =>
-        subs.Publish(charId, SquadResponse.Membership(SquadResponseType.Disband, charId, None, "", unk5=false))
+        subs.Publish(charId, SquadResponse.Membership(SquadResponseType.Disband, charId, None, "", is_sender = false))
       }
   }
 
