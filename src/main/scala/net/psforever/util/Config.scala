@@ -116,7 +116,24 @@ case class ApiConfig(
     trustedProxies: Seq[String],
     rateLimit: ApiRateLimitConfig,
     cacheTtl: FiniteDuration,
-    database: ApiDatabaseConfig
+    database: ApiDatabaseConfig,
+    sessions: ApiSessionsConfig,
+    signIn: ApiSignInConfig
+)
+
+case class ApiSessionsConfig(
+    idleTimeout: FiniteDuration,
+    maxLifetime: FiniteDuration,
+    gmTotpRequired: Boolean,
+    totpIssuer: String
+)
+
+case class ApiSignInConfig(
+    freeFailures: Int,
+    maxDelayPerAddress: FiniteDuration,
+    maxDelayPerUsername: FiniteDuration,
+    maxConcurrentPasswordChecks: Int,
+    passwordCheckQueue: Int
 )
 
 case class ApiDatabaseConfig(

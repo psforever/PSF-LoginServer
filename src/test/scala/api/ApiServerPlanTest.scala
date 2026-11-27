@@ -2,7 +2,15 @@
 package api
 
 import net.psforever.api.ApiServer
-import net.psforever.util.{AdminApiConfig, ApiConfig, ApiDatabaseConfig, ApiListenerConfig, ApiRateLimitConfig}
+import net.psforever.util.{
+  AdminApiConfig,
+  ApiConfig,
+  ApiDatabaseConfig,
+  ApiListenerConfig,
+  ApiRateLimitConfig,
+  ApiSessionsConfig,
+  ApiSignInConfig
+}
 import org.specs2.mutable._
 
 import scala.concurrent.duration._
@@ -16,7 +24,9 @@ class ApiServerPlanTest extends Specification {
       adminPort: Int = 51003,
       token: String = "",
       proxies: Seq[String] = Nil,
-      databaseConnections: Int = 4
+      databaseConnections: Int = 4,
+      sessions: ApiSessionsConfig = ApiSessionsConfig(1.day, 7.days, gmTotpRequired = false, "PSForever"),
+      signIn: ApiSignInConfig = ApiSignInConfig(5, 15.minutes, 1.minute, 2, 8)
   ): ApiConfig =
     ApiConfig(
       ApiListenerConfig(publicBind, 51002),
@@ -24,7 +34,9 @@ class ApiServerPlanTest extends Specification {
       proxies,
       ApiRateLimitConfig(60, 20, 10000),
       5.seconds,
-      ApiDatabaseConfig(databaseConnections)
+      ApiDatabaseConfig(databaseConnections),
+      sessions,
+      signIn
     )
 
   private def plan(c: ApiConfig, legacy: Boolean = false) = ApiServer.plan(c, legacy, loopbackOnly)
@@ -67,6 +79,22 @@ class ApiServerPlanTest extends Specification {
 
     "refuse an API database pool with no connections" in {
       plan(config(databaseConnections = 0)) must beLeft
+    }
+
+    "refuse session lifetimes that contradict each other" in {
+      plan(config(sessions = ApiSessionsConfig(2.days, 1.day, gmTotpRequired = false, "PSForever"))) must beLeft
+      plan(config(sessions = ApiSessionsConfig(10.seconds, 1.day, gmTotpRequired = false, "PSForever"))) must beLeft
+    }
+
+    "refuse a TOTP issuer authenticator apps could not show" in {
+      plan(config(sessions = ApiSessionsConfig(1.day, 7.days, gmTotpRequired = true, "PS:Forever"))) must beLeft
+      plan(config(sessions = ApiSessionsConfig(1.day, 7.days, gmTotpRequired = true, " "))) must beLeft
+    }
+
+    "refuse sign-in limits that would stop every sign-in or never slow one down" in {
+      plan(config(signIn = ApiSignInConfig(5, 15.minutes, 1.minute, 0, 8))) must beLeft
+      plan(config(signIn = ApiSignInConfig(-1, 15.minutes, 1.minute, 2, 8))) must beLeft
+      plan(config(signIn = ApiSignInConfig(5, 0.seconds, 1.minute, 2, 8))) must beLeft
     }
 
     "warn when the public surface is reachable with no proxy in front" in {
