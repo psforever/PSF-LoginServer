@@ -115,7 +115,12 @@ case class ApiConfig(
     admin: AdminApiConfig,
     trustedProxies: Seq[String],
     rateLimit: ApiRateLimitConfig,
-    cacheTtl: FiniteDuration
+    cacheTtl: FiniteDuration,
+    database: ApiDatabaseConfig
+)
+
+case class ApiDatabaseConfig(
+    maxConnections: Int
 )
 
 case class ApiListenerConfig(

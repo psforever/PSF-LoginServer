@@ -72,6 +72,7 @@ object ApiServer {
       Option.when(limit.burst <= 0)("api.rate-limit.burst must be positive"),
       Option.when(limit.maxTrackedAddresses <= 0)("api.rate-limit.max-tracked-addresses must be positive"),
       Option.when(config.cacheTtl < 1.second)("api.cache-ttl must be at least one second"),
+      Option.when(config.database.maxConnections <= 0)("api.database.max-connections must be positive"),
       Option.when(token.nonEmpty && admin.port == config.public.port)(
         s"api.admin.port and api.public.port are both ${admin.port}; the two surfaces need separate ports"
       ),

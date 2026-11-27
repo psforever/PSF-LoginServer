@@ -2,7 +2,7 @@
 package api
 
 import net.psforever.api.ApiServer
-import net.psforever.util.{AdminApiConfig, ApiConfig, ApiListenerConfig, ApiRateLimitConfig}
+import net.psforever.util.{AdminApiConfig, ApiConfig, ApiDatabaseConfig, ApiListenerConfig, ApiRateLimitConfig}
 import org.specs2.mutable._
 
 import scala.concurrent.duration._
@@ -15,14 +15,16 @@ class ApiServerPlanTest extends Specification {
       adminBind: String = "127.0.0.1",
       adminPort: Int = 51003,
       token: String = "",
-      proxies: Seq[String] = Nil
+      proxies: Seq[String] = Nil,
+      databaseConnections: Int = 4
   ): ApiConfig =
     ApiConfig(
       ApiListenerConfig(publicBind, 51002),
       AdminApiConfig(adminBind, adminPort, token),
       proxies,
       ApiRateLimitConfig(60, 20, 10000),
-      5.seconds
+      5.seconds,
+      ApiDatabaseConfig(databaseConnections)
     )
 
   private def plan(c: ApiConfig, legacy: Boolean = false) = ApiServer.plan(c, legacy, loopbackOnly)
@@ -61,6 +63,10 @@ class ApiServerPlanTest extends Specification {
 
     "refuse invalid trusted proxies" in {
       plan(config(proxies = Seq("not-an-address"))) must beLeft
+    }
+
+    "refuse an API database pool with no connections" in {
+      plan(config(databaseConnections = 0)) must beLeft
     }
 
     "warn when the public surface is reachable with no proxy in front" in {
