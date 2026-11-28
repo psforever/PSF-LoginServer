@@ -170,13 +170,11 @@ final class SessionService(
           val expired =
             now - session.lastSeenAtMs >= settings.idleTimeoutMs ||
               now - session.createdAtMs >= settings.maxLifetimeMs
-          // Each change ends exactly the sessions it invalidated. Deleting every session of the account on
-          // a stale fingerprint would let a token left over from before a password change end a session
-          // signed in after it, and keep doing so on every request that token makes. A session that loses
-          // its GM rights ends on its own next request, so it only needs deleting itself.
+          // Each session ends on its own request. A stale token ends only itself, so a leftover from before
+          // a password change can never touch a session signed in after it. A session that loses its GM
+          // rights or expires is likewise deleted on its own next request.
           if (account.inactive) store.deleteAccountSessions(account.id).map(_ => None)
-          else if (session.credentialFingerprint != current)
-            store.deleteStaleSessions(account.id, current).map(_ => None)
+          else if (session.credentialFingerprint != current) store.deleteSession(tokenDigest).map(_ => None)
           else if ((session.gmAtIssue && !account.gm) || expired) store.deleteSession(tokenDigest).map(_ => None)
           else {
             val touched = now - session.lastSeenAtMs >= TouchIntervalMs

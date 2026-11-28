@@ -56,11 +56,6 @@ final class InMemoryApiStore extends ApiStore {
   override def deleteAccountSessions(accountId: Int): Future[Unit] =
     done(sessions.filterInPlace { case (_, s) => s.accountId != accountId })
 
-  override def deleteStaleSessions(accountId: Int, credentialFingerprint: String): Future[Unit] =
-    done(sessions.filterInPlace {
-      case (_, s) => !(s.accountId == accountId && s.credentialFingerprint != credentialFingerprint)
-    })
-
   override def deleteExpiredSessions(idleCutoffMs: Long, createdCutoffMs: Long): Future[Long] =
     done {
       val before = sessions.size

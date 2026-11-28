@@ -55,13 +55,6 @@ trait ApiStore {
 
   def deleteAccountSessions(accountId: Int): Future[Unit]
 
-  /**
-    * Delete an account's sessions issued against a credential other than `credentialFingerprint`, so a
-    * token left over from before a password change ends the sessions that change invalidated and leaves
-    * the ones signed in after it.
-    */
-  def deleteStaleSessions(accountId: Int, credentialFingerprint: String): Future[Unit]
-
   /** Delete sessions idle since before `idleCutoffMs` or created before `createdCutoffMs`; returns how many. */
   def deleteExpiredSessions(idleCutoffMs: Long, createdCutoffMs: Long): Future[Long]
 
@@ -185,15 +178,6 @@ final class PostgresApiStore(databaseConfig: TypesafeConfig, maxConnections: Int
 
   override def deleteAccountSessions(accountId: Int): Future[Unit] =
     ctx.run(query[persistence.ApiSession].filter(_.accountId == lift(accountId)).delete).map(_ => ())
-
-  override def deleteStaleSessions(accountId: Int, credentialFingerprint: String): Future[Unit] =
-    ctx
-      .run(
-        query[persistence.ApiSession]
-          .filter(s => s.accountId == lift(accountId) && s.credentialFingerprint != lift(credentialFingerprint))
-          .delete
-      )
-      .map(_ => ())
 
   override def deleteExpiredSessions(idleCutoffMs: Long, createdCutoffMs: Long): Future[Long] =
     ctx.run(

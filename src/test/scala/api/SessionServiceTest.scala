@@ -166,6 +166,18 @@ class SessionServiceTest extends Specification with AfterAll {
       f.caller(fresh).map(_.account.username) must beSome("player")
     }
 
+    "end only the stale token that was presented, leaving other stale sessions alone" in {
+      val f = new Fixture()
+      f.store.addAccount(1, "player", "hunter2")
+      val stale = f.token("player", "hunter2")
+      // A session issued against an older credential must not be swept up by this token's request.
+      val other = SessionService.digest("other")
+      f.store.sessions(other) = StoredSession(other, 1, f.now, f.now, "0" * 64, gmAtIssue = false, mfa = false)
+      f.store.update(1)(_.copy(passhash = "correct horse".bcryptBounded(4)))
+      f.caller(stale) must beNone
+      f.store.sessions.contains(other) must beTrue
+    }
+
     "end a session that loses GM rights without ending a session of the same account that never had them" in {
       val f = new Fixture()
       f.store.addAccount(1, "player", "hunter2")
