@@ -7,13 +7,14 @@ import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorSystem => ClassicActorSystem}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.settings.ServerSettings
 import akka.util.Timeout
 import net.psforever.services.{InterstellarClusterService, ServiceManager}
 import net.psforever.util.{ApiConfig, Config}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
@@ -127,6 +128,7 @@ object ApiServer {
         fail()
       case Right(plan) =>
         plan.warnings.foreach(w => log.warn(s"PSF-HTTP API: $w"))
+        val apiContext: ExecutionContextExecutor = system.dispatchers.lookup("api-dispatcher")
         val players = new CachedValue[Seq[OnlinePlayer]](
           config.cacheTtl,
           config.cacheTtl * MaxStalePeriods.toLong,
@@ -143,9 +145,9 @@ object ApiServer {
           ),
           plan.proxies,
           config.cacheTtl,
-          Some(sessionApi(config))
+          Some(sessionApi(config, apiContext))
         )
-        bind("public", config.public.bind, config.public.port, public.route)
+        bind("public", config.public.bind, config.public.port, withExecutionContext(apiContext) { public.route })
         plan.adminToken match {
           case Some(token) =>
             val admin = new AdminApi(
@@ -153,7 +155,7 @@ object ApiServer {
               () => Config.config,
               () => system.scheduler.scheduleOnce(1.second)(system.terminate())(system.dispatcher)
             )
-            bind("admin", config.admin.bind, config.admin.port, admin.route)
+            bind("admin", config.admin.bind, config.admin.port, withExecutionContext(apiContext) { admin.route })
           case None =>
             log.info("PSF-HTTP API (admin) is off; set api.admin.token to turn it on")
         }
@@ -163,16 +165,16 @@ object ApiServer {
     * The session routes, on resources of the API's own: its dispatcher, its database pool and its
     * password-check threads (decision Q15). Expired sessions are swept out hourly.
     *
-    * What the API can queue runs there: the database, the password checks, and everything waiting on them.
-    * What does not is akka-http's own request handling. akka-http 10.2 gives a listener no way to name the
-    * dispatcher its route runs on -- `ServerSettings` has no `dispatcher` and `Route` no
-    * `withExecutionContext` -- so matching a request and reading its four-kilobyte JSON body happen on the
-    * default dispatcher, which is sized for server load and never blocks on anything here.
+    * The listeners wrap both surfaces in `withExecutionContext(apiContext)`, so route matching and every
+    * future continuation run on the API's dispatcher. akka-http still parses requests and reads the
+    * four-kilobyte JSON body on its own materializer, which is non-blocking and capped here.
     */
-  private def sessionApi(config: ApiConfig)(implicit system: ClassicActorSystem): SessionApi = {
-    implicit val apiContext: ExecutionContext = system.dispatchers.lookup("api-dispatcher")
-    val sessions                              = config.sessions
-    val signIn                                = config.signIn
+  private def sessionApi(config: ApiConfig, apiContext: ExecutionContextExecutor)(implicit
+      system: ClassicActorSystem
+  ): SessionApi = {
+    implicit val apiExecutionContext: ExecutionContext = apiContext
+    val sessions                                       = config.sessions
+    val signIn                                         = config.signIn
     val service = new SessionService(
       new PostgresApiStore(Config.config.getConfig("database"), config.database.maxConnections),
       new PasswordChecks(signIn.maxConcurrentPasswordChecks, signIn.passwordCheckQueue),
