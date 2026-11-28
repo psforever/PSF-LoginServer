@@ -162,6 +162,12 @@ object ApiServer {
   /**
     * The session routes, on resources of the API's own: its dispatcher, its database pool and its
     * password-check threads (decision Q15). Expired sessions are swept out hourly.
+    *
+    * What the API can queue runs there: the database, the password checks, and everything waiting on them.
+    * What does not is akka-http's own request handling. akka-http 10.2 gives a listener no way to name the
+    * dispatcher its route runs on -- `ServerSettings` has no `dispatcher` and `Route` no
+    * `withExecutionContext` -- so matching a request and reading its four-kilobyte JSON body happen on the
+    * default dispatcher, which is sized for server load and never blocks on anything here.
     */
   private def sessionApi(config: ApiConfig)(implicit system: ClassicActorSystem): SessionApi = {
     implicit val apiContext: ExecutionContext = system.dispatchers.lookup("api-dispatcher")
