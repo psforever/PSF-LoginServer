@@ -2,6 +2,7 @@
 package api
 
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 import net.psforever.api.PasswordChecks
@@ -22,11 +23,13 @@ class PasswordChecksTest extends Specification {
     "run at most the configured number at once, queue a few, and refuse the rest as busy" in {
       val checks  = new PasswordChecks(2, 1)
       val release = new CountDownLatch(1)
+      val started = new CountDownLatch(2)
       val running = new AtomicInteger()
       val peak    = new AtomicInteger()
       def slow(): Int = {
         val now = running.incrementAndGet()
         peak.accumulateAndGet(now, math.max)
+        started.countDown()
         release.await()
         running.decrementAndGet()
       }
@@ -34,6 +37,9 @@ class PasswordChecksTest extends Specification {
         val accepted = (1 to 3).map(_ => checks.run(slow()))
         val refused  = checks.run(slow())
         Await.ready(refused, 5.seconds).value must beSome(Failure(PasswordChecks.Busy))
+        // Both workers must be inside the check before it is released, or the first can finish
+        // before the second increments the running count and the observed peak depends on timing.
+        started.await(5, TimeUnit.SECONDS) must beTrue
         release.countDown()
         accepted.foreach(f => Await.ready(f, 5.seconds))
         (accepted.forall(_.value.exists(_.isSuccess)), peak.get) mustEqual ((true, 2))
