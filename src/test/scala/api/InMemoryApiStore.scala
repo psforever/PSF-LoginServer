@@ -70,8 +70,13 @@ final class InMemoryApiStore extends ApiStore {
 
   override def totp(accountId: Int): Future[Option[StoredTotp]] = done(totps.get(accountId))
 
-  override def savePendingTotp(accountId: Int, secret: String): Future[Unit] =
-    done(totps(accountId) = StoredTotp(accountId, secret, enabled = false, lastUsedStep = 0L))
+  override def savePendingTotp(accountId: Int, secret: String): Future[Boolean] =
+    done(totps.get(accountId) match {
+      case Some(t) if t.enabled => false
+      case _ =>
+        totps(accountId) = StoredTotp(accountId, secret, enabled = false, lastUsedStep = 0L)
+        true
+    })
 
   override def enableTotp(accountId: Int, secret: String, step: Long): Future[Boolean] =
     done(totps.get(accountId) match {

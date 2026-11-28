@@ -287,6 +287,18 @@ class SessionServiceTest extends Specification with AfterAll {
       await(f.service.confirmTotp(caller, f.code(1))) must beFalse
     }
 
+    "not replace an enrolment that another request has already confirmed" in {
+      val f = new Fixture()
+      f.store.addAccount(1, "player", "hunter2")
+      val caller = f.caller(f.token("player", "hunter2")).get
+      await(f.service.beginTotp(caller)) must beSome
+      await(f.service.confirmTotp(caller, f.code(1))) must beTrue
+      // A begin whose read saw a pending row must not turn the confirmed secret back off.
+      await(f.store.savePendingTotp(1, "JBSWY3DPEHPK3PXP")) must beFalse
+      f.store.totps(1).enabled must beTrue
+      await(f.service.beginTotp(caller)) must beNone
+    }
+
     "enable only the pending secret that was checked, and delete only the enabled one" in {
       val f = new Fixture()
       f.store.addAccount(1, "player", "hunter2")

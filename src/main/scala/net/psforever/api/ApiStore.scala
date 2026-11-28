@@ -67,8 +67,11 @@ trait ApiStore {
 
   def totp(accountId: Int): Future[Option[StoredTotp]]
 
-  /** Store a not-yet-confirmed secret, replacing any earlier unconfirmed one. */
-  def savePendingTotp(accountId: Int, secret: String): Future[Unit]
+  /**
+    * Store a not-yet-confirmed secret, replacing an earlier unconfirmed one.
+    * @return whether it was stored; `false` means TOTP was already on, so the secret was left alone
+    */
+  def savePendingTotp(accountId: Int, secret: String): Future[Boolean]
 
   /**
     * Confirm a pending secret, recording the step of the code that confirmed it, but only while that exact
@@ -204,18 +207,26 @@ final class PostgresApiStore(databaseConfig: TypesafeConfig, maxConnections: Int
       .run(query[persistence.AccountTotp].filter(_.accountId == lift(accountId)))
       .map(_.headOption.map(t => StoredTotp(t.accountId, t.secret, t.enabled, t.lastUsedStep)))
 
-  override def savePendingTotp(accountId: Int, secret: String): Future[Unit] =
-    ctx
-      .run(
-        query[persistence.AccountTotp]
-          .insertValue(lift(persistence.AccountTotp(accountId, secret, enabled = false, lastUsedStep = 0L)))
-          .onConflictUpdate(_.accountId)(
-            (t, e) => t.secret -> e.secret,
-            (t, _) => t.enabled -> false,
-            (t, _) => t.lastUsedStep -> 0L
+  override def savePendingTotp(accountId: Int, secret: String): Future[Boolean] = {
+    // Replace only an unconfirmed secret. A matching update means the row was pending; otherwise the row is
+    // either absent or enabled, and the insert tells them apart, so a concurrent confirmation cannot be undone.
+    val replacePending = ctx.run(
+      query[persistence.AccountTotp]
+        .filter(t => t.accountId == lift(accountId) && !t.enabled)
+        .update(_.secret -> lift(secret), _.lastUsedStep -> 0L)
+    )
+    replacePending.flatMap {
+      case n if n > 0 => Future.successful(true)
+      case _ =>
+        ctx
+          .run(
+            query[persistence.AccountTotp]
+              .insertValue(lift(persistence.AccountTotp(accountId, secret, enabled = false, lastUsedStep = 0L)))
+              .onConflictIgnore
           )
-      )
-      .map(_ => ())
+          .map(_ > 0)
+    }
+  }
 
   override def enableTotp(accountId: Int, secret: String, step: Long): Future[Boolean] =
     ctx

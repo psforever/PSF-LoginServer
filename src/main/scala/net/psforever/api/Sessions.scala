@@ -219,11 +219,11 @@ final class SessionService(
       case _ =>
         val secret = Totp.newSecret(random)
         val text   = Base32.encode(secret)
-        store
-          .savePendingTotp(caller.account.id, text)
-          .map(_ =>
+        store.savePendingTotp(caller.account.id, text).map {
+          case false => None
+          case true =>
             Some(TotpEnrollment(text, Totp.provisioningUri(settings.totpIssuer, caller.account.username, secret)))
-          )
+        }
     }
 
   /**
