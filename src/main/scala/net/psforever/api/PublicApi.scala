@@ -20,12 +20,13 @@ import scala.util.{Failure, Success}
 final case class OnlinePlayer(name: String, faction_id: Int)
 
 /**
-  * The public surface of the PSF-HTTP API: anonymous, read-only, rate-limited and cached.
+  * The public surface of the PSF-HTTP API: rate-limited, safe to serve to the internet.
   *
-  * Everything here is safe to serve to the internet. Nothing needs a credential, nothing changes the
-  * world, and every route reads the same cached player list, so request volume never reaches the game
-  * world more than once per cache period. Callers include the web portal, the launcher and third-party
-  * tools; there is no browser CORS, because browsers reach this data through the portal.
+  * The world reads need no credential and change nothing, and every one reads the same cached player list,
+  * so request volume never reaches the game world more than once per cache period. Sign-in sessions for
+  * the web portal live here too ([[SessionApi]]); they never change the world either. Callers include the
+  * web portal, the launcher and third-party tools; there is no browser CORS, because browsers reach this
+  * data through the portal.
   *
   * @param players    the online players, cached; see [[CachedValue]]
   * @param serverName the server's name as the server browser shows it
@@ -33,6 +34,7 @@ final case class OnlinePlayer(name: String, faction_id: Int)
   * @param limiter    the per-address rate limit
   * @param proxies    which peers may report a client address in `X-Forwarded-For`
   * @param cacheTtl   how long a response may be reused, advertised to caches downstream
+  * @param sessions   the sign-in session routes, if this server offers them
   */
 final class PublicApi(
     players: CachedValue[Seq[OnlinePlayer]],
@@ -40,7 +42,8 @@ final class PublicApi(
     serverType: String,
     limiter: RateLimiter,
     proxies: TrustedProxies,
-    cacheTtl: FiniteDuration
+    cacheTtl: FiniteDuration,
+    sessions: Option[SessionApi] = None
 ) {
   private val log = org.log4s.getLogger
 
@@ -97,7 +100,8 @@ final class PublicApi(
                     "population"   -> PublicApi.population(list)
                   )
                 })
-              }
+              },
+              sessions.map(_.route(client)).getOrElse(reject)
             )
           }
         }

@@ -7,13 +7,14 @@ import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorSystem => ClassicActorSystem}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.settings.ServerSettings
 import akka.util.Timeout
 import net.psforever.services.{InterstellarClusterService, ServiceManager}
 import net.psforever.util.{ApiConfig, Config}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
@@ -61,10 +62,12 @@ object ApiServer {
       legacyAdminBlock: Boolean = false,
       isLoopback: String => Boolean = loopback
   ): Either[Seq[String], Plan] = {
-    val proxies = TrustedProxies.parse(config.trustedProxies)
-    val admin   = config.admin
-    val token   = Option(admin.token).map(_.trim).filter(_.nonEmpty)
-    val limit   = config.rateLimit
+    val proxies  = TrustedProxies.parse(config.trustedProxies)
+    val admin    = config.admin
+    val token    = Option(admin.token).map(_.trim).filter(_.nonEmpty)
+    val limit    = config.rateLimit
+    val sessions = config.sessions
+    val signIn   = config.signIn
 
     val errors = Seq(
       proxies.left.toOption,
@@ -72,6 +75,22 @@ object ApiServer {
       Option.when(limit.burst <= 0)("api.rate-limit.burst must be positive"),
       Option.when(limit.maxTrackedAddresses <= 0)("api.rate-limit.max-tracked-addresses must be positive"),
       Option.when(config.cacheTtl < 1.second)("api.cache-ttl must be at least one second"),
+      Option.when(config.database.maxConnections <= 0)("api.database.max-connections must be positive"),
+      Option.when(sessions.idleTimeout < 1.minute)("api.sessions.idle-timeout must be at least a minute"),
+      Option.when(sessions.maxLifetime < sessions.idleTimeout)(
+        "api.sessions.max-lifetime must be at least api.sessions.idle-timeout"
+      ),
+      Option.when(sessions.totpIssuer.trim.isEmpty || sessions.totpIssuer.contains(":"))(
+        "api.sessions.totp-issuer must be set and may not contain a colon"
+      ),
+      Option.when(signIn.freeFailures < 0)("api.sign-in.free-failures must not be negative"),
+      Option.when(signIn.maxDelayPerAddress < 1.second || signIn.maxDelayPerUsername < 1.second)(
+        "api.sign-in.max-delay-per-address and max-delay-per-username must be at least a second"
+      ),
+      Option.when(signIn.maxConcurrentPasswordChecks <= 0)(
+        "api.sign-in.max-concurrent-password-checks must be positive"
+      ),
+      Option.when(signIn.passwordCheckQueue < 0)("api.sign-in.password-check-queue must not be negative"),
       Option.when(token.nonEmpty && admin.port == config.public.port)(
         s"api.admin.port and api.public.port are both ${admin.port}; the two surfaces need separate ports"
       ),
@@ -109,6 +128,7 @@ object ApiServer {
         fail()
       case Right(plan) =>
         plan.warnings.foreach(w => log.warn(s"PSF-HTTP API: $w"))
+        val apiContext: ExecutionContextExecutor = system.dispatchers.lookup("api-dispatcher")
         val players = new CachedValue[Seq[OnlinePlayer]](
           config.cacheTtl,
           config.cacheTtl * MaxStalePeriods.toLong,
@@ -124,9 +144,10 @@ object ApiServer {
             config.rateLimit.maxTrackedAddresses
           ),
           plan.proxies,
-          config.cacheTtl
+          config.cacheTtl,
+          Some(sessionApi(config, apiContext))
         )
-        bind("public", config.public.bind, config.public.port, public.route)
+        bind("public", config.public.bind, config.public.port, withExecutionContext(apiContext) { public.route })
         plan.adminToken match {
           case Some(token) =>
             val admin = new AdminApi(
@@ -134,11 +155,53 @@ object ApiServer {
               () => Config.config,
               () => system.scheduler.scheduleOnce(1.second)(system.terminate())(system.dispatcher)
             )
-            bind("admin", config.admin.bind, config.admin.port, admin.route)
+            bind("admin", config.admin.bind, config.admin.port, withExecutionContext(apiContext) { admin.route })
           case None =>
             log.info("PSF-HTTP API (admin) is off; set api.admin.token to turn it on")
         }
     }
+
+  /**
+    * The session routes, on resources of the API's own: its dispatcher, its database pool and its
+    * password-check threads (decision Q15). Expired sessions are swept out hourly.
+    *
+    * The listeners wrap both surfaces in `withExecutionContext(apiContext)`, so route matching and every
+    * future continuation run on the API's dispatcher. akka-http still parses requests and reads the
+    * four-kilobyte JSON body on its own materializer, which is non-blocking and capped here.
+    */
+  private def sessionApi(config: ApiConfig, apiContext: ExecutionContextExecutor)(implicit
+      system: ClassicActorSystem
+  ): SessionApi = {
+    implicit val apiExecutionContext: ExecutionContext = apiContext
+    val sessions                                       = config.sessions
+    val signIn                                         = config.signIn
+    val service = new SessionService(
+      new PostgresApiStore(Config.config.getConfig("database"), config.database.maxConnections),
+      new PasswordChecks(signIn.maxConcurrentPasswordChecks, signIn.passwordCheckQueue),
+      SessionSettings(
+        sessions.idleTimeout.toMillis,
+        sessions.maxLifetime.toMillis,
+        sessions.gmTotpRequired,
+        sessions.totpIssuer.trim
+      )
+    )
+    system.scheduler.scheduleWithFixedDelay(1.hour, 1.hour) { () =>
+      service.purgeExpired().failed.foreach(e => log.warn(s"PSF-HTTP API could not purge expired sessions: $e"))
+    }
+    log.info(
+      s"PSF-HTTP API sessions: GMs ${if (sessions.gmTotpRequired) "must" else "need not"} pass a TOTP check at sign-in"
+    )
+    new SessionApi(
+      service,
+      new SignInThrottle(
+        signIn.freeFailures,
+        signIn.maxDelayPerAddress.toSeconds,
+        signIn.maxDelayPerUsername.toSeconds,
+        config.rateLimit.maxTrackedAddresses
+      ),
+      sessions.idleTimeout
+    )
+  }
 
   private def fail()(implicit system: ClassicActorSystem): Unit = {
     failed = true
