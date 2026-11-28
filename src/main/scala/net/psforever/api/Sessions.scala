@@ -237,7 +237,8 @@ final class SessionService(
           case Some(step) =>
             store.enableTotp(caller.account.id, totp.secret, step).flatMap {
               case false => Future.successful(false)
-              case true  => store.setSessionMfa(caller.session.tokenDigest, mfa = true).map(_ => true)
+              case true =>
+                store.setSessionMfaIfTotpEnabled(caller.session.tokenDigest, caller.account.id, totp.secret)
             }
           case None => Future.successful(false)
         }

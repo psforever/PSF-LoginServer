@@ -46,7 +46,12 @@ trait ApiStore {
 
   def touchSession(tokenDigest: String, lastSeenAtMs: Long): Future[Unit]
 
-  def setSessionMfa(tokenDigest: String, mfa: Boolean): Future[Unit]
+  /**
+    * Mark a session as TOTP-checked, but only while the secret the code was checked against is still
+    * enabled. A disable or a new enrolment in between then leaves the session unchecked.
+    * @return whether the session was marked; false means the enrolment changed underneath this request
+    */
+  def setSessionMfaIfTotpEnabled(tokenDigest: String, accountId: Int, secret: String): Future[Boolean]
 
   /** Mark every session of an account as not TOTP-checked. */
   def clearAccountMfa(accountId: Int): Future[Unit]
@@ -163,10 +168,23 @@ final class PostgresApiStore(databaseConfig: TypesafeConfig, maxConnections: Int
       )
       .map(_ => ())
 
-  override def setSessionMfa(tokenDigest: String, mfa: Boolean): Future[Unit] =
+  override def setSessionMfaIfTotpEnabled(
+      tokenDigest: String,
+      accountId: Int,
+      secret: String
+  ): Future[Boolean] =
     ctx
-      .run(query[persistence.ApiSession].filter(_.tokenDigest == lift(tokenDigest)).update(_.mfa -> lift(mfa)))
-      .map(_ => ())
+      .run(
+        query[persistence.ApiSession]
+          .filter(_.tokenDigest == lift(tokenDigest))
+          .filter(_ =>
+            query[persistence.AccountTotp]
+              .filter(t => t.accountId == lift(accountId) && t.enabled && t.secret == lift(secret))
+              .nonEmpty
+          )
+          .update(_.mfa -> true)
+      )
+      .map(_ > 0)
 
   override def clearAccountMfa(accountId: Int): Future[Unit] =
     ctx

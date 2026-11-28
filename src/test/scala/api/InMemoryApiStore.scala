@@ -42,8 +42,20 @@ final class InMemoryApiStore extends ApiStore {
   override def touchSession(tokenDigest: String, lastSeenAtMs: Long): Future[Unit] =
     done(sessions.get(tokenDigest).foreach(s => sessions(tokenDigest) = s.copy(lastSeenAtMs = lastSeenAtMs)))
 
-  override def setSessionMfa(tokenDigest: String, mfa: Boolean): Future[Unit] =
-    done(sessions.get(tokenDigest).foreach(s => sessions(tokenDigest) = s.copy(mfa = mfa)))
+  override def setSessionMfaIfTotpEnabled(
+      tokenDigest: String,
+      accountId: Int,
+      secret: String
+  ): Future[Boolean] =
+    done {
+      val enabled = totps.get(accountId).exists(t => t.enabled && t.secret == secret)
+      sessions.get(tokenDigest) match {
+        case Some(s) if enabled =>
+          sessions(tokenDigest) = s.copy(mfa = true)
+          true
+        case _ => false
+      }
+    }
 
   override def clearAccountMfa(accountId: Int): Future[Unit] =
     done(sessions.mapValuesInPlace {

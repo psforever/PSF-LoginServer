@@ -331,6 +331,19 @@ class SessionServiceTest extends Specification with AfterAll {
       f.store.totps must beEmpty
     }
 
+    "mark a session checked only while the secret is still enabled" in {
+      val f = new Fixture()
+      f.store.addAccount(1, "player", "hunter2")
+      val late       = f.token("player", "hunter2")
+      val caller     = f.caller(f.token("player", "hunter2")).get
+      val enrollment = await(f.service.beginTotp(caller)).get
+      await(f.service.confirmTotp(caller, f.code(1))) must beTrue
+      // A disable between the confirmation and the session write must leave the other session unchecked.
+      await(f.store.deleteTotp(1, enrollment.secret)) must beTrue
+      await(f.store.setSessionMfaIfTotpEnabled(SessionService.digest(late), 1, enrollment.secret)) must beFalse
+      f.store.sessions(SessionService.digest(late)).mfa must beFalse
+    }
+
     "turn off only with a current code, and leave no session counting as checked" in {
       val f = new Fixture(gmTotpRequired = true)
       f.store.addAccount(1, "gm", "hunter2", gm = true)
