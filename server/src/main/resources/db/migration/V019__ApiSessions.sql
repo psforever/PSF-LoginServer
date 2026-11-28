@@ -24,11 +24,6 @@ CREATE TABLE IF NOT EXISTS "api_session" (
 -- Signing out everywhere, and the per-account revocations, delete by account.
 CREATE INDEX IF NOT EXISTS "api_session_account_id_idx" ON "api_session" ("account_id");
 
--- The hourly purge deletes on either column, so it needs both to avoid scanning the table, which only
--- ever grows between sweeps.
-CREATE INDEX IF NOT EXISTS "api_session_last_seen_at_ms_idx" ON "api_session" ("last_seen_at_ms");
-CREATE INDEX IF NOT EXISTS "api_session_created_at_ms_idx" ON "api_session" ("created_at_ms");
-
 -- At most one TOTP secret per account. "enabled" is false between enrolment and the first confirmed
 -- code. "last_used_step" is the 30-second step of the last code accepted; that step and every earlier
 -- one are refused, so an observed code cannot be replayed.
