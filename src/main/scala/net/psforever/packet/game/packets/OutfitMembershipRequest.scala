@@ -1,4 +1,6 @@
-// Copyright (c) 2023-2025 PSForever
+// Copyright (c) 2023 PSForever
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package net.psforever.packet.game.packets
 
 import net.psforever.packet.GamePacketOpcode.Type
@@ -29,12 +31,12 @@ object OutfitMembershipRequestAction {
   final case class Create(
     unk1: String,
     outfit_name: String
-  ) extends OutfitMembershipRequestAction(code = 0)
+  ) extends OutfitMembershipRequestAction(code = 0) // /outfitcreate (bought with outfit credits)
 
   final case class Form(
     unk1: String,
     outfit_name: String
-  ) extends OutfitMembershipRequestAction(code = 1)
+  ) extends OutfitMembershipRequestAction(code = 1) // /outfitcreatefromsquad (squad -> outfit)
 
   final case class Invite(
     target_id: Long,

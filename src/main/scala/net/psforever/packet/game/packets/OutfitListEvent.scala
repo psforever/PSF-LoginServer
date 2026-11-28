@@ -1,4 +1,6 @@
 // Copyright (c) 2025 PSForever
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package net.psforever.packet.game.packets
 
 import net.psforever.packet.GamePacketOpcode.Type
@@ -22,6 +24,20 @@ abstract class OutfitListEventAction(val code: Int)
 
 object OutfitListEventAction {
 
+  /**
+    * The client's outfit-browser handler clears its row collection when it sees this action
+    * before a list of `ListElementOutfit` rows begins.
+    */
+  final case class ListBegin(
+  ) extends OutfitListEventAction(code = 0)
+
+  /**
+    * A payload-free action; the client routes it through the same handler path as
+    * `ListElementOutfit`, but the wire carries no additional fields.
+    */
+  final case class ListEnd(
+  ) extends OutfitListEventAction(code = 1)
+
   final case class ListElementOutfit(
     outfit_id: Long,
     points: Long,
@@ -30,10 +46,10 @@ object OutfitListEventAction {
     outfit_leader: String,
   ) extends OutfitListEventAction(code = 2)
 
-  /*
-    TODO: Check packet when bundle packet has been implemented (packet containing OutfitListEvent packets back to back)
-    For now it seems like there is no valid packet captured
-   */
+  /**
+    * TODO: Check packet when bundle packet has been implemented (packet containing OutfitListEvent packets back to back)
+    * For now it seems like there is no valid packet captured
+    */
   final case class Unk3(
     unk1: Long,
   ) extends OutfitListEventAction(code = 3)
@@ -47,20 +63,24 @@ object OutfitListEventAction {
   object Codecs {
     private val everFailCondition = conditional(included = false, bool)
 
-    val ListElementOutfitCodec: Codec[ListElementOutfit] = (
-      ("unk1" | uint32L) ::
+    val ListBeginCodec: Codec[ListBegin] = PacketHelpers.emptyCodec(ListBegin())
+
+    val ListEndCodec: Codec[ListEnd] = PacketHelpers.emptyCodec(ListEnd())
+
+    val ListElementCodec: Codec[ListElementOutfit] = (
+      ("outfit_id" | uint32L) ::
       ("points" | uint32L) ::
       ("members" | uint32L) ::
       ("outfit_name" | PacketHelpers.encodedWideStringAligned(5)) ::
       ("outfit_leader" | PacketHelpers.encodedWideString)
     ).xmap[ListElementOutfit](
       {
-        case u1 :: points :: members :: outfit_name :: outfit_leader :: HNil =>
-          ListElementOutfit(u1, points, members, outfit_name, outfit_leader)
+        case outfit_id :: points :: members :: outfit_name :: outfit_leader :: HNil =>
+          ListElementOutfit(outfit_id, points, members, outfit_name, outfit_leader)
       },
       {
-        case ListElementOutfit(u1, points, members, outfit_name, outfit_leader) =>
-          u1 :: points :: members :: outfit_name :: outfit_leader :: HNil
+        case ListElementOutfit(outfit_id, points, members, outfit_name, outfit_leader) =>
+          outfit_id :: points :: members :: outfit_name :: outfit_leader :: HNil
       }
     )
 
@@ -111,32 +131,41 @@ object OutfitListEvent extends Marshallable[OutfitListEvent] {
   object PacketType extends Enumeration {
     type Type = Value
 
-    val Unk0: PacketType.Value = Value(0)
-    val Unk1: PacketType.Value = Value(1)
-    val ListElementOutfit: PacketType.Value = Value(2)
+    val ListBegin: PacketType.Value = Value(0)
+    val ListEnd: PacketType.Value = Value(1)
+    val ListElement: PacketType.Value = Value(2)
     val Unk3: PacketType.Value = Value(3)
+    // 4-7: the client decodes these actions without any payload and leaves them unhandled;
+    // the entries have no modelled meaning here either, but keep the codes decodable
     val Unk4: PacketType.Value = Value(4)
     val Unk5: PacketType.Value = Value(5)
-    val unk6: PacketType.Value = Value(6)
-    val unk7: PacketType.Value = Value(7)
+    val Unk6: PacketType.Value = Value(6)
+    val Unk7: PacketType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
 
+  /**
+    * The outfit lists in the outfit browser are bracketed:
+    * `0` clears the list rows collected so far (the client wipes its row collection),
+    * `2` adds one outfit row, and `3` closes a list (carrying one 32-bit value).
+    * Action `1` re-enters the client's row-handling path of `2`, but carries no payload.
+    * Actions `4`-`7` are decoded by the client without any payload and are not handled;
+    * they decode into `Unknown` (as they always did before the modelled actions were
+    * split out) rather than failing the decode.
+    */
   private def selectFromType(code: Int): Codec[OutfitListEventAction] = {
     import OutfitListEventAction.Codecs._
 
     import scala.annotation.switch
 
     ((code: @switch) match {
-      case 0 => unknownCodec(action = code)
-      case 1 => unknownCodec(action = code)
-      case 2 => ListElementOutfitCodec
+      case 0 => ListBeginCodec
+      case 1 => ListEndCodec
+      case 2 => ListElementCodec
       case 3 => Unk3Codec
-      case 4 => unknownCodec(action = code)
-      case 5 => unknownCodec(action = code)
-      case 6 => unknownCodec(action = code)
-      case 7 => unknownCodec(action = code)
+
+      case 4 | 5 | 6 | 7 => unknownCodec(action = code)
 
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[OutfitListEventAction]]

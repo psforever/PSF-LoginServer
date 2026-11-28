@@ -31,7 +31,7 @@ import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.packets.OutfitEventAction.{Initial, OutfitInfo, OutfitRankNames, Unk1}
+import net.psforever.packet.game.packets.OutfitEventAction.{Initial, OutfitInfo, OutfitRankNames, ListEnd}
 import net.psforever.packet.game.packets.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitEvent, OutfitMemberEvent, OutfitMembershipRequest, OutfitMembershipResponse, OutfitRequest, OutfitRequestAction, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.avatar.support.CorpseEnvelope
 import net.psforever.services.avatar.AvatarAction

@@ -14,6 +14,7 @@ project/metals.sbt
 /docs/target
 .vscode
 .bsp
+/*.patch
 
 # User configs
 config/psforever.conf

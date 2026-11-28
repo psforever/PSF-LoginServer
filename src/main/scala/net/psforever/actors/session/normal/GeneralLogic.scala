@@ -844,6 +844,9 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.RejectInvite(_)) =>
         SessionOutfitHandlers.HandleOutfitInviteReject(player)
 
+      case OutfitMembershipRequest(_, OutfitMembershipRequestAction.CancelInvite(targetId, targetName)) =>
+        SessionOutfitHandlers.HandleOutfitInviteCancel(targetId, targetName, player)
+
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.Kick(memberId, _)) =>
         if (player.outfit_id != 0) {
           SessionOutfitHandlers.HandleOutfitKick(zones, memberId, player, sessionLogic)
@@ -862,7 +865,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     pkt match {
 
       case OutfitRequest(_, OutfitRequestAction.Motd(message)) =>
-        //SessionOutfitHandlers.HandleOutfitMotd(zones, message, player)
+        SessionOutfitHandlers.HandleOutfitMotd(zones, message, player)
 
       case OutfitRequest(_, OutfitRequestAction.Ranks(List(r1, r2, r3, r4, r5, r6, r7, r8))) =>
         SessionOutfitHandlers.HandleOutfitRank(zones, List(r1, r2, r3, r4, r5, r6, r7, r8), player)

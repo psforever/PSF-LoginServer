@@ -9,7 +9,7 @@ import scodec.bits._
 
 class OutfitEventTest extends Specification {
 
-  val unk0_ABC: ByteVector = ByteVector.fromValidHex(
+  val initial: ByteVector = ByteVector.fromValidHex(
     "8f 1 a8c2 0001" + // packet head
     "2a 0 42006c00610063006b002000410072006d006f0072006500640020005200650061007000650072007300" + // Black Armored Reapers
     "1d9c4d0d" +
@@ -27,8 +27,8 @@ class OutfitEventTest extends Specification {
     "9c 5c0023003000300030003000660066004d0075006d0062006c00650020005c00230030003000330033006600660049006e0066006f0020005c0023003000300036003600660066006900730020005c0023003000300039003900660066007400680065006d006f006f00730065002e00740079007000650066007200610067002e0063006f006d0020005c00230030003000630063006600660070006f007200740020005c002300300030006600660066006600390033003500300020005c0023003000300063006300660066006a006f0069006e0020005c0023003000300039003900660066006900740020005c0023003000300036003600660066006f00720020005c0023003000300033003300660066006200650020005c0023003000300030003000660066006b00690063006b00650064002e00" +
     "0f80" +
     "0000 00737296 24000000 00000000 00000000 0000")
-  val unk1_ABC: ByteVector = hex"8f 2 302a 10 00 0"
-  val unk2_ABC: ByteVector = ByteVector.fromValidHex(
+  val listEnd: ByteVector = hex"8f 2 302a 10 00 0"
+  val update: ByteVector = ByteVector.fromValidHex(
     "8f 4 0201feff" +
       "2e 0 50006c0061006e006500740053006900640065005f0046006f00720065007600650072005f00560061006e007500" + // PlanetSide_Forever_Vanu
       "00000000" +
@@ -45,12 +45,14 @@ class OutfitEventTest extends Specification {
       "80" +
       "0070" +
       "4982 00000000 00000000 00000000 00000000 0000")
-  val unk3_ABC: ByteVector = hex"8f 6 0201 fe fe 0"
-  val unk4_ABC: ByteVector = hex"8f 8 0201 fefe a02a 1000 0"
-  val unk5_ABC: ByteVector = hex"8f a 0201 fefe 0400 0000 0"
+  val leaving: ByteVector = hex"8f 6 0201 fe fe 0"
+  val updateOutfitId: ByteVector = hex"8f 8 0201 fefe a02a 1000 0"
+  val updateMemberCount: ByteVector = hex"8f a 0201 fefe 0400 0000 0"
+  val formationPersistedNotify: ByteVector =  hex"8f d 3ba80e000"
+  val membershipPersistedNotify: ByteVector = hex"8f f 3ba80e000"
 
-  "decode Unk0 ABC" in {
-    PacketCoding.decodePacket(unk0_ABC).require match {
+  "decode Initial" in {
+    PacketCoding.decodePacket(initial).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 25044
         action mustEqual Initial(
@@ -62,8 +64,8 @@ class OutfitEventTest extends Specification {
             OutfitRankNames("Dog Meat","Russian","","","Squad Leaders","Acting Commanders","Reapers",""),
             "\\#0000ffMumble \\#0033ffInfo \\#0066ffis \\#0099ffthemoose.typefrag.com \\#00ccffport \\#00ffff9350 \\#00ccffjoin \\#0099ffit \\#0066ffor \\#0033ffbe \\#0000ffkicked.",
             15,
-            unk11 = true,
-            unk12 = 0,
+            formation_completed = true,
+            formation_deadline = 0,
             created_timestamp = 1210901990,
             0,
             0,
@@ -75,7 +77,7 @@ class OutfitEventTest extends Specification {
     }
   }
 
-  "encode Unk0 ABC" in {
+  "encode Initial" in {
     val msg = OutfitEvent(
       25044,
       Initial(
@@ -87,8 +89,8 @@ class OutfitEventTest extends Specification {
           OutfitRankNames("Dog Meat","Russian","","","Squad Leaders","Acting Commanders","Reapers",""),
           "\\#0000ffMumble \\#0033ffInfo \\#0066ffis \\#0099ffthemoose.typefrag.com \\#00ccffport \\#00ffff9350 \\#00ccffjoin \\#0099ffit \\#0066ffor \\#0033ffbe \\#0000ffkicked.",
           15,
-          unk11 = true,
-          unk12 = 0,
+          formation_completed = true,
+          formation_deadline = 0,
           created_timestamp = 1210901990,
           0,
           0,
@@ -98,31 +100,31 @@ class OutfitEventTest extends Specification {
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk0_ABC
+    pkt mustEqual initial
   }
 
-  "decode Unk1 ABC" in {
-    PacketCoding.decodePacket(unk1_ABC).require match {
+  "decode ListEnd" in {
+    PacketCoding.decodePacket(listEnd).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 529688L
-        action mustEqual Unk1()
+        action mustEqual ListEnd()
       case _ =>
         ko
     }
   }
 
-  "encode Unk1 ABC" in {
+  "encode ListEnd" in {
     val msg = OutfitEvent(
       529688L,
-      Unk1()
+      ListEnd()
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk1_ABC
+    pkt mustEqual listEnd
   }
 
-  "decode Unk2 ABC" in {
-    PacketCoding.decodePacket(unk2_ABC).require match {
+  "decode Update" in {
+    PacketCoding.decodePacket(update).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
         action mustEqual Update(OutfitInfo(
@@ -133,8 +135,8 @@ class OutfitEventTest extends Specification {
           OutfitRankNames("","","","","","","",""),
           "",
           0,
-          unk11 = false,
-          unk12 = 300000,
+          formation_completed = false,
+          formation_deadline = 300000,
           created_timestamp = 0,
           0,
           0,
@@ -145,7 +147,7 @@ class OutfitEventTest extends Specification {
     }
   }
 
-  "encode Unk2 ABC" in {
+  "encode Update" in {
     val msg = OutfitEvent(
       2147418113L,
       Update(
@@ -157,8 +159,8 @@ class OutfitEventTest extends Specification {
           OutfitRankNames("","","","","","","",""),
           "",
           0,
-          unk11 = false,
-          unk12 = 300000,
+          formation_completed = false,
+          formation_deadline = 300000,
           created_timestamp = 0,
           0,
           0,
@@ -168,11 +170,11 @@ class OutfitEventTest extends Specification {
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk2_ABC
+    pkt mustEqual update
   }
 
-  "decode Unk3 ABC" in {
-    PacketCoding.decodePacket(unk3_ABC).require match {
+  "decode Leaving" in {
+    PacketCoding.decodePacket(leaving).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
         action mustEqual Leaving()
@@ -181,18 +183,18 @@ class OutfitEventTest extends Specification {
     }
   }
 
-  "encode Unk3 ABC" in {
+  "encode Leaving" in {
     val msg = OutfitEvent(
       2147418113L,
       Leaving()
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk3_ABC
+    pkt mustEqual leaving
   }
 
-  "decode Unk4 ABC" in {
-    PacketCoding.decodePacket(unk4_ABC).require match {
+  "decode UpdateOutfitId" in {
+    PacketCoding.decodePacket(updateOutfitId).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
         action mustEqual UpdateOutfitId(
@@ -203,7 +205,7 @@ class OutfitEventTest extends Specification {
     }
   }
 
-  "encode Unk4 ABC" in {
+  "encode UpdateOutfitId" in {
     val msg = OutfitEvent(
       2147418113L,
       UpdateOutfitId(
@@ -212,11 +214,11 @@ class OutfitEventTest extends Specification {
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk4_ABC
+    pkt mustEqual updateOutfitId
   }
 
-  "decode Unk5 ABC" in {
-    PacketCoding.decodePacket(unk5_ABC).require match {
+  "decode UpdateMemberCount" in {
+    PacketCoding.decodePacket(updateMemberCount).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
         action mustEqual UpdateMemberCount(
@@ -227,7 +229,7 @@ class OutfitEventTest extends Specification {
     }
   }
 
-  "encode Unk5 ABC" in {
+  "encode UpdateMemberCount" in {
     val msg = OutfitEvent(
       2147418113L,
       UpdateMemberCount(
@@ -236,6 +238,46 @@ class OutfitEventTest extends Specification {
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual unk5_ABC
+    pkt mustEqual updateMemberCount
+  }
+
+  "decode FormationPersistedNotify" in {
+    PacketCoding.decodePacket(formationPersistedNotify).require match {
+      case OutfitEvent(outfit_guid, action) =>
+        outfit_guid mustEqual 513181L
+        action mustEqual FormationPersistedNotify()
+      case _ =>
+        ko
+    }
+  }
+
+  "encode FormationPersistedNotify" in {
+    val msg = OutfitEvent(
+      513181L,
+      FormationPersistedNotify()
+    )
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
+
+    pkt mustEqual formationPersistedNotify
+  }
+
+  "decode MembershipPersistedNotify" in {
+    PacketCoding.decodePacket(membershipPersistedNotify).require match {
+      case OutfitEvent(outfit_guid, action) =>
+        outfit_guid mustEqual 513181L
+        action mustEqual MembershipPersistedNotify()
+      case _ =>
+        ko
+    }
+  }
+
+  "encode MembershipPersistedNotify" in {
+    val msg = OutfitEvent(
+      513181L,
+      MembershipPersistedNotify()
+    )
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
+
+    pkt mustEqual membershipPersistedNotify
   }
 }
