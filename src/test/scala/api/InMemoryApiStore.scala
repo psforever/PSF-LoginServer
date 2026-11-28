@@ -56,6 +56,11 @@ final class InMemoryApiStore extends ApiStore {
   override def deleteAccountSessions(accountId: Int): Future[Unit] =
     done(sessions.filterInPlace { case (_, s) => s.accountId != accountId })
 
+  override def deleteStaleSessions(accountId: Int, credentialFingerprint: String): Future[Unit] =
+    done(sessions.filterInPlace {
+      case (_, s) => !(s.accountId == accountId && s.credentialFingerprint != credentialFingerprint)
+    })
+
   override def deleteExpiredSessions(idleCutoffMs: Long, createdCutoffMs: Long): Future[Long] =
     done {
       val before = sessions.size
@@ -68,10 +73,21 @@ final class InMemoryApiStore extends ApiStore {
   override def savePendingTotp(accountId: Int, secret: String): Future[Unit] =
     done(totps(accountId) = StoredTotp(accountId, secret, enabled = false, lastUsedStep = 0L))
 
-  override def enableTotp(accountId: Int, step: Long): Future[Unit] =
-    done(totps.get(accountId).foreach(t => totps(accountId) = t.copy(enabled = true, lastUsedStep = step)))
+  override def enableTotp(accountId: Int, secret: String, step: Long): Future[Boolean] =
+    done(totps.get(accountId) match {
+      case Some(t) if !t.enabled && t.secret == secret && t.lastUsedStep < step =>
+        totps(accountId) = t.copy(enabled = true, lastUsedStep = step)
+        true
+      case _ => false
+    })
 
-  override def deleteTotp(accountId: Int): Future[Unit] = done(totps.remove(accountId))
+  override def deleteTotp(accountId: Int, secret: String): Future[Boolean] =
+    done(totps.get(accountId) match {
+      case Some(t) if t.enabled && t.secret == secret =>
+        totps.remove(accountId)
+        true
+      case _ => false
+    })
 
   override def useTotpStep(accountId: Int, step: Long): Future[Boolean] =
     done(totps.get(accountId) match {

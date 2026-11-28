@@ -23,7 +23,8 @@ class SessionRoutesTest extends Specification with AfterAll {
   private implicit val formats: Formats    = DefaultFormats
   import system.dispatcher
 
-  private val passwords = new PasswordChecks(2, 8)
+  // Room for every example this specification runs at once; see SessionServiceTest.
+  private val passwords = new PasswordChecks(4, 64)
 
   override def afterAll(): Unit = {
     passwords.shutdown()

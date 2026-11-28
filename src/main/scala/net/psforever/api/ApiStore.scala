@@ -55,6 +55,13 @@ trait ApiStore {
 
   def deleteAccountSessions(accountId: Int): Future[Unit]
 
+  /**
+    * Delete an account's sessions issued against a credential other than `credentialFingerprint`, so a
+    * token left over from before a password change ends the sessions that change invalidated and leaves
+    * the ones signed in after it.
+    */
+  def deleteStaleSessions(accountId: Int, credentialFingerprint: String): Future[Unit]
+
   /** Delete sessions idle since before `idleCutoffMs` or created before `createdCutoffMs`; returns how many. */
   def deleteExpiredSessions(idleCutoffMs: Long, createdCutoffMs: Long): Future[Long]
 
@@ -63,10 +70,20 @@ trait ApiStore {
   /** Store a not-yet-confirmed secret, replacing any earlier unconfirmed one. */
   def savePendingTotp(accountId: Int, secret: String): Future[Unit]
 
-  /** Confirm a pending secret, recording the step of the code that confirmed it. */
-  def enableTotp(accountId: Int, step: Long): Future[Unit]
+  /**
+    * Confirm a pending secret, recording the step of the code that confirmed it, but only while that exact
+    * secret is still pending and its code has not been used. A secret replaced by another request, or a
+    * second confirmation of the same code, then fails instead of enabling a secret nobody checked.
+    * @return whether it was confirmed; `false` means the enrolment changed underneath this request
+    */
+  def enableTotp(accountId: Int, secret: String, step: Long): Future[Boolean]
 
-  def deleteTotp(accountId: Int): Future[Unit]
+  /**
+    * Delete an account's enabled secret, but only while it is still the one this request checked a code
+    * against.
+    * @return whether it was deleted; `false` means the enrolment changed underneath this request
+    */
+  def deleteTotp(accountId: Int, secret: String): Future[Boolean]
 
   /**
     * Record that a code from `step` was used, only if no code from that step or later was used before.
@@ -166,6 +183,15 @@ final class PostgresApiStore(databaseConfig: TypesafeConfig, maxConnections: Int
   override def deleteAccountSessions(accountId: Int): Future[Unit] =
     ctx.run(query[persistence.ApiSession].filter(_.accountId == lift(accountId)).delete).map(_ => ())
 
+  override def deleteStaleSessions(accountId: Int, credentialFingerprint: String): Future[Unit] =
+    ctx
+      .run(
+        query[persistence.ApiSession]
+          .filter(s => s.accountId == lift(accountId) && s.credentialFingerprint != lift(credentialFingerprint))
+          .delete
+      )
+      .map(_ => ())
+
   override def deleteExpiredSessions(idleCutoffMs: Long, createdCutoffMs: Long): Future[Long] =
     ctx.run(
       query[persistence.ApiSession]
@@ -191,17 +217,26 @@ final class PostgresApiStore(databaseConfig: TypesafeConfig, maxConnections: Int
       )
       .map(_ => ())
 
-  override def enableTotp(accountId: Int, step: Long): Future[Unit] =
+  override def enableTotp(accountId: Int, secret: String, step: Long): Future[Boolean] =
     ctx
       .run(
         query[persistence.AccountTotp]
-          .filter(_.accountId == lift(accountId))
+          .filter(t =>
+            t.accountId == lift(accountId) && !t.enabled && t.secret == lift(secret) &&
+              t.lastUsedStep < lift(step)
+          )
           .update(_.enabled -> true, _.lastUsedStep -> lift(step))
       )
-      .map(_ => ())
+      .map(_ > 0)
 
-  override def deleteTotp(accountId: Int): Future[Unit] =
-    ctx.run(query[persistence.AccountTotp].filter(_.accountId == lift(accountId)).delete).map(_ => ())
+  override def deleteTotp(accountId: Int, secret: String): Future[Boolean] =
+    ctx
+      .run(
+        query[persistence.AccountTotp]
+          .filter(t => t.accountId == lift(accountId) && t.enabled && t.secret == lift(secret))
+          .delete
+      )
+      .map(_ > 0)
 
   override def useTotpStep(accountId: Int, step: Long): Future[Boolean] =
     ctx

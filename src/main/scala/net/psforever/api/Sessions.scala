@@ -92,8 +92,10 @@ final case class SessionSettings(
   * A session token is 32 random bytes; only its SHA-256 is stored. Every request re-reads the account, so
   * a change made anywhere, including by the 1.x portal writing to the database directly, takes effect at
   * once: a ban, a password change (detected through a fingerprint of the password hash) or losing GM ends
-  * every session the account has. Sessions also end after `idleTimeoutMs` unused and `maxLifetimeMs` after
-  * sign-in.
+  * the sessions that change invalidated -- all of them for a ban, the ones signed in before the password
+  * change, and the ones carrying GM rights. A session notices on its next request, which is also why a
+  * token left over from before a password change cannot end one signed in after it. Sessions also end
+  * after `idleTimeoutMs` unused and `maxLifetimeMs` after sign-in.
   *
   * @param clock epoch milliseconds, replaceable in tests
   */
@@ -163,15 +165,19 @@ final class SessionService(
       store.session(tokenDigest).flatMap {
         case None => Future.successful(None)
         case Some((session, account)) =>
-          val now = clock()
-          val revoked =
-            account.inactive || session.credentialFingerprint != fingerprint(account) ||
-              (session.gmAtIssue && !account.gm)
+          val now     = clock()
+          val current = fingerprint(account)
           val expired =
             now - session.lastSeenAtMs >= settings.idleTimeoutMs ||
               now - session.createdAtMs >= settings.maxLifetimeMs
-          if (revoked) store.deleteAccountSessions(account.id).map(_ => None)
-          else if (expired) store.deleteSession(tokenDigest).map(_ => None)
+          // Each change ends exactly the sessions it invalidated. Deleting every session of the account on
+          // a stale fingerprint would let a token left over from before a password change end a session
+          // signed in after it, and keep doing so on every request that token makes. A session that loses
+          // its GM rights ends on its own next request, so it only needs deleting itself.
+          if (account.inactive) store.deleteAccountSessions(account.id).map(_ => None)
+          else if (session.credentialFingerprint != current)
+            store.deleteStaleSessions(account.id, current).map(_ => None)
+          else if ((session.gmAtIssue && !account.gm) || expired) store.deleteSession(tokenDigest).map(_ => None)
           else {
             val touched = now - session.lastSeenAtMs >= TouchIntervalMs
             val touch   = if (touched) store.touchSession(tokenDigest, now) else Future.unit
@@ -222,17 +228,19 @@ final class SessionService(
 
   /**
     * Confirm enrolment with a first code. This session then counts as TOTP-checked, so a GM does not have
-    * to sign in again.
+    * to sign in again. Only the secret this request checked a code against is enabled: if another request
+    * restarted the enrolment in the meantime, this one fails rather than turning on a secret nobody
+    * verified, which would leave the account holding one secret and the database another.
     */
   def confirmTotp(caller: Caller, code: String): Future[Boolean] =
     store.totp(caller.account.id).flatMap {
       case Some(totp) if !totp.enabled =>
         Base32.decode(totp.secret).flatMap(Totp.verify(_, code, clock() / 1000L, totp.lastUsedStep)) match {
           case Some(step) =>
-            for {
-              _ <- store.enableTotp(caller.account.id, step)
-              _ <- store.setSessionMfa(caller.session.tokenDigest, mfa = true)
-            } yield true
+            store.enableTotp(caller.account.id, totp.secret, step).flatMap {
+              case false => Future.successful(false)
+              case true  => store.setSessionMfa(caller.session.tokenDigest, mfa = true).map(_ => true)
+            }
           case None => Future.successful(false)
         }
       case _ => Future.successful(false)
@@ -243,12 +251,12 @@ final class SessionService(
     store.totp(caller.account.id).flatMap {
       case Some(totp) if totp.enabled =>
         useCode(totp, code).flatMap {
-          case true =>
-            for {
-              _ <- store.deleteTotp(caller.account.id)
-              _ <- store.clearAccountMfa(caller.account.id)
-            } yield true
           case false => Future.successful(false)
+          case true =>
+            store.deleteTotp(caller.account.id, totp.secret).flatMap {
+              case false => Future.successful(false)
+              case true  => store.clearAccountMfa(caller.account.id).map(_ => true)
+            }
         }
       case _ => Future.successful(false)
     }

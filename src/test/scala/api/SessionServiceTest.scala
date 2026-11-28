@@ -11,7 +11,10 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 class SessionServiceTest extends Specification with AfterAll {
-  private val passwords = new PasswordChecks(2, 8)
+  // specs2 runs the examples of a specification in parallel and most of them check a password through this
+  // pool, so it needs room for all of them at once. The refusal when the pool is full is tested on a pool
+  // of one thread and no queue of its own.
+  private val passwords = new PasswordChecks(4, 64)
 
   override def afterAll(): Unit = passwords.shutdown()
 
@@ -148,6 +151,32 @@ class SessionServiceTest extends Specification with AfterAll {
       f.caller(token) must beNone
     }
 
+    "end the sessions signed in before a password change without ending the ones signed in after it" in {
+      val f = new Fixture()
+      f.store.addAccount(1, "player", "hunter2")
+      val (first, second) = (f.token("player", "hunter2"), f.token("player", "hunter2"))
+      f.store.update(1)(_.copy(passhash = "correct horse".bcryptBounded(4)))
+      val fresh = f.token("player", "correct horse")
+      // The old tab's request ends both of its own sessions...
+      f.caller(first) must beNone
+      f.caller(second) must beNone
+      // ...and never the one signed in with the new password, however often that old token comes back.
+      f.caller(fresh).map(_.account.username) must beSome("player")
+      f.caller(first) must beNone
+      f.caller(fresh).map(_.account.username) must beSome("player")
+    }
+
+    "end a session that loses GM rights without ending a session of the same account that never had them" in {
+      val f = new Fixture()
+      f.store.addAccount(1, "player", "hunter2")
+      val plain = f.token("player", "hunter2")
+      f.store.update(1)(_.copy(gm = true))
+      val gm = f.token("player", "hunter2")
+      f.store.update(1)(_.copy(gm = false))
+      f.caller(gm) must beNone
+      f.caller(plain).isDefined must beTrue
+    }
+
     "survive the game login filling in the launcher password column" in {
       val f = new Fixture()
       f.store.addAccount(1, "player", "hunter2")
@@ -244,6 +273,38 @@ class SessionServiceTest extends Specification with AfterAll {
       first.secret must not(beEqualTo(second.secret))
       await(f.service.confirmTotp(caller, f.code(1))) must beTrue
       await(f.service.beginTotp(caller)) must beNone
+    }
+
+    "confirm an enrolment once, and not twice with the same code" in {
+      val f = new Fixture()
+      f.store.addAccount(1, "player", "hunter2")
+      val caller = f.caller(f.token("player", "hunter2")).get
+      await(f.service.beginTotp(caller)) must beSome
+      await(f.service.confirmTotp(caller, f.code(1))) must beTrue
+      f.store.totps(1).enabled must beTrue
+      // A second request that read the row before the first one enabled it confirms nothing, and grants
+      // this session no fresh TOTP check.
+      await(f.service.confirmTotp(caller, f.code(1))) must beFalse
+    }
+
+    "enable only the pending secret that was checked, and delete only the enabled one" in {
+      val f = new Fixture()
+      f.store.addAccount(1, "player", "hunter2")
+      val caller = f.caller(f.token("player", "hunter2")).get
+      val first  = await(f.service.beginTotp(caller)).get
+      val second = await(f.service.beginTotp(caller)).get
+      second.secret must not(beEqualTo(first.secret))
+      val step = Totp.stepAt(f.now / 1000L)
+      // A confirm whose read is overtaken by a restarted enrolment has to fail rather than enable a secret
+      // nobody verified, which would leave the app and the database holding different secrets.
+      await(f.store.enableTotp(1, first.secret, step)) must beFalse
+      f.store.totps(1).enabled must beFalse
+      await(f.store.enableTotp(1, second.secret, step)) must beTrue
+      await(f.store.enableTotp(1, second.secret, step + 1)) must beFalse
+      await(f.store.deleteTotp(1, first.secret)) must beFalse
+      f.store.totps(1).enabled must beTrue
+      await(f.store.deleteTotp(1, second.secret)) must beTrue
+      f.store.totps must beEmpty
     }
 
     "turn off only with a current code, and leave no session counting as checked" in {
